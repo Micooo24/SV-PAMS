@@ -15,18 +15,21 @@ class Gender (str, Enum):
     other = "other"
     
 class User(BaseModel):
-    firstname = str
-    lastname = str
-    middlename = str
-    address = str
-    barangay = str
-    email = str
-    password = str
-    contact_no = str
-    landline_no = str
-    zipcode = str
-    gender = Optional[Gender] = None
-    img_path = Optional[str] = None
+    firstname: str
+    lastname: str
+    middlename: str
+    address: str
+    barangay: str
+    email: str
+    password: str
+    birthday: date
+    age: int
+    mobile_no: int
+    landline_no: str
+    zip_code: int
+    gender: Optional[Gender] = None
+    img_path: Optional[str] = None
+    role: Optional[Role] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     

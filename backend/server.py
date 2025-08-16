@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Routes 
+from routes import users
 
 # Declaration
 app = FastAPI()
@@ -20,6 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-if __name__ == "__main__":
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+app.include_router(users.router, prefix="/users")
+
+# if __name__ == "__main__":
+#     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+    
+
 
