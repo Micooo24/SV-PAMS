@@ -28,7 +28,7 @@ class User(BaseModel):
     landline_no: str
     zip_code: int
     gender: Optional[Gender] = None
-    img_path: Optional[str] = None
+    img: Optional[str] = None
     role: Optional[Role] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     

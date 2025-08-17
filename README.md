@@ -12,6 +12,9 @@ npm install
 Backend Instructions:
 cd backend
 venv\Scripts\activate
+
+
+uvicorn server:app --reload
 python server.py 
 
 

@@ -18,29 +18,26 @@ from bson import ObjectId
 from datetime import timedelta, datetime, date
 from models.users import Role, Gender
 
-router = APIRouter()
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 # Register Customer/Vendor
-def register(
-    firstname: str = Form(...),
-    lastname: str = Form(...),
-    middlename: str = Form(...),
-    address: str = Form(...),
-    barangay: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    birthday: date = Form(...),
-    age: int = Form(...),
-    mobile_no: int = Form(...),
-    landline_no: str = Form(...),
-    zip_code: int = Form(...),
-    gender: Gender = Form(...), 
-    img: UploadFile = File(None) 
-    
+async def register(
+    firstname: str,
+    lastname: str,
+    middlename: str,
+    address: str,
+    barangay: str,
+    email: str,
+    password: str,
+    birthday: date,
+    age: int,
+    mobile_no: int,
+    landline_no: str,
+    zip_code: int,
+    gender: Gender,
+    role: Role,
+    img: UploadFile = None
 ):
     try:
         if db["users"].find_one({"email": email}):
@@ -51,7 +48,6 @@ def register(
         img_url = None
         if img:
             try:
-                # Ensure the "users" folder exists in Cloudinary
                 result = cloudinary.uploader.upload(img.file, folder="users")
                 img_url = result.get("secure_url")
             except Exception as e:
@@ -61,24 +57,23 @@ def register(
         birthday_str = birthday.strftime("%Y-%m-%d")
         
         user_dict = {
-                "firstname": firstname,
-                "lastname": lastname,
-                "middlename": middlename,
-                "address": address,
-                "barangay": barangay,
-                "email": email,
-                "password": hashed_password.decode('utf-8'),
-                "birthday": birthday_str,
-                "age": age,
-                "mobile_no": mobile_no,
-                "landline_no": landline_no,
-                "zip_code": zip_code,
-                "img_path": img_url,
-                "gender": gender,
-                "role": Role.customer,
-                "created_at": datetime.now().isoformat(),  # Add created_at field
-
-            }
+            "firstname": firstname,
+            "lastname": lastname,
+            "middlename": middlename,
+            "address": address,
+            "barangay": barangay,
+            "email": email,
+            "password": hashed_password.decode('utf-8'),
+            "birthday": birthday_str,
+            "age": age,
+            "mobile_no": mobile_no,
+            "landline_no": landline_no,
+            "zip_code": zip_code,
+            "img": img_url,
+            "gender": gender,
+            "role": role,
+            "created_at": datetime.now().isoformat(),
+        }
 
         inserted_user = db["users"].insert_one(user_dict)
         user_dict["_id"] = str(inserted_user.inserted_id)
@@ -90,4 +85,3 @@ def register(
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-    
