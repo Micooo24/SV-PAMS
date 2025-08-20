@@ -51,7 +51,6 @@ npm run dev
 
 
 Backend (API Server)
-```bash
 
 cd backend
 
@@ -75,7 +74,6 @@ python server.py
 
 
 Mobile Application
-```bash
 
 cd mobile
 
