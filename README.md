@@ -40,7 +40,6 @@ The system provides a centralized platform accessible via web and mobile applica
 
 
 Frontend (Web Application)
-
 ```bash
 cd frontend
 
@@ -52,6 +51,7 @@ npm run dev
 
 
 Backend (API Server)
+```bash
 
 cd backend
 
@@ -75,6 +75,7 @@ python server.py
 
 
 Mobile Application
+```bash
 
 cd mobile
 
