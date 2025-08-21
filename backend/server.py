@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Routes 
-from routes import users
+from routes import users, appointments, permit_applications
 
 # Declaration
 app = FastAPI()
@@ -21,7 +21,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(users.router, prefix="/users")
+
+# For API versioning
+api_app = FastAPI()
+
+
+# Mount all `/api` routes
+app.mount("/api", api_app)
+
+api_app.include_router(users.router, prefix="/users", tags=["Users"])
+api_app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
+api_app.include_router(permit_applications.router, prefix="/permit-applications", tags=["Permit Applications"])
+
+
 
 # if __name__ == "__main__":
 #     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

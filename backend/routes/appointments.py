@@ -23,7 +23,7 @@ from models.appointments import (
     AppointmentSlot
 )
 
-router = APIRouter(prefix="/api/appointments", tags=["Appointments"])
+router = APIRouter()
 
 @router.post("/initialize-slots", status_code=status.HTTP_201_CREATED)
 async def create_appointment_slots(

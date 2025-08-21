@@ -21,7 +21,7 @@ from models.permit_applications import (
 # Assuming you have authentication middleware
 # from middleware.auth import get_current_user, get_admin_user
 
-router = APIRouter(prefix="/api/permit-applications", tags=["Permit Applications"])
+router = APIRouter()
 
 @router.post("/submit", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def submit_application(
