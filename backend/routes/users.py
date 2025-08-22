@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.users import register
+from controllers.users import register, login
 from models.users import Role, Gender
 from datetime import date
 
@@ -28,3 +28,10 @@ async def register_user(
         email, password, birthday, age, mobile_no, 
         landline_no, zip_code, gender, role, img
     )
+
+@router.post("/login")
+async def login_user(
+    email: str = Form(...),
+    password: str = Form(...)
+):
+    return await login(email, password)

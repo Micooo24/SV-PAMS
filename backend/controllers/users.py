@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Request, Depends, Body
 from fastapi.responses import JSONResponse
 
+
 # MongoDB
 from config.db import db
 
@@ -79,6 +80,27 @@ async def register(
         user_dict["_id"] = str(inserted_user.inserted_id)
         return user_dict
     
+    except HTTPException as e:
+        logger.error(f"HTTPException: {str(e)}")
+        raise e
+    except Exception as e:
+        logger.error(f"An error occurred: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
+#Login 
+async def login(email: str, password: str):
+    try:
+        user = db["users"].find_one({"email": email})
+        if not user:
+            raise HTTPException(status_code=400, detail="Invalid email or password")
+
+        if not bcrypt.checkpw(password.encode('utf-8'), user["password"].encode('utf-8')):
+            raise HTTPException(status_code=400, detail="Invalid email or password")
+
+        user["_id"] = str(user["_id"])
+        return {"message": "Login successful", "user": user}
+
     except HTTPException as e:
         logger.error(f"HTTPException: {str(e)}")
         raise e
