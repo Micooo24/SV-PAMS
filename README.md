@@ -39,7 +39,7 @@ The system provides a centralized platform accessible via web and mobile applica
 
 
 
-Frontend (Web Application)
+### Frontend (Web Application)
 ```bash
 cd frontend
 
@@ -48,10 +48,12 @@ npm install
 
 # Start the development server
 npm run dev
+```
 
 
-Backend (API Server)
+### Backend (API Server)
 
+```bash
 cd backend
 
 # Create virtual environment (only first time)
@@ -71,10 +73,13 @@ uvicorn server:app --reload
 
 # Alternative entry point
 python server.py
+```
 
+---
 
-Mobile Application
+### Mobile Application
 
+```bash
 cd mobile
 
 # Install dependencies
@@ -82,15 +87,20 @@ npm install
 
 # Start Expo development server
 npx expo start
+```
+
+---
 
 
-Shortcuts (Terminal)
+### Shortcuts (Terminal)
 
-Mobile
+```bash
+# Mobile
 .\mobile
 
-Frontend
+#Frontend
 .\frontend
 
-Backend
+#Backend
 .\backend.ps1
+```
