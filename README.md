@@ -82,3 +82,15 @@ npm install
 
 # Start Expo development server
 npx expo start
+
+
+Shortcuts (Terminal)
+
+Mobile
+.\mobile
+
+Frontend
+.\frontend
+
+Backend
+.\backend.ps1

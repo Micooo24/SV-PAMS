@@ -34,7 +34,12 @@ api_app.include_router(appointments.router, prefix="/appointments", tags=["Appoi
 api_app.include_router(permit_applications.router, prefix="/permit-applications", tags=["Permit Applications"])
 
 
+# For Localhost
+if __name__ == "__main__":
+    uvicorn.run("server:app", reload=True)
 
+
+# For Deployment
 # if __name__ == "__main__":
 #     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
     
