@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Routes 
-from routes import users, appointments, permit_applications
+from routes import users, appointments, permit_applications, vendors, reports, reviews
 
 # Declaration
 app = FastAPI()
@@ -32,7 +32,9 @@ app.mount("/api", api_app)
 api_app.include_router(users.router, prefix="/users", tags=["Users"])
 api_app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
 api_app.include_router(permit_applications.router, prefix="/permit-applications", tags=["Permit Applications"])
-
+api_app.include_router(vendors.router, prefix="/vendors", tags=["Vendors"])
+api_app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+api_app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 
 # For Localhost
 if __name__ == "__main__":
