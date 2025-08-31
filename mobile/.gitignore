@@ -36,4 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-android
+
+android/
+
+assets/images/
+assets/fonts/
