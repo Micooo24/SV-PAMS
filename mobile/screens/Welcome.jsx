@@ -106,7 +106,7 @@ const Welcome = ({ navigation }) => {
           mode="contained"
           style={styles.button}
           labelStyle={styles.buttonText}
-          onPress={() => navigation && navigation.navigate('Register')}
+          onPress={() => navigation && navigation.navigate('Auth', { screen: 'Register' })}
         >
           Sign up
         </Button>
@@ -115,7 +115,7 @@ const Welcome = ({ navigation }) => {
           <Text style={styles.loginText}>Already a Member? </Text>
           <Text
             style={styles.loginLink}
-            onPress={() => navigation && navigation.navigate('Login')}
+            onPress={() => navigation && navigation.navigate('Auth', { screen: 'Login' })}
           >
             Login here.
           </Text>
