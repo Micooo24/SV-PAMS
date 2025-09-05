@@ -164,7 +164,9 @@ const Register = ({ navigation }) => {
         mode="outlined"
         style={styles.input}
         keyboardType="numeric"
+        editable={false}
         contentStyle={styles.inputContent}
+        placeholder='Auto-calculated from birthday'
       />
 
       {/* Gender Selection */}
@@ -419,7 +421,7 @@ const Register = ({ navigation }) => {
           </Text>
         </View>
       </ScrollView>
-     {open && (
+    {open && (
   <DateTimePicker
     value={date}
     mode="date"
@@ -430,6 +432,18 @@ const Register = ({ navigation }) => {
         setDate(selectedDate);
         const formattedDate = selectedDate.toISOString().split('T')[0];
         handleInputChange('birthday', formattedDate);
+        
+        // Auto-calculate age
+        const today = new Date();
+        const birthDate = new Date(selectedDate);
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        
+        handleInputChange('age', age.toString());
       }
     }}
   />
