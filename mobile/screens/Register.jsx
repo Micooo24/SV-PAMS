@@ -6,33 +6,35 @@ import axios from 'axios';
 import { styles } from '../styles/register.js';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import BASE_URL from '../common/baseurl.js'
+import * as ImagePicker from 'expo-image-picker';
 
 const Register = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
   const [currentSection, setCurrentSection] = useState(0);
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
+
  
 
   const [formData, setFormData] = useState({
     // Personal Information
-    firstName: '',
-    middleName: '',
-    lastName: '',
+    firstname: '',
+    middlename: '',
+    lastname: '',
     birthday: '',
     age: '',
     gender: '',
     img: null,
     
     // Contact Information
-    mobileNumber: '',
-    landlineNumber: '',
+    mobile_no: '',
+    landline_no: '',
     email: '',
     
     // Address Information
     address: '',
     barangay: '',
-    zipCode: '',
+    zip_code: '',
     
     // Account Security
     password: '',
@@ -45,6 +47,27 @@ const Register = ({ navigation }) => {
   if (!fontsLoaded) {
     return null;
   }
+    const pickImage = async () => {
+    // Request permission to access media library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need camera roll permissions to make this work!');
+      return;
+    }
+
+    // Launch image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const selectedImageUri = result.assets[0].uri;
+      handleInputChange('img', selectedImageUri);
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -65,10 +88,6 @@ const Register = ({ navigation }) => {
     }
   };
 
-  const selectImage = () => {
-      console.log('Select profile image');
-    }
-
   const sections = [
     'Personal Information',
     'Contact Information', 
@@ -76,39 +95,86 @@ const Register = ({ navigation }) => {
     'Account Security'
   ];
 
-  
-  const handleRegister = async () => {
-    try{
-    const formDataToSend  = new FormData();
 
-    // Append all fields from formData to FormData
-    Object.keys(formData).forEach((key) => {
-      formDataToSend.append(key, formData[key]);
+const handleRegister = async () => {
+  try {
+    // Validation first
+    if (!formData.firstname || !formData.lastname || !formData.birthday || 
+        !formData.gender || !formData.mobile_no || !formData.email || 
+        !formData.address || !formData.barangay || !formData.zip_code || 
+        !formData.password) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    // Create single FormData instance
+    const formDataToSend = new FormData();
+
+    // Append all text fields (exclude confirmPassword and img)
+    const fieldsToSend = {
+      firstname: formData.firstname,
+      lastname: formData.lastname,
+      middlename: formData.middlename || '',
+      address: formData.address,
+      barangay: formData.barangay,
+      email: formData.email,
+      password: formData.password,
+      birthday: formData.birthday,
+      age: parseInt(formData.age) || 0,
+      mobile_no: formData.mobile_no, // Keep as string to avoid conversion issues
+      landline_no: formData.landline_no || '',
+      zip_code: parseInt(formData.zip_code) || 0,
+      gender: formData.gender,
+      role: 'customer'
+    };
+
+    // Append all fields to FormData
+    Object.entries(fieldsToSend).forEach(([key, value]) => {
+      formDataToSend.append(key, value);
     });
 
-     if (formData.img) {
+    // Handle image separately if exists
+    if (formData.img) {
       const uriParts = formData.img.split('.');
       const fileType = uriParts[uriParts.length - 1];
+      
       formDataToSend.append('img', {
         uri: formData.img,
         name: `photo.${fileType}`,
         type: `image/${fileType}`,
       });
     }
-    //POST Request Register
-     const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
+
+    console.log('Sending registration data...');
+
+    const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
-    console.log('Registration response:', response.data);
-    console.log('Register with:', formDataToSend);
+
+    console.log('Registration successful:', response.data);
+    alert('Registration successful!');
+    
+    if (navigation) {
+      navigation.navigate('Login');
+    }
+
   } catch (error) {
-    console.error('Error during registration:', error);
+    console.error('Registration error:', error.response?.data || error.message);
+    
+    // Better error handling
+    const errorMessage = error.response?.data?.detail || 
+                        error.response?.data?.message || 
+                        'Registration failed. Please try again.';
+    alert(`Registration failed: ${errorMessage}`);
   }
-  };
-
-
+};
   const renderPersonalInfo = () => (
     <View style={styles.sectionContainer}>
       <Text variant="titleLarge" style={styles.sectionTitle}>Personal Information</Text>
@@ -116,7 +182,7 @@ const Register = ({ navigation }) => {
 
       {/* Profile Image */}
       <View style={styles.imageContainer}>
-        <TouchableOpacity onPress={selectImage} style={styles.imagePicker}>
+        <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
           {formData.img ? (
             <Image source={{ uri: formData.img }} style={styles.profileImage} />
           ) : (
@@ -129,8 +195,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="First Name *"
-        value={formData.firstName}
-        onChangeText={(value) => handleInputChange('firstName', value)}
+        value={formData.firstname}
+        onChangeText={(value) => handleInputChange('firstname', value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -138,8 +204,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="Middle Name"
-        value={formData.middleName}
-        onChangeText={(value) => handleInputChange('middleName', value)}
+        value={formData.middlename}
+        onChangeText={(value) => handleInputChange('middlename', value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -147,8 +213,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="Last Name *"
-        value={formData.lastName}
-        onChangeText={(value) => handleInputChange('lastName', value)}
+        value={formData.lastname}
+        onChangeText={(value) => handleInputChange('lastname', value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -219,8 +285,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="Mobile Number *"
-        value={formData.mobileNumber}
-        onChangeText={(value) => handleInputChange('mobileNumber', value)}
+        value={formData.mobile_no}
+        onChangeText={(value) => handleInputChange('mobile_no', value)}
         mode="outlined"
         style={styles.input}
         keyboardType="phone-pad"
@@ -230,8 +296,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="Landline Number"
-        value={formData.landlineNumber}
-        onChangeText={(value) => handleInputChange('landlineNumber', value)}
+        value={formData.landline_no}
+        onChangeText={(value) => handleInputChange('landline_no', value)}
         mode="outlined"
         style={styles.input}
         keyboardType="phone-pad"
@@ -280,8 +346,8 @@ const Register = ({ navigation }) => {
 
       <TextInput
         label="Zip Code *"
-        value={formData.zipCode}
-        onChangeText={(value) => handleInputChange('zipCode', value)}
+        value={formData.zip_code}
+        onChangeText={(value) => handleInputChange('zip_code', value)}
         mode="outlined"
         style={styles.input}
         keyboardType="numeric"
