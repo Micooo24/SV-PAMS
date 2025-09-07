@@ -28,6 +28,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'Poppins-Bold',
     color: '#2563eb',
     textAlign: 'center',
+    marginTop: 20, 
   },
   pageTitle: {
     fontFamily: 'Poppins-Bold',
