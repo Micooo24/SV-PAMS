@@ -6,3 +6,5 @@ models/__pycache__/
 config/__pycache__/
 utils/__pycache__/
 Admin/__pycache__/
+
+config/
