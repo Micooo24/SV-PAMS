@@ -5,6 +5,7 @@ import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
 import { styles } from '../styles/register.js';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import BASE_URL from '../common/baseurl.js'
 
 const Register = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
@@ -76,7 +77,8 @@ const Register = ({ navigation }) => {
   ];
 
   
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    try{
     const formDataToSend  = new FormData();
 
     // Append all fields from formData to FormData
@@ -93,12 +95,18 @@ const Register = ({ navigation }) => {
         type: `image/${fileType}`,
       });
     }
-
+    //POST Request Register
+     const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    console.log('Registration response:', response.data);
     console.log('Register with:', formDataToSend);
+  } catch (error) {
+    console.error('Error during registration:', error);
+  }
   };
-
-
-
 
 
   const renderPersonalInfo = () => (
