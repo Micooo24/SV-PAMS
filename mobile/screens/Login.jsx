@@ -2,20 +2,87 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button, IconButton } from 'react-native-paper';
 import { useGlobalFonts } from '../hooks/font';
+import axios from 'axios';
+import BASE_URL from '../common/baseurl.js';
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   if (!fontsLoaded) {
     return null;
   }
 
-  const handleLogin = () => {
-    // Handle login logic here
-    console.log('Login with:', email, password);
+  const handleLogin = async () => {
+    try {
+      // Validation
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      setLoading(true);
+
+      // Create FormData for login
+      const formData = new FormData();
+      formData.append('email', email.toLowerCase().trim());
+      formData.append('password', password);
+
+      console.log('Attempting login for:', email);
+
+      // Make login request
+      const response = await axios.post(`${BASE_URL}/api/users/login`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Login successful:', response.data);
+
+      // Store user data (you might want to use AsyncStorage or Context)
+      const userData = response.data.user;
+      
+      alert(`Welcome back, ${userData.firstname}!`);
+
+      // Navigate based on user role
+      if (userData.role === 'customer') {
+        navigation?.navigate('CustomerDashboard');
+      } else if (userData.role === 'vendor') {
+        navigation?.navigate('VendorDashboard');
+      } else if (userData.role === 'admin') {
+        navigation?.navigate('AdminDashboard');
+      } else {
+        navigation?.navigate('Home'); // Default navigation
+      }
+
+    } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
+      
+      // Handle specific error messages
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.response?.status === 400) {
+        errorMessage = error.response.data?.detail || 'Invalid email or password';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your connection.';
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,6 +113,7 @@ const Login = ({ navigation }) => {
             autoCapitalize="none"
             autoComplete="email"
             contentStyle={styles.inputContent}
+            disabled={loading}
           />
 
           {/* Password Input */}
@@ -58,6 +126,7 @@ const Login = ({ navigation }) => {
             secureTextEntry={!showPassword}
             autoComplete="password"
             contentStyle={styles.inputContent}
+            disabled={loading}
             right={
               <TextInput.Icon 
                 icon={showPassword ? "eye-off" : "eye"} 
@@ -79,11 +148,13 @@ const Login = ({ navigation }) => {
           {/* Login Button */}
           <Button
             mode="contained"
-            style={styles.loginButton}
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
             labelStyle={styles.buttonText}
             onPress={handleLogin}
+            loading={loading}
+            disabled={loading}
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </Button>
 
           {/* Divider */}
@@ -100,6 +171,7 @@ const Login = ({ navigation }) => {
             labelStyle={styles.socialButtonText}
             icon="google"
             onPress={() => console.log('Google login')}
+            disabled={loading}
           >
             Continue with Google
           </Button>
@@ -110,6 +182,7 @@ const Login = ({ navigation }) => {
             labelStyle={styles.socialButtonText}
             icon="facebook"
             onPress={() => console.log('Facebook login')}
+            disabled={loading}
           >
             Continue with Facebook
           </Button>
@@ -185,6 +258,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 4,
     marginBottom: 24,
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#94a3b8',
   },
   buttonText: {
     fontFamily: 'Poppins-Regular',
