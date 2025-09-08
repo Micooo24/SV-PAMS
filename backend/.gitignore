@@ -7,4 +7,6 @@ config/__pycache__/
 utils/__pycache__/
 Admin/__pycache__/
 
-config/
+# config/
+
+.env
