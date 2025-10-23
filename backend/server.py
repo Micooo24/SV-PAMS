@@ -42,7 +42,7 @@ api_app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 
 #For Mobile
 if __name__ == "__main__":
-    uvicorn.run("server:app", host="192.168.1.182", port=8000, reload=True)
+    uvicorn.run("server:app", host="192.168.56.221", port=8000, reload=True)
 
 # For Deployment
 # if __name__ == "__main__":
