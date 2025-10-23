@@ -56,7 +56,7 @@ const Login = ({ navigation }) => {
 
       // Navigate based on user role
       if (userData.role === 'customer') {
-        navigation?.navigate('CustomerDashboard');
+        navigation?.navigate('Home');
       } else if (userData.role === 'vendor') {
         navigation?.navigate('VendorDashboard');
       } else if (userData.role === 'admin') {
