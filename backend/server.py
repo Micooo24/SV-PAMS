@@ -45,8 +45,8 @@ if __name__ == "__main__":
     uvicorn.run("server:app", host="192.168.56.221", port=8000, reload=True)
 
 # For Deployment
-# if __name__ == "__main__":
-#     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
+if __name__ == "__main__":
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
     
 
 

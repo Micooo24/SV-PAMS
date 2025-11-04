@@ -8,7 +8,7 @@ import {
   StatusBar, 
   Dimensions 
 } from 'react-native';
-import { IconButton } from 'react-native-paper';
+import { IconButton, Button } from 'react-native-paper';
 import { useGlobalFonts } from '../hooks/font';
 
 const { width } = Dimensions.get('window');
@@ -86,6 +86,19 @@ const Home = ({ navigation }) => {
           <Text style={styles.welcomeSubtitle}>
             Revolutionizing street vendor management through technology
           </Text>
+        </View>
+
+        {/* Document Submission Button */}
+        <View style={styles.buttonContainer}>
+          <Button
+            mode="contained"
+            style={styles.docButton}
+            labelStyle={styles.docButtonText}
+            icon="file-document-check"
+            onPress={() => navigation.navigate('DocSubmission')}
+          >
+            Document Submission
+          </Button>
         </View>
 
         {/* Features Section */}
@@ -208,6 +221,22 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 24,
+  },
+
+  // Button Container
+  buttonContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  docButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  docButtonText: {
+    fontSize: 16,
+    fontFamily: 'Poppins-Bold',
+    color: '#fff',
   },
 
   // Features Section

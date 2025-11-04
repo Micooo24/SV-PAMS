@@ -111,6 +111,8 @@ const Welcome = ({ navigation }) => {
           Sign up
         </Button>
 
+        
+
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>Already a Member? </Text>
           <Text
