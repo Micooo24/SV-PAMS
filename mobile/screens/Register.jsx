@@ -125,10 +125,10 @@ const handleRegister = async () => {
       email: formData.email,
       password: formData.password,
       birthday: formData.birthday,
-      age: parseInt(formData.age) || 0,
+      age: formData.age,
       mobile_no: formData.mobile_no, // Keep as string to avoid conversion issues
       landline_no: formData.landline_no || '',
-      zip_code: parseInt(formData.zip_code) || 0,
+      zip_code: formData.zip_code,
       gender: formData.gender,
       role: 'customer'
     };

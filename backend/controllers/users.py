@@ -35,7 +35,7 @@ async def register(
     password: str = Form(...),
     birthday: str = Form(...),
     age: int = Form(...),
-    mobile_no: str = Form(...),
+    mobile_no: int = Form(...),
     landline_no: str = Form(""),
     zip_code: int = Form(...),
     gender: str = Form(...),
@@ -57,11 +57,18 @@ async def register(
                 logger.error(f"Image upload failed: {str(e)}")
                 img_url = None
         
-        # Parse birthday
+        # Parse birthday - Handle both string and date object
         try:
-            birthday_date = datetime.strptime(birthday, "%Y-%m-%d").date()
+            if isinstance(birthday, str):
+                birthday_date = datetime.strptime(birthday, "%Y-%m-%d").date()
+            elif isinstance(birthday, date):
+                birthday_date = birthday
+            else:
+                raise ValueError("Invalid birthday type")
+            
             birthday_str = birthday_date.strftime("%Y-%m-%d")
-        except ValueError:
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Birthday parsing error: {str(e)}, birthday type: {type(birthday)}, value: {birthday}")
             raise HTTPException(status_code=400, detail="Invalid birthday format. Use YYYY-MM-DD")
         
         user_dict = {
@@ -74,7 +81,7 @@ async def register(
             "password": hashed_password.decode('utf-8'),
             "birthday": birthday_str,
             "age": age,
-            "mobile_no": mobile_no.strip(),
+            "mobile_no": mobile_no,
             "landline_no": landline_no.strip(),
             "zip_code": zip_code,
             "img": img_url,
