@@ -6,7 +6,10 @@ from config.db import db
 
 # Cloudinary
 import cloudinary.uploader
-import config.cloudinary_config
+import config.cloudinary_config 
+
+# Image Requirements
+from config.cloudinary_config import upload_image, MAX_FILE_SIZE
 
 # bcrypt
 import bcrypt
