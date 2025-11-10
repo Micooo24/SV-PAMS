@@ -12,14 +12,18 @@ cloudinary.config(
 # Maximum file size in bytes (10MB)
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
+# Supported formats
+IMAGE_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff"]
+DOCUMENT_FORMATS = ["pdf", "doc", "docx", "txt"]
+
 def upload_image(image_file, folder="uploads"):
     """ 
-    Uploads an image to Cloudinary with size validation.
+    Uploads an image/document to Cloudinary with size validation.
     Args:
         image_file: UploadFile object from FastAPI
         folder: Cloudinary folder name
     Returns:
-        Secure URL of uploaded image
+        Secure URL of uploaded file
     """
     try:
         # Read file content
@@ -37,12 +41,26 @@ def upload_image(image_file, folder="uploads"):
         # Reset file pointer to beginning
         image_file.file.seek(0)
         
+        # Get file extension
+        file_extension = image_file.filename.split('.')[-1].lower()
+        
+        # Validate file format
+        all_formats = IMAGE_FORMATS + DOCUMENT_FORMATS
+        if file_extension not in all_formats:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file format. Allowed: {', '.join(all_formats)}"
+            )
+        
+        # Determine resource type
+        resource_type = "image" if file_extension in IMAGE_FORMATS else "raw"
+        
         # Upload to Cloudinary
         response = cloudinary.uploader.upload(
             image_file.file,
             folder=folder,
-            resource_type="image",
-            allowed_formats=["jpg", "jpeg", "png", "gif", "webp"]
+            resource_type=resource_type,
+            allowed_formats=all_formats
         )
         
         return response.get("secure_url")
@@ -50,4 +68,4 @@ def upload_image(image_file, folder="uploads"):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
