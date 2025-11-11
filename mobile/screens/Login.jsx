@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Text, TextInput, Button, IconButton } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
 import BASE_URL from '../common/baseurl.js';
@@ -20,14 +21,14 @@ const Login = ({ navigation }) => {
     try {
       // Validation
       if (!email || !password) {
-        alert('Please enter both email and password');
+        Alert.alert('Validation Error', 'Please enter both email and password');
         return;
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        alert('Please enter a valid email address');
+        Alert.alert('Validation Error', 'Please enter a valid email address');
         return;
       }
 
@@ -49,21 +50,52 @@ const Login = ({ navigation }) => {
 
       console.log('Login successful:', response.data);
 
-      // Store user data (you might want to use AsyncStorage or Context)
+      //  Store user data and token in AsyncStorage
+      try {
+        await AsyncStorage.multiSet([
+          ['access_token', response.data.access_token],
+          ['token_type', response.data.token_type],
+          ['expires_in', response.data.expires_in.toString()],
+          ['user_data', JSON.stringify(response.data.user)],
+          ['user_id', response.data.user._id],
+          ['user_email', response.data.user.email],
+          ['user_firstname', response.data.user.firstname],
+          ['user_lastname', response.data.user.lastname],
+          ['user_role', response.data.user.role],
+          ['user_mobile', response.data.user.mobile_no.toString()],
+          ['user_address', response.data.user.address],
+          ['user_barangay', response.data.user.barangay],
+          ['user_img', response.data.user.img],
+        ]);
+
+        console.log('User data stored in AsyncStorage');
+      } catch (storageError) {
+        console.error('AsyncStorage error:', storageError);
+      }
+
       const userData = response.data.user;
       
-      alert(`Welcome back, ${userData.firstname}!`);
-
-      // Navigate based on user role
-      if (userData.role === 'customer') {
-        navigation?.navigate('Home');
-      } else if (userData.role === 'vendor') {
-        navigation?.navigate('VendorDashboard');
-      } else if (userData.role === 'admin') {
-        navigation?.navigate('AdminDashboard');
-      } else {
-        navigation?.navigate('Home'); // Default navigation
-      }
+      Alert.alert(
+        'Login Successful',
+        `Welcome back, ${userData.firstname}!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate based on user role
+              if (userData.role === 'customer') {
+                navigation?.navigate('Home');
+              } else if (userData.role === 'vendor') {
+                navigation?.navigate('VendorDashboard');
+              } else if (userData.role === 'admin') {
+                navigation?.navigate('AdminDashboard');
+              } else {
+                navigation?.navigate('Home'); // Default navigation
+              }
+            }
+          }
+        ]
+      );
 
     } catch (error) {
       console.error('Login error:', error.response?.data || error.message);
@@ -79,7 +111,7 @@ const Login = ({ navigation }) => {
         errorMessage = 'Network error. Please check your connection.';
       }
       
-      alert(errorMessage);
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
