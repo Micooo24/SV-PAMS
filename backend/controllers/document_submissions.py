@@ -4,15 +4,15 @@ from datetime import datetime
 from bson import ObjectId
 import logging
 
+from utils.document_comparison import compare_documents_with_vision
+
 logger = logging.getLogger(__name__)
+
 
 async def submit_document(file, base_document_id: str, notes: str, current_user: dict):
     """Submit user document for comparison"""
     try:
-        # Get user_id from authenticated user
         user_id = current_user["_id"]
-        
-        # Convert string IDs to ObjectId
         base_doc_oid = ObjectId(base_document_id)
         user_oid = ObjectId(user_id)
         
@@ -26,7 +26,6 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
         
         # Get base document
         base_doc = db["base_documents"].find_one({"_id": base_doc_oid})
-        
         if not base_doc:
             return {
                 "success": False,
@@ -34,10 +33,30 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
             }
         
         # Upload user file to Cloudinary
+        logger.info(f"Uploading user document to Cloudinary...")
         user_file_url = upload_image(file, folder="user_submissions")
+        logger.info(f"User document uploaded: {user_file_url}")
         
-        # Simple comparison logic (you can enhance this later)
-        similarity = 85.0  # Placeholder - implement your comparison algorithm
+        # USE GOOGLE VISION API FOR COMPARISON
+        logger.info(f"Starting document comparison with Google Vision API...")
+        comparison_result = await compare_documents_with_vision(
+            base_url=base_doc["file_url"],
+            user_url=user_file_url
+        )
+        
+        # Handle comparison failure
+        if not comparison_result["success"]:
+            logger.error(f"Comparison failed: {comparison_result.get('error')}")
+            similarity = 0.0
+            comparison_details = {
+                "text_similarity": 0.0,
+                "label_similarity": 0.0,
+                "object_similarity": 0.0
+            }
+        else:
+            similarity = comparison_result["similarity_percentage"]
+            comparison_details = comparison_result["details"]
+            logger.info(f"Comparison successful: {similarity}%")
         
         # Determine status based on similarity
         if similarity >= 90:
@@ -58,13 +77,14 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
             "notes": notes,
             "similarity_percentage": similarity,
             "status": status,
+            "comparison_details": comparison_details,  # Only 3 metrics now
             "submitted_at": datetime.now()
         }
         
         # Insert into MongoDB
         result = db["document_submissions"].insert_one(submission_dict)
         
-        logger.info(f"Document submitted by user {user['email']}: {status}")
+        logger.info(f"Document submitted by user {user['email']}: {status} ({similarity}%)")
         
         return {
             "success": True,
@@ -72,8 +92,11 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
                 "_id": str(result.inserted_id),
                 "user_email": user["email"],
                 "user_name": f"{user['firstname']} {user['lastname']}",
+                "base_document_title": base_doc["title"],
+                "filename": file.filename,
                 "status": status,
                 "similarity_percentage": similarity,
+                "comparison_details": comparison_details,
                 "submitted_at": submission_dict["submitted_at"].isoformat()
             }
         }
@@ -92,19 +115,19 @@ def get_user_submissions(current_user: dict):
         user_id = current_user["_id"]
         user_oid = ObjectId(user_id)
         
-        # Find all submissions for this user
         submissions = list(
             db["document_submissions"]
             .find({"user_id": user_oid})
-            .sort("submitted_at", -1)  # Latest first
+            .sort("submitted_at", -1)
         )
         
-        # Convert ObjectIds to strings for JSON response
         for sub in submissions:
             sub["_id"] = str(sub["_id"])
             sub["user_id"] = str(sub["user_id"])
             sub["base_document_id"] = str(sub["base_document_id"])
             sub["submitted_at"] = sub["submitted_at"].isoformat()
+        
+        logger.info(f"Retrieved {len(submissions)} submissions for user")
         
         return {
             "success": True,
@@ -127,7 +150,7 @@ def get_submission_by_id(submission_id: str, current_user: dict):
         
         submission = db["document_submissions"].find_one({
             "_id": ObjectId(submission_id),
-            "user_id": user_oid  # Ensure user owns this submission
+            "user_id": user_oid
         })
         
         if not submission:
@@ -136,11 +159,12 @@ def get_submission_by_id(submission_id: str, current_user: dict):
                 "error": "Submission not found or you don't have permission to view it"
             }
         
-        # Convert ObjectIds to strings
         submission["_id"] = str(submission["_id"])
         submission["user_id"] = str(submission["user_id"])
         submission["base_document_id"] = str(submission["base_document_id"])
         submission["submitted_at"] = submission["submitted_at"].isoformat()
+        
+        logger.info(f"Retrieved submission {submission_id}")
         
         return {
             "success": True,

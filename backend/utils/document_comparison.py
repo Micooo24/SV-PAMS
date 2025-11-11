@@ -14,7 +14,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 async def analyze_document_with_vision(image_url: str) -> dict:
     """
     Analyze document using Google Vision API
-    Returns extracted text, labels, logos, and objects
+    Returns extracted text, labels, and objects (NO LOGO DETECTION)
     """
     try:
         # Download image from URL
@@ -27,7 +27,7 @@ async def analyze_document_with_vision(image_url: str) -> dict:
         # Base64 encode image
         encoded_image = base64.b64encode(image_content).decode('utf-8')
         
-        # Request payload
+        # Request payload (REMOVED LOGO_DETECTION)
         payload = {
             "requests": [
                 {
@@ -35,10 +35,9 @@ async def analyze_document_with_vision(image_url: str) -> dict:
                         "content": encoded_image
                     },
                     "features": [
-                        {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 1},  #  Extract all text
-                        {"type": "LOGO_DETECTION", "maxResults": 10},          #  Detect logos
-                        {"type": "LABEL_DETECTION", "maxResults": 10},         #  Document classification
-                        {"type": "OBJECT_LOCALIZATION", "maxResults": 10}      #  Stamps/signatures
+                        {"type": "DOCUMENT_TEXT_DETECTION", "maxResults": 1},  # Extract all text
+                        {"type": "LABEL_DETECTION", "maxResults": 10},         # Document classification
+                        {"type": "OBJECT_LOCALIZATION", "maxResults": 10}      # Stamps/signatures
                     ]
                 }
             ]
@@ -74,17 +73,6 @@ async def analyze_document_with_vision(image_url: str) -> dict:
                 for label in annotations["labelAnnotations"]
             ]
         
-        # Extract logos
-        logos = []
-        if "logoAnnotations" in annotations:
-            logos = [
-                {
-                    "logo": logo["description"],
-                    "confidence": logo["score"]
-                }
-                for logo in annotations["logoAnnotations"]
-            ]
-        
         # Extract objects (stamps, signatures, seals)
         objects = []
         if "localizedObjectAnnotations" in annotations:
@@ -102,7 +90,6 @@ async def analyze_document_with_vision(image_url: str) -> dict:
             "success": True,
             "text": extracted_text,
             "labels": labels,
-            "logos": logos,
             "objects": objects
         }
     
@@ -117,7 +104,7 @@ async def analyze_document_with_vision(image_url: str) -> dict:
 async def compare_documents_with_vision(base_url: str, user_url: str) -> dict:
     """
     Compare two documents using Google Vision API
-    Returns similarity percentage and comparison details
+    Returns similarity percentage and comparison details (NO LOGO COMPARISON)
     """
     try:
         # Analyze both documents
@@ -131,15 +118,15 @@ async def compare_documents_with_vision(base_url: str, user_url: str) -> dict:
                 "similarity_percentage": 0.0
             }
         
-        # Calculate similarity
+        # Calculate similarity (3 metrics only)
         similarity_scores = []
         
-        # 1. Text Similarity (40% weight)
+        # 1. Text Similarity (50% weight) - INCREASED
         text_similarity = calculate_text_similarity(
             base_analysis["text"],
             user_analysis["text"]
         )
-        similarity_scores.append(text_similarity * 0.4)
+        similarity_scores.append(text_similarity * 0.5)
         
         # 2. Label Similarity (30% weight)
         label_similarity = calculate_label_similarity(
@@ -148,19 +135,12 @@ async def compare_documents_with_vision(base_url: str, user_url: str) -> dict:
         )
         similarity_scores.append(label_similarity * 0.3)
         
-        # 3. Logo Similarity (20% weight)
-        logo_similarity = calculate_logo_similarity(
-            base_analysis["logos"],
-            user_analysis["logos"]
-        )
-        similarity_scores.append(logo_similarity * 0.2)
-        
-        # 4. Object Similarity (10% weight)
+        # 3. Object Similarity (20% weight) - INCREASED
         object_similarity = calculate_object_similarity(
             base_analysis["objects"],
             user_analysis["objects"]
         )
-        similarity_scores.append(object_similarity * 0.1)
+        similarity_scores.append(object_similarity * 0.2)
         
         # Total similarity
         total_similarity = sum(similarity_scores)
@@ -173,7 +153,6 @@ async def compare_documents_with_vision(base_url: str, user_url: str) -> dict:
             "details": {
                 "text_similarity": round(text_similarity, 1),
                 "label_similarity": round(label_similarity, 1),
-                "logo_similarity": round(logo_similarity, 1),
                 "object_similarity": round(object_similarity, 1)
             }
         }
@@ -221,23 +200,6 @@ def calculate_label_similarity(labels1: list, labels2: list) -> float:
     
     similarity = (len(intersection) / len(union)) * 100
     return min(similarity, 100.0)
-
-
-def calculate_logo_similarity(logos1: list, logos2: list) -> float:
-    """Calculate similarity based on detected logos"""
-    if not logos1 or not logos2:
-        return 0.0
-    
-    logos1_set = {logo["logo"].lower() for logo in logos1}
-    logos2_set = {logo["logo"].lower() for logo in logos2}
-    
-    intersection = logos1_set.intersection(logos2_set)
-    
-    # If both have same logos, high similarity
-    if intersection:
-        return 100.0
-    
-    return 0.0
 
 
 def calculate_object_similarity(objects1: list, objects2: list) -> float:
