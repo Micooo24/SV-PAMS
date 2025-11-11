@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-@router.post("/admin/upload")
+@router.post("/upload")
 async def admin_base_document_upload(
     file: UploadFile = File(...),
     title: str = Form(...),
@@ -42,7 +42,7 @@ async def admin_base_document_upload(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/admin/get-all")
+@router.get("/get-all")
 async def admin_get_base_documents(category: str = None):
     """Admin gets all base documents"""
     try:
@@ -60,7 +60,7 @@ async def admin_get_base_documents(category: str = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/admin/get-single/{document_id}")
+@router.get("/get-single/{document_id}")
 async def admin_get_base_document(document_id: str):
     """Admin gets single base document"""
     try:
