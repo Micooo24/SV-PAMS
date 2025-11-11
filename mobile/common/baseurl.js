@@ -1,12 +1,12 @@
 import { Platform } from 'react-native'
 
 
-let BASEURL = '';
+let BASE_URL = '';
 
 //LOCALHOST
 {Platform.OS == 'android'
-? BASEURL = 'http://192.168.1.182:8000'
-: BASEURL = 'http://172.20.10.3:8000'
+? BASE_URL = 'http://192.168.1.182:8000'
+: BASE_URL = 'http://172.20.10.3:8000'
 }
 
 
@@ -16,4 +16,4 @@ let BASEURL = '';
 //     : baseURL = ''
 //     }
 
-export default BASEURL;
+export default BASE_URL;
