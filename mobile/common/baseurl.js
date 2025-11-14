@@ -5,8 +5,8 @@ let BASE_URL = '';
 
 //LOCALHOST
 {Platform.OS == 'android'
-? BASE_URL = 'http://192.168.1.182:8000'
-: BASE_URL = 'http://172.20.10.3:8000'
+? BASE_URL = 'http://192.168.27.41:8000'
+: BASE_URL = 'http://192.168.27.70:8000'
 }
 
 
