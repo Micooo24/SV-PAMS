@@ -1,9 +1,15 @@
-from ultralytics import YOLO
-from PIL import Image
-import io
+try:
+    from ultralytics import YOLO
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
+    YOLO = None
+    print("Warning: ultralytics not installed. YOLO functionality will be disabled.")
 
 class YOLOModel:
     def __init__(self, model_path: str = "best.pt"):
+        if not YOLO_AVAILABLE:
+            raise ImportError("ultralytics package is required but not installed")
         self.model = YOLO(model_path)
 
     def predict(self, image_bytes: bytes):

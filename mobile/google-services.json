@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "660346544809",
+    "project_id": "sv-pams",
+    "storage_bucket": "sv-pams.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:660346544809:android:22ab34891b36e23674bfb8",
+        "android_client_info": {
+          "package_name": "com.svpams.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCEw-CHHjU9-FUUvNoH9eqGol5uvvAHz30"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

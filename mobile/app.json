@@ -1,54 +1,79 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "SV-PAMS",
+    "slug": "sv-pams",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "svpams",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "plugins": [
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
-        }
-      ],
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you share them."
-        }
-      ]
-    ],
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
+      "package": "com.svpams.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO",
-        "CAMERA",
-        "RECORD_AUDIO",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ],
-      "package": "com.micooo24.mobile"
+      "versionCode": 1
+    },
+    "ios": {
+      "bundleIdentifier": "com.svpams.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.googleusercontent.apps.660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e"
+            ]
+          },
+          {
+            "CFBundleURLSchemes": [
+              "fb1153890940205781"
+            ]
+          }
+        ],
+        "LSApplicationQueriesSchemes": [
+          "fbapi",
+          "fb-messenger-share-api",
+          "fbauth2",
+          "fbshareextension"
+        ]
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@react-native-google-signin/google-signin",
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "1153890940205781",
+          "clientToken": "4097a73147290cd2905c14cd2ccb450b",
+          "displayName": "SV-PAMS",
+          "scheme": "fb1153890940205781",
+          "advertiserIDCollectionEnabled": false,
+          "autoLogAppEventsEnabled": false,
+          "isAutoInitEnabled": true,
+          "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+        }
+      ]
+    ],
+    "extra": {
+      "facebookAppId": "1153890940205781",
+      "facebookClientToken": "4097a73147290cd2905c14cd2ccb450b",
+      "facebookDisplayName": "SV-PAMS"
     }
   }
 }

@@ -1,17 +1,50 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Text, TextInput, Button, IconButton } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import { useGlobalFonts } from '../hooks/font';
-import axios from 'axios';
-import BASE_URL from '../common/baseurl.js';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import { Text, TextInput, Button } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGlobalFonts } from "../hooks/font";
+import axios from "axios";
+import BASE_URL from "../common/baseurl.js";
+import * as WebBrowser from "expo-web-browser";
+import * as Google from "expo-auth-session/providers/google";
+import { authService } from "../services/authService";
+
+WebBrowser.maybeCompleteAuthSession();
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [facebookLoading, setFacebookLoading] = useState(false);
+
+  // Configure Google Auth using Expo
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    expoClientId:
+      "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+    iosClientId:
+      "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+    androidClientId:
+      "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+    webClientId:
+      "660346544809-hajhtjttreqf0srlj3m4lg1qco5vpo3e.apps.googleusercontent.com",
+  });
+
+  useEffect(() => {
+    if (response?.type === "success") {
+      const { authentication } = response;
+      handleGoogleAuth(authentication.idToken);
+    }
+  }, [response]);
 
   if (!fontsLoaded) {
     return null;
@@ -21,14 +54,14 @@ const Login = ({ navigation }) => {
     try {
       // Validation
       if (!email || !password) {
-        Alert.alert('Validation Error', 'Please enter both email and password');
+        Alert.alert("Validation Error", "Please enter both email and password");
         return;
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        Alert.alert('Validation Error', 'Please enter a valid email address');
+        Alert.alert("Validation Error", "Please enter a valid email address");
         return;
       }
 
@@ -36,97 +69,158 @@ const Login = ({ navigation }) => {
 
       // Create FormData for login
       const formData = new FormData();
-      formData.append('email', email.toLowerCase().trim());
-      formData.append('password', password);
+      formData.append("email", email.toLowerCase().trim());
+      formData.append("password", password);
 
-      console.log('Attempting login for:', email);
+      console.log("Attempting login for:", email);
 
       // Make login request
-      const response = await axios.post(`${BASE_URL}/api/users/login`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post(
+        `${BASE_URL}/api/users/login`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      console.log('Login successful:', response.data);
+      console.log("Login successful:", response.data);
 
       //  Store user data and token in AsyncStorage
       try {
         await AsyncStorage.multiSet([
-          ['access_token', response.data.access_token],
-          ['token_type', response.data.token_type],
-          ['expires_in', response.data.expires_in.toString()],
-          ['user_data', JSON.stringify(response.data.user)],
-          ['user_id', response.data.user._id],
-          ['user_email', response.data.user.email],
-          ['user_firstname', response.data.user.firstname],
-          ['user_lastname', response.data.user.lastname],
-          ['user_role', response.data.user.role],
-          ['user_mobile', response.data.user.mobile_no.toString()],
-          ['user_address', response.data.user.address],
-          ['user_barangay', response.data.user.barangay],
-          ['user_img', response.data.user.img],
+          ["access_token", response.data.access_token],
+          ["token_type", response.data.token_type],
+          ["expires_in", response.data.expires_in.toString()],
+          ["user_data", JSON.stringify(response.data.user)],
+          ["user_id", response.data.user._id],
+          ["user_email", response.data.user.email],
+          ["user_firstname", response.data.user.firstname],
+          ["user_lastname", response.data.user.lastname],
+          ["user_role", response.data.user.role],
+          ["user_mobile", response.data.user.mobile_no.toString()],
+          ["user_address", response.data.user.address],
+          ["user_barangay", response.data.user.barangay],
+          ["user_img", response.data.user.img],
         ]);
 
-        console.log('User data stored in AsyncStorage');
+        console.log("User data stored in AsyncStorage");
       } catch (storageError) {
-        console.error('AsyncStorage error:', storageError);
+        console.error("AsyncStorage error:", storageError);
       }
 
       const userData = response.data.user;
-      
-      Alert.alert(
-        'Login Successful',
-        `Welcome back, ${userData.firstname}!`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate based on user role
-              if (userData.role === 'customer') {
-                navigation?.navigate('Home');
-              } else if (userData.role === 'vendor') {
-                navigation?.navigate('VendorDashboard');
-              } else if (userData.role === 'admin') {
-                navigation?.navigate('AdminDashboard');
-              } else {
-                navigation?.navigate('Home'); // Default navigation
-              }
-            }
-          }
-        ]
-      );
 
+      Alert.alert("Login Successful", `Welcome back, ${userData.firstname}!`, [
+        {
+          text: "OK",
+          onPress: () => {
+            // Navigate based on user role
+            if (userData.role === "customer") {
+              navigation?.navigate("Home");
+            } else if (userData.role === "vendor") {
+              navigation?.navigate("VendorDashboard");
+            } else if (userData.role === "admin") {
+              navigation?.navigate("AdminDashboard");
+            } else {
+              navigation?.navigate("Home"); // Default navigation
+            }
+          },
+        },
+      ]);
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
-      
+      console.error("Login error:", error.response?.data || error.message);
+
       // Handle specific error messages
-      let errorMessage = 'Login failed. Please try again.';
-      
+      let errorMessage = "Login failed. Please try again.";
+
       if (error.response?.status === 400) {
-        errorMessage = error.response.data?.detail || 'Invalid email or password';
+        errorMessage =
+          error.response.data?.detail || "Invalid email or password";
       } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.message === 'Network Error') {
-        errorMessage = 'Network error. Please check your connection.';
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.message === "Network Error") {
+        errorMessage = "Network error. Please check your connection.";
       }
-      
-      Alert.alert('Login Failed', errorMessage);
+
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogleAuth = async (idToken) => {
+    setGoogleLoading(true);
+    try {
+      console.log("Google sign-in successful, sending to backend...");
+
+      const response = await authService.googleAuth(idToken);
+
+      console.log("Backend response:", response);
+
+      if (response.requires_otp) {
+        // Navigate to OTP verification screen
+        Alert.alert(
+          "OTP Sent",
+          `A verification code has been sent to ${response.email}`,
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                navigation.navigate("OTPVerification", {
+                  email: response.email,
+                  provider: "google",
+                });
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      Alert.alert(
+        "Login Failed",
+        error.response?.data?.detail || "Google login failed. Please try again."
+      );
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await promptAsync();
+    } catch (error) {
+      console.error("Google Sign-In Error:", error);
+      Alert.alert("Login Failed", "Google login failed. Please try again.");
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    // Temporarily disable Facebook until setup is complete
+    Alert.alert(
+      "Coming Soon",
+      "Facebook login is currently being configured. Please use Google login or email/password."
+    );
+  };
+
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
-          <Text variant="headlineSmall" style={styles.welcomeText}>Welcome Back</Text>
+          <Text variant="headlineLarge" style={styles.logoText}>
+            SV: PAMS
+          </Text>
+          <Text variant="headlineSmall" style={styles.welcomeText}>
+            Welcome Back
+          </Text>
           <Text variant="bodyMedium" style={styles.subtitleText}>
             Sign in to your account to continue
           </Text>
@@ -160,8 +254,8 @@ const Login = ({ navigation }) => {
             contentStyle={styles.inputContent}
             disabled={loading}
             right={
-              <TextInput.Icon 
-                icon={showPassword ? "eye-off" : "eye"} 
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
                 onPress={() => setShowPassword(!showPassword)}
               />
             }
@@ -169,9 +263,11 @@ const Login = ({ navigation }) => {
 
           {/* Forgot Password */}
           <View style={styles.forgotContainer}>
-            <Text 
+            <Text
               style={styles.forgotText}
-              onPress={() => navigation && navigation.navigate('ForgotPassword')}
+              onPress={() =>
+                navigation && navigation.navigate("ForgotPassword")
+              }
             >
               Forgot Password?
             </Text>
@@ -186,7 +282,7 @@ const Login = ({ navigation }) => {
             loading={loading}
             disabled={loading}
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
 
           {/* Divider */}
@@ -202,10 +298,11 @@ const Login = ({ navigation }) => {
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="google"
-            onPress={() => console.log('Google login')}
-            disabled={loading}
+            onPress={handleGoogleLogin}
+            loading={googleLoading}
+            disabled={loading || googleLoading || facebookLoading}
           >
-            Continue with Google
+            {googleLoading ? "Connecting..." : "Continue with Google"}
           </Button>
 
           <Button
@@ -213,10 +310,11 @@ const Login = ({ navigation }) => {
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="facebook"
-            onPress={() => console.log('Facebook login')}
-            disabled={loading}
+            onPress={handleFacebookLogin}
+            loading={facebookLoading}
+            disabled={loading || googleLoading || facebookLoading}
           >
-            Continue with Facebook
+            {facebookLoading ? "Connecting..." : "Continue with Facebook"}
           </Button>
 
           {/* Sign Up Link */}
@@ -224,7 +322,7 @@ const Login = ({ navigation }) => {
             <Text style={styles.signupText}>Don't have an account? </Text>
             <Text
               style={styles.signupLink}
-              onPress={() => navigation && navigation.navigate('Register')}
+              onPress={() => navigation && navigation.navigate("Register")}
             >
               Sign up here
             </Text>
@@ -238,110 +336,110 @@ const Login = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   logoText: {
-    fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
-    textAlign: 'center',
+    fontFamily: "Poppins-Bold",
+    color: "#2563eb",
+    textAlign: "center",
     marginBottom: 16,
   },
   welcomeText: {
-    fontFamily: 'Poppins-Bold',
-    color: '#333',
-    textAlign: 'center',
+    fontFamily: "Poppins-Bold",
+    color: "#333",
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitleText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
-    textAlign: 'center',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
+    textAlign: "center",
   },
   formContainer: {
-    width: '100%',
+    width: "100%",
   },
   input: {
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   inputContent: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
   },
   forgotContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginBottom: 24,
   },
   forgotText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#2563eb',
+    fontFamily: "Poppins-Regular",
+    color: "#2563eb",
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: "#2563eb",
     borderRadius: 8,
     paddingVertical: 4,
     marginBottom: 24,
   },
   loginButtonDisabled: {
-    backgroundColor: '#94a3b8',
+    backgroundColor: "#94a3b8",
   },
   buttonText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
   },
   dividerText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
     marginHorizontal: 16,
     fontSize: 14,
   },
   socialButton: {
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 12,
     paddingVertical: 2,
   },
   socialButtonText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#333',
+    fontFamily: "Poppins-Regular",
+    color: "#333",
     fontSize: 14,
   },
   signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 24,
   },
   signupText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
     fontSize: 14,
   },
   signupLink: {
-    fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
+    fontFamily: "Poppins-Bold",
+    color: "#2563eb",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 
