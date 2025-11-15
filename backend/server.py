@@ -10,9 +10,21 @@ app = FastAPI()
 
 # CORS
 origins = [
+    # Localhost Frontend
     "http://localhost:5173",
+    
+    # mico_url host
+    "http://192.168.1.182:8000",
+    
+    # lei_url
     "http://192.168.27.41:8000",
     "http://192.168.27.70:8000"
+    
+    # janna_url
+    "",
+    
+    # jane_url
+    "",
     
 ]
 
