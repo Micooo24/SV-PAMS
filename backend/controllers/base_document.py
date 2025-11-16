@@ -203,3 +203,31 @@ def update_base_document_by_id(
             "success": False,
             "error": str(e)
         }
+
+def delete_base_document_by_id(document_id: str):
+    """Soft delete base document by ID"""
+    try:
+        result = db["base_documents"].update_one(
+            {"_id": ObjectId(document_id)},
+            {"$set": {"is_active": False, "deleted_at": datetime.now().isoformat()}}
+        )
+        
+        if result.modified_count == 0:
+            return {
+                "success": False,
+                "error": "Document not found or already deleted"
+            }
+        
+        logger.info(f"Base document soft deleted: {document_id}")
+        
+        return {
+            "success": True,
+            "message": "Document deleted successfully"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error deleting document: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

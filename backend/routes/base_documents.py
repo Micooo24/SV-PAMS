@@ -4,7 +4,8 @@ from controllers.base_document import (
     upload_base_document,
     get_all_base_documents,
     get_base_document_by_id,
-    update_base_document_by_id
+    update_base_document_by_id,
+    delete_base_document_by_id
 )
 import logging
 
@@ -113,7 +114,26 @@ async def admin_update_base_document(
     except Exception as e:
         logger.error(f"Update error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
 
+@router.delete("/delete/{document_id}")
+async def admin_delete_base_document(document_id: str):
+    """Admin deletes base document by ID"""
+    try:
+        result = delete_base_document_by_id(document_id)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=400, detail=result["error"])
+        
+        return {
+            "message": result.get("message", "Document deleted successfully")
+        }
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Delete error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # User endpoints (if users also need to view base documents)
 # @router.get("/base-documents")
