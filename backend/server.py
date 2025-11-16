@@ -12,7 +12,8 @@ app = FastAPI()
 origins = [
     "http://localhost:5173",
     "http://192.168.27.41:8000",
-    "http://192.168.27.70:8000"
+    "http://192.168.27.70:8000",
+    "http://192.168.100.78:8000"
     
 ]
 
@@ -40,7 +41,7 @@ api_app.include_router(document_submissions.router, prefix="/users/document-subm
 # admin api
 api_app.include_router(base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
 
-# models api
+# vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])
 
 # disregard muna -----------------

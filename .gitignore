@@ -8,12 +8,20 @@ progress.txt
 
 # For Frontend
 frontend.bat
+MainNavigation.jsx
 
 # For Mobile
 mobile.bat
 
 # For Backend
 backend.ps1
+output.png
 
 #Google Collab Model
 best.pt
+
+#server file
+server.py
+
+#Common
+baseurl.json
