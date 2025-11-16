@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, File, UploadFile, Form, Depends
 from controllers.document_submissions import (
     submit_document,
     get_user_submissions,
-    get_submission_by_id
+    get_submission_by_id,
+    get_all_submissions
 )
 from utils.utils import get_current_user
 import logging
@@ -11,6 +12,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ==================== USER ROUTES ====================
 
 @router.post("/upload")
 async def user_submit_document(
@@ -79,4 +83,24 @@ async def get_submission(
         raise e
     except Exception as e:
         logger.error(f"Fetch error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== ADMIN ROUTES ====================
+
+@router.get("/get-all")
+async def admin_get_all_submissions():
+    """Admin: Get all document submissions from all users"""
+    try:
+        result = get_all_submissions()
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"submissions": result["submissions"]}
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Admin fetch error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def submit_document(file, base_document_id: str, notes: str, current_user: dict):
-    """Submit user document for comparison"""
+    """Submit user document for comparison with bounding box analysis"""
     try:
         user_id = current_user["_id"]
         base_doc_oid = ObjectId(base_document_id)
@@ -37,7 +37,7 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
         user_file_url = upload_image(file, folder="user_submissions")
         logger.info(f"User document uploaded: {user_file_url}")
         
-        # USE GOOGLE VISION API FOR COMPARISON
+        # USE GOOGLE VISION API FOR COMPARISON WITH BOUNDING BOXES
         logger.info(f"Starting document comparison with Google Vision API...")
         comparison_result = await compare_documents_with_vision(
             base_url=base_doc["file_url"],
@@ -50,12 +50,17 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
             similarity = 0.0
             comparison_details = {
                 "text_similarity": 0.0,
-                "label_similarity": 0.0,
-                "object_similarity": 0.0
+                "layout_similarity": 0.0,
+                "object_similarity": 0.0,
+                "label_similarity": 0.0
             }
+            spatial_analysis = {}
+            bounding_boxes = {}
         else:
             similarity = comparison_result["similarity_percentage"]
             comparison_details = comparison_result["details"]
+            spatial_analysis = comparison_result.get("spatial_analysis", {})
+            bounding_boxes = comparison_result.get("bounding_boxes", {})
             logger.info(f"Comparison successful: {similarity}%")
         
         # Determine status based on similarity
@@ -71,14 +76,20 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
             "user_id": user_oid,
             "base_document_id": base_doc_oid,
             "base_document_title": base_doc["title"],
+            "base_document_category": base_doc.get("category", "general"),
             "filename": file.filename,
             "file_type": file.content_type,
             "file_url": user_file_url,
             "notes": notes,
             "similarity_percentage": similarity,
             "status": status,
-            "comparison_details": comparison_details,  # Only 3 metrics now
-            "submitted_at": datetime.now()
+            "comparison_details": comparison_details,
+            "spatial_analysis": spatial_analysis,
+            "bounding_boxes": bounding_boxes,
+            "submitted_at": datetime.now(),
+            "reviewed_at": None,
+            "reviewed_by": None,
+            "admin_notes": None
         }
         
         # Insert into MongoDB
@@ -93,10 +104,13 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
                 "user_email": user["email"],
                 "user_name": f"{user['firstname']} {user['lastname']}",
                 "base_document_title": base_doc["title"],
+                "base_document_category": base_doc.get("category", "general"),
                 "filename": file.filename,
+                "file_url": user_file_url,
                 "status": status,
                 "similarity_percentage": similarity,
                 "comparison_details": comparison_details,
+                "spatial_analysis": spatial_analysis,
                 "submitted_at": submission_dict["submitted_at"].isoformat()
             }
         }
@@ -126,6 +140,8 @@ def get_user_submissions(current_user: dict):
             sub["user_id"] = str(sub["user_id"])
             sub["base_document_id"] = str(sub["base_document_id"])
             sub["submitted_at"] = sub["submitted_at"].isoformat()
+            if sub.get("reviewed_at"):
+                sub["reviewed_at"] = sub["reviewed_at"].isoformat()
         
         logger.info(f"Retrieved {len(submissions)} submissions for user")
         
@@ -163,6 +179,8 @@ def get_submission_by_id(submission_id: str, current_user: dict):
         submission["user_id"] = str(submission["user_id"])
         submission["base_document_id"] = str(submission["base_document_id"])
         submission["submitted_at"] = submission["submitted_at"].isoformat()
+        if submission.get("reviewed_at"):
+            submission["reviewed_at"] = submission["reviewed_at"].isoformat()
         
         logger.info(f"Retrieved submission {submission_id}")
         
@@ -173,6 +191,40 @@ def get_submission_by_id(submission_id: str, current_user: dict):
     
     except Exception as e:
         logger.error(f"Error fetching submission: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+def get_all_submissions():
+    """Admin: Get all document submissions from all users"""
+    try:
+        submissions = list(
+            db["document_submissions"]
+            .find({})
+            .sort("submitted_at", -1)
+        )
+        
+        for sub in submissions:
+            sub["_id"] = str(sub["_id"])
+            sub["user_id"] = str(sub["user_id"])
+            sub["base_document_id"] = str(sub["base_document_id"])
+            sub["submitted_at"] = sub["submitted_at"].isoformat()
+            if sub.get("reviewed_at"):
+                sub["reviewed_at"] = sub["reviewed_at"].isoformat()
+            if sub.get("reviewed_by"):
+                sub["reviewed_by"] = str(sub["reviewed_by"])
+        
+        logger.info(f"Retrieved {len(submissions)} total submissions")
+        
+        return {
+            "success": True,
+            "submissions": submissions
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching all submissions: {str(e)}")
         return {
             "success": False,
             "error": str(e)
