@@ -89,7 +89,7 @@ async def admin_update_base_document(
     description: Optional[str] = Form(None),
     is_active: Optional[bool] = Form(None)
 ):
-    """Admin updates base document"""
+    """Admin updates base documents"""
     try:
         result = update_base_document_by_id(
             document_id=document_id,

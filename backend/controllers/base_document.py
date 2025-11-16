@@ -110,7 +110,7 @@ def update_base_document_by_id(
     description: str = None,
     is_active: bool = None
 ):
-    """Update base document by ID"""
+    """Update base documents by ID"""
     try:
         # Check if document exists
         existing_doc = db["base_documents"].find_one({"_id": ObjectId(document_id)})
