@@ -8,10 +8,10 @@ export default function BoxOverlay({ predictions, imageWidth, imageHeight }) {
     <View style={[StyleSheet.absoluteFill, { position: "absolute" }]}>
       {predictions.map((pred, idx) => {
         const [x1, y1, x2, y2] = pred.box;
-        const left = (x1 / 800) * imageWidth;
-        const top = (y1 / 800) * imageHeight;
-        const width = ((x2 - x1) / 800) * imageWidth;
-        const height = ((y2 - y1) / 800) * imageHeight;
+        const left = (x1 / 512) * imageWidth;
+        const top = (y1 / 512) * imageHeight;
+        const width = ((x2 - x1) / 512) * imageWidth;
+        const height = ((y2 - y1) / 512) * imageHeight;
 
         return (
           <View

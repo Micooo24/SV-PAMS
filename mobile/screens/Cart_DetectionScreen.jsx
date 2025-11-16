@@ -151,8 +151,28 @@ export default function CartDetectionScreen() {
                 {predictions.map((pred, idx) => (
                   <View key={idx} style={styles.detailItem}>
                     <View style={styles.detailLeft}>
-                      <MaterialCommunityIcons name="cart" size={20} color="#2563eb" />
-                      <Text style={styles.detailText}>Cart #{idx + 1}</Text>
+                      <MaterialCommunityIcons name="cart" size={24} color="#2563eb" />
+                      <View style={styles.detailInfo}>
+                        <Text style={styles.cartNumber}>Cart #{idx + 1}</Text>
+                        <View style={styles.classificationRow}>
+                          <Text style={styles.classificationLabel}>Classification:</Text>
+                          <View style={[
+                            styles.classificationBadge,
+                            pred.class_id === 0 
+                              ? styles.standardBadge 
+                              : styles.nonStandardBadge
+                          ]}>
+                            <Text style={[
+                              styles.classificationText,
+                              pred.class_id === 0 
+                                ? styles.standardText 
+                                : styles.nonStandardText
+                            ]}>
+                              {pred.class_id === 0 ? "Non-Standard" : "Standard"}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
                     </View>
                     <Text style={styles.confidenceText}>
                       {(pred.confidence * 100).toFixed(1)}%
@@ -336,17 +356,58 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#f8fafc",
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderRadius: 10,
-    marginBottom: 8,
+    marginBottom: 10,
     borderLeftWidth: 4,
     borderLeftColor: "#2563eb",
   },
   detailLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    flex: 1,
+  },
+  detailInfo: {
+    flex: 1,
+    gap: 6,
+  },
+  cartNumber: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0f172a",
+  },
+  classificationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  classificationLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#64748b",
+  },
+  classificationBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  standardBadge: {
+    backgroundColor: "#dcfce7",
+  },
+  nonStandardBadge: {
+    backgroundColor: "#fef3c7",
+  },
+  classificationText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  standardText: {
+    color: "#15803d",
+  },
+  nonStandardText: {
+    color: "#a16207",
   },
   detailText: {
     fontSize: 15,
