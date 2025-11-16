@@ -6,8 +6,10 @@ import AdminDashboard from "./dashboards/AdminDashboard";
 import SanitaryDashboard from "./dashboards/SanitaryDashboard";
 
 //temporary
-// import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-// import UserSubmissions from "./pages/admin/UserSubmissions";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import UserSubmissions from "./pages/admin/UserSubmissions";
+
+import Compare from "./test_code/Compare";
 
 import { mockUsers } from "./mockUsers";
 
@@ -47,23 +49,24 @@ function App() {
     }
   };
 
-  return (
-  <div className="App">{renderCurrentPage()}</div>
-  );
-
   // return (
-  //   <Router>
-  //     <Routes>
-  //       {/* <Route path="/" element={<LandingPage onLogin={() => {}} />} />
-  //       <Route path="/login" element={<Login onBack={() => {}} onLogin={handleLogin} />} />
-  //       <Route path="/superadmin" element={<SuperadminDashboard onLogout={handleLogout} />} />
-  //       <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
-  //       <Route path="/sanitary" element={<SanitaryDashboard onLogout={handleLogout} />} /> */}
-  //       <Route path="/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
-  //       <Route path="*" element={<Navigate to="/" replace />} />
-  //     </Routes>
-  //   </Router>
+  // <div className="App">{renderCurrentPage()}</div>
   // );
+
+  return (
+    <Router>
+      <Routes>
+        {/* <Route path="/" element={<LandingPage onLogin={() => {}} />} />
+        <Route path="/login" element={<Login onBack={() => {}} onLogin={handleLogin} />} />
+        <Route path="/superadmin" element={<SuperadminDashboard onLogout={handleLogout} />} />
+        <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
+        <Route path="/sanitary" element={<SanitaryDashboard onLogout={handleLogout} />} /> */}
+        <Route path="/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
+        <Route path="/compare" element={<Compare />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Router>
+  );
 }
 
 

@@ -52,7 +52,7 @@ api_app.include_router(document_submissions.router, prefix="/users/document-subm
 # admin api
 api_app.include_router(base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
 
-# models api
+# vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])
 
 # disregard muna -----------------
