@@ -10,10 +10,22 @@ app = FastAPI()
 
 # CORS
 origins = [
+    # Localhost Frontend
     "http://localhost:5173",
+    
+    # mico_url host
+    "http://192.168.1.182:8000",
+    
+    # lei_url
     "http://192.168.27.41:8000",
     "http://192.168.27.70:8000",
     "http://192.168.100.78:8000"
+    
+    # janna_url
+    "",
+    
+    # jane_url
+    "",
     
 ]
 
@@ -66,5 +78,4 @@ api_app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
     
-
 
