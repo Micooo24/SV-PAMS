@@ -1,11 +1,49 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp, LayoutDashboard, Shield, Users, Settings, FileText, AlertTriangle } from "lucide-react";
 
 export default function Sidebar({ role }) {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const navigate = useNavigate();
 
   const toggleMenu = (menu) => {
     setExpandedMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
+  };
+
+  // Route paths for menus and submenus
+  const routeMap = {
+    superadmin: {
+      "Dashboard": "/superadmin",
+      "Manage Admins": "/superadmin/manage-admins",
+      "Manage Sanitary Officers": "/superadmin/manage-sanitary",
+      "Assign Roles": "/superadmin/roles",
+      "Reset Passwords": "/superadmin/reset-passwords",
+      "Assign Jurisdictions": "/superadmin/jurisdictions",
+      "Permit Categories": "/superadmin/permit-categories",
+      "AI Monitoring Settings": "/superadmin/ai-settings",
+      "Analytics & Reports": "/superadmin/analytics",
+      "Activity Logs": "/superadmin/logs",
+      "Backups": "/superadmin/backups",
+    },
+    admin: {
+      "Dashboard": "/admin",
+      "Approve / Deny Applications": "/admin/approve-applications",
+      "Renew Permits": "/admin/renew-permits",
+      "Suspend / Revoke Vendors": "/admin/suspend-vendors",
+      "Manage Images & AI Monitoring": "/admin/images-ai",
+      "Vendor Records": "/admin/vendor-records",
+      "AI Monitoring": "/admin/ai-monitoring",
+      "Reports": "/admin/reports",
+      "Send Notifications": "/admin/notifications",
+      "Manage Documents": "/admin/documents",
+      "Manage User Submissions": "/admin/usersubmissions",
+    },
+    sanitary: {
+      "Dashboard": "/sanitary",
+      "Inspection Tasks": "/sanitary/inspection",
+      "Violation Reports": "/sanitary/violations",
+      "AI Alerts": "/sanitary/alerts",
+    },
   };
 
   const menusByRole = {
@@ -37,14 +75,13 @@ export default function Sidebar({ role }) {
         icon: <FileText size={16} />,
         subItems: ["Approve / Deny Applications", "Renew Permits", "Suspend / Revoke Vendors"],
       },
-      {
-        title: "Manage Images & AI Monitoring",
-        icon: <FileText size={16} />,
-      },
+      { title: "Manage Images & AI Monitoring", icon: <FileText size={16} /> },
       { title: "Vendor Records", icon: <Users size={16} /> },
       { title: "AI Monitoring", icon: <Settings size={16} /> },
       { title: "Reports", icon: <FileText size={16} /> },
       { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
+      { title: "Manage Documents", icon: <FileText size={16} /> },
+      { title: "Manage User Submissions", icon: <FileText size={16} /> },
     ],
     sanitary: [
       { title: "Dashboard", icon: <LayoutDashboard size={16} /> },
@@ -56,7 +93,6 @@ export default function Sidebar({ role }) {
 
   const menus = menusByRole[role] || [];
 
-  // New Light Theme Palette
   const palette = {
     bg: "#f3f7fc",
     text: "#002248",
@@ -114,7 +150,13 @@ export default function Sidebar({ role }) {
           <li key={menu.title}>
             <div
               style={styles.menuItem}
-              onClick={() => menu.subItems && toggleMenu(menu.title)}
+              onClick={() => {
+                if (menu.subItems) {
+                  toggleMenu(menu.title);
+                } else {
+                  navigate(routeMap[role][menu.title]);
+                }
+              }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
             >
@@ -135,6 +177,7 @@ export default function Sidebar({ role }) {
                   <li
                     key={subItem}
                     style={styles.subMenu}
+                    onClick={() => navigate(routeMap[role][subItem])}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                   >
