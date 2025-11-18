@@ -1,14 +1,43 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { mockUsers } from "../mockUsers"; // your mock users
 
-export default function Login({ onBack, onLogin }) {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onLogin(email, password);
+
+    // find user from mock data
+    const user = mockUsers.find(
+      (u) => u.email === email && u.password === password
+    );
+
+    if (!user) {
+      alert("Invalid credentials (mock)");
+      return;
+    }
+
+    // redirect based on role
+    switch (user.role) {
+      case "superadmin":
+        navigate("/superadmin");
+        break;
+      case "admin":
+        navigate("/admin");
+        break;
+      case "sanitary":
+        navigate("/sanitary");
+        break;
+      default:
+        navigate("/");
+    }
   };
+
+  const handleBack = () => navigate("/");
 
   const styles = {
     page: {
@@ -115,7 +144,7 @@ export default function Login({ onBack, onLogin }) {
           <button type="submit" style={styles.buttonPrimary}>
             Login
           </button>
-          <button type="button" style={styles.buttonSecondary} onClick={onBack}>
+          <button type="button" style={styles.buttonSecondary} onClick={handleBack}>
             Back
           </button>
         </form>

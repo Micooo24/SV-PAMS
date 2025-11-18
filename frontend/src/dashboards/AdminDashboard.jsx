@@ -1,79 +1,65 @@
-import { useState } from "react";
-import { Box } from "@mui/material";
+// src/dashboards/AdminDashboard.jsx
+import React from "react";
 import Sidebar from "../components/Sidebar";
-import DashboardHeader from "../components/admin/DashboardHeader";
-import DocumentTable from "../components/admin/DocumentTable";
-import DocumentUploadModal from "../components/admin/DocumentUploadModal";
-import DocumentEditModal from "../components/admin/DocumentEditModal";
-import useDocuments from "../hooks/useDocuments";
 
 export default function AdminDashboard({ onLogout }) {
-  const {
-    documents,
-    loading,
-    error,
-    fetchDocuments,
-    uploadDocument,
-    updateDocument,
-    deleteDocument
-  } = useDocuments();
-
-  const [openUploadModal, setOpenUploadModal] = useState(false);
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null);
-
-  const handleEdit = (doc) => {
-    setEditingDoc(doc);
-    setOpenEditModal(true);
-  };
-
-  const handleDelete = async (documentId) => {
-    if (window.confirm("Are you sure you want to delete this document?")) {
-      await deleteDocument(documentId);
-    }
-  };
-
   const styles = {
-    container: { display: "flex", minHeight: "100vh" },
     main: {
       flex: 1,
       padding: "40px",
       backgroundColor: "#e6eaf0",
-      width: "80vw",
       minHeight: "100vh",
-    }
+    },
+    header: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "40px",
+    },
+    title: {
+      fontSize: "32px",
+      fontWeight: 700,
+      color: "#003067",
+    },
+    logoutButton: {
+      padding: "10px 20px",
+      backgroundColor: "#118df0",
+      color: "#ffffff",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: 600,
+    },
+    contentCard: {
+      backgroundColor: "#ffffff",
+      borderRadius: "12px",
+      padding: "30px",
+      boxShadow: "0px 6px 12px rgba(0,0,0,0.1)",
+      minHeight: "300px",
+      color: "#002248",
+    },
   };
 
   return (
-    <Box sx={styles.container}>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar role="admin" />
       <main style={styles.main}>
-        <DashboardHeader onLogout={onLogout} onUpload={() => setOpenUploadModal(true)} />
-        
-        <DocumentTable
-          documents={documents}
-          loading={loading}
-          error={error}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        <div style={styles.header}>
+          <h1 style={styles.title}>Admin Dashboard</h1>
+          <button style={styles.logoutButton} onClick={onLogout}>
+            Logout
+          </button>
+        </div>
 
-        <DocumentUploadModal
-          open={openUploadModal}
-          onClose={() => setOpenUploadModal(false)}
-          onUpload={uploadDocument}
-        />
-
-        <DocumentEditModal
-          open={openEditModal}
-          document={editingDoc}
-          onClose={() => {
-            setOpenEditModal(false);
-            setEditingDoc(null);
-          }}
-          onUpdate={updateDocument}
-        />
+        <div style={styles.contentCard}>
+          <h2>Welcome, Admin!</h2>
+          <p>
+            This dashboard allows you to manage street vendors, approve permit applications,
+            and generate reports. You can also monitor system compliance in real-time.
+          </p>
+          <p>Placeholder for future widgets, analytics, and system operations.</p>
+        </div>
       </main>
-    </Box>
+    </div>
   );
 }

@@ -27,13 +27,6 @@ export default function DashboardHeader({ onLogout, onUpload }) {
 
   return (
     <>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Admin Dashboard</h1>
-        <button style={styles.logoutButton} onClick={onLogout}>
-          Logout
-        </button>
-      </div>
-
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 600, color: "#003067", mb: 1 }}>

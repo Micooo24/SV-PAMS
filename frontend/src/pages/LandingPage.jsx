@@ -1,6 +1,11 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function LandingPage({ onLogin }) {
+export default function LandingPage() {
+  const navigate = useNavigate();
+
+  const goToLogin = () => navigate("/login");
+
   const styles = {
     container: {
       fontFamily: "Poppins, sans-serif",
@@ -135,7 +140,7 @@ export default function LandingPage({ onLogin }) {
       <div style={styles.navbar}>
         <div style={styles.navLogo}>SV-PAMS</div>
         <div style={styles.navLinks}>
-          <span onClick={onLogin}>Login</span>
+          <span onClick={goToLogin}>Login</span>
           <span>About</span>
         </div>
       </div>
@@ -152,7 +157,7 @@ export default function LandingPage({ onLogin }) {
           can efficiently manage urban vendor operations and maintain public order.
         </p>
         <div>
-          <button style={styles.primaryButton} onClick={onLogin}>
+          <button style={styles.primaryButton} onClick={goToLogin}>
             Get Started
           </button>
         </div>
