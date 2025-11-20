@@ -1,39 +1,59 @@
-// src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockUsers } from "../mockUsers"; // your mock users
+import useAuth from "../hooks/useAuth";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { Login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    // find user from mock data
-    const user = mockUsers.find(
-      (u) => u.email === email && u.password === password
-    );
+    try {
+      console.log("🔐 Login attempt:", { email });
 
-    if (!user) {
-      alert("Invalid credentials (mock)");
-      return;
-    }
+      // ✅ Create FormData for backend (expects 'username' field)
+      const loginFormData = new FormData();
+      loginFormData.append('email', email); // Backend expects 'email'
+      loginFormData.append('password', password);
 
-    // redirect based on role
-    switch (user.role) {
-      case "superadmin":
-        navigate("/superadmin");
-        break;
-      case "admin":
-        navigate("/admin");
-        break;
-      case "sanitary":
-        navigate("/sanitary");
-        break;
-      default:
-        navigate("/");
+      // ✅ Call Login from useAuth hook
+      const success = await Login(loginFormData);
+
+      if (success) {
+        console.log("✅ Login successful!");
+        
+        // Get user from localStorage to check role
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+
+        console.log("👤 User role:", user?.role);
+
+        // Navigate based on role
+        if (user?.role === 'superadmin') {
+          navigate('/superadmin');
+        } else if (user?.role === 'admin') {
+          navigate('/admin');
+        } else if (user?.role === 'sanitary') {
+          navigate('/sanitary');
+        } else {
+          navigate('/compare'); // default for regular users
+        }
+      } else {
+        setError("Login failed. Please check your credentials.");
+      }
+
+    } catch (err) {
+      console.error("❌ Login error:", err);
+      setError(err.response?.data?.detail || "Login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -89,6 +109,7 @@ export default function Login() {
       borderRadius: "8px",
       cursor: "pointer",
       marginBottom: "12px",
+      opacity: isLoading ? 0.6 : 1,
     },
     buttonSecondary: {
       width: "100%",
@@ -107,12 +128,14 @@ export default function Login() {
       color: "#666",
       textAlign: "center",
     },
-    backLink: {
-      color: "#118df0",
-      cursor: "pointer",
-      textDecoration: "underline",
-      marginTop: "10px",
-      display: "inline-block",
+    errorMessage: {
+      backgroundColor: "#fee",
+      color: "#c33",
+      padding: "12px",
+      borderRadius: "6px",
+      marginBottom: "20px",
+      fontSize: "14px",
+      textAlign: "center",
     },
   };
 
@@ -121,6 +144,10 @@ export default function Login() {
       <div style={styles.container}>
         <h2 style={styles.title}>Login</h2>
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div style={styles.errorMessage}>{error}</div>
+          )}
+
           <label style={styles.label}>Email</label>
           <input
             type="email"
@@ -129,6 +156,7 @@ export default function Login() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="example@email.com"
             required
+            disabled={isLoading}
           />
 
           <label style={styles.label}>Password</label>
@@ -139,18 +167,28 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="********"
             required
+            disabled={isLoading}
           />
 
-          <button type="submit" style={styles.buttonPrimary}>
-            Login
+          <button 
+            type="submit" 
+            style={styles.buttonPrimary}
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
           </button>
-          <button type="button" style={styles.buttonSecondary} onClick={handleBack}>
+          <button 
+            type="button" 
+            style={styles.buttonSecondary} 
+            onClick={handleBack}
+            disabled={isLoading}
+          >
             Back
           </button>
         </form>
 
         <div style={styles.footerText}>
-          This is a mock login. Use the provided accounts to test different roles.
+          Enter your credentials to access your account.
         </div>
       </div>
     </div>
