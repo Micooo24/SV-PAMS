@@ -1,5 +1,24 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, CircularProgress, Alert, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip } from "@mui/material";
+import { 
+  Box, 
+  Typography, 
+  CircularProgress, 
+  Alert, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper, 
+  Chip,
+  IconButton,
+  Tooltip,
+  Modal,
+  Grid,
+  Button
+} from "@mui/material";
+import { Visibility, Close } from "@mui/icons-material";
 import axios from "axios";
 import Sidebar from "../../components/Sidebar";
 import BASE_URL from "../../common/baseurl";
@@ -8,6 +27,8 @@ export default function UserSubmissions({ onLogout }) {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
 
   useEffect(() => {
     fetchSubmissions();
@@ -25,6 +46,16 @@ export default function UserSubmissions({ onLogout }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewImages = (submission) => {
+    setSelectedSubmission(submission);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedSubmission(null);
   };
 
   const getStatusColor = (status) => {
@@ -84,6 +115,20 @@ export default function UserSubmissions({ onLogout }) {
       borderRadius: "12px",
       padding: "30px",
       boxShadow: "0px 6px 12px rgba(0,0,0,0.1)",
+    },
+    modalBox: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '90%',
+      maxWidth: '1200px',
+      maxHeight: '90vh',
+      bgcolor: 'background.paper',
+      borderRadius: '12px',
+      boxShadow: 24,
+      p: 4,
+      overflow: 'auto'
     }
   };
 
@@ -126,12 +171,13 @@ export default function UserSubmissions({ onLogout }) {
                     <TableCell sx={{ fontWeight: 600 }}>Similarity</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Submitted</TableCell>
+                    <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {submissions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                         <Typography color="text.secondary">No submissions found</Typography>
                       </TableCell>
                     </TableRow>
@@ -140,7 +186,7 @@ export default function UserSubmissions({ onLogout }) {
                       <TableRow key={sub._id} hover>
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {sub.user_id}
+                            {sub.user_id.substring(0, 8)}...
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -184,6 +230,16 @@ export default function UserSubmissions({ onLogout }) {
                         <TableCell>
                           <Typography variant="caption">{formatDate(sub.submitted_at)}</Typography>
                         </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="View Images">
+                            <IconButton
+                              color="primary"
+                              onClick={() => handleViewImages(sub)}
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -193,6 +249,168 @@ export default function UserSubmissions({ onLogout }) {
           )}
         </div>
       </main>
+
+      {/*  Modal for Viewing Images */}
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        aria-labelledby="image-modal-title"
+      >
+        <Box sx={styles.modalBox}>
+          {selectedSubmission && (
+            <>
+              {/* Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box>
+                  <Typography id="image-modal-title" variant="h5" sx={{ fontWeight: 600, color: "#003067" }}>
+                    Document Comparison
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedSubmission.filename} - {selectedSubmission.base_document_title}
+                  </Typography>
+                </Box>
+                <IconButton onClick={handleCloseModal}>
+                  <Close />
+                </IconButton>
+              </Box>
+
+              {/* Similarity Stats */}
+              <Box sx={{ mb: 3, p: 2, backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Overall</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#003067" }}>
+                      {selectedSubmission.similarity_percentage}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Text</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#10b981" }}>
+                      {selectedSubmission.comparison_details?.text_similarity || 0}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Layout</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#f59e0b" }}>
+                      {selectedSubmission.comparison_details?.layout_similarity || 0}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Status</Typography>
+                    <Chip label={selectedSubmission.status} color={getStatusColor(selectedSubmission.status)} size="small" />
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Images Side by Side */}
+              <Grid container spacing={3}>
+                {/* Original Image */}
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#118df0" }}>
+                       Original Image Submitted
+                    </Typography>
+                    {selectedSubmission.file_url_original ? (
+                      <Box
+                        component="img"
+                        src={selectedSubmission.file_url_original}
+                        alt="Original"
+                        sx={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '500px',
+                          objectFit: 'contain',
+                          borderRadius: '8px',
+                          border: '2px solid #118df0'
+                        }}
+                      />
+                    ) : (
+                      <Typography color="text.secondary">No original image available</Typography>
+                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => window.open(selectedSubmission.file_url_original, '_blank')}
+                      disabled={!selectedSubmission.file_url_original}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                {/* Processed Image */}
+            {/* ✅ Processed Image with Dark Font Labels */}
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
+                  🔍 Processed Image (Bounding Boxes)
+                </Typography>
+                {selectedSubmission.file_url_processed ? (
+                  <Box
+                    component="img"
+                    src={selectedSubmission.file_url_processed}
+                    alt="Processed"
+                    sx={{
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '500px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      border: '2px solid #10b981',
+                      backgroundColor: '#ffffff' //  White background for better contrast
+                    }}
+                  />
+                ) : (
+                  <Typography color="text.secondary">No processed image available</Typography>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  onClick={() => window.open(selectedSubmission.file_url_processed, '_blank')}
+                  disabled={!selectedSubmission.file_url_processed}
+                >
+                  Open in New Tab
+                </Button>
+              </Paper>
+            </Grid>
+              </Grid>
+
+              {/* Detected Elements Info */}
+              {selectedSubmission.spatial_analysis && (
+                <Box sx={{ mt: 3, p: 2, backgroundColor: "#f9fafb", borderRadius: "8px" }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2, color: "#000000", fontWeight: 600 }}>
+                    🔎 Detected Elements
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Text Blocks</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_text_blocks || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Words</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_words || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Objects</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_objects || 0}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
 }
