@@ -42,7 +42,7 @@ async def register(
     landline_no: str = Form(""),
     zip_code: int = Form(...),
     gender: str = Form(...),
-    role: str = Form("customer"),
+    role: str = Form("user"),
     img: UploadFile = File(None)
 ):
     try:

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
-import { Text, TextInput, Button, RadioButton, Card } from 'react-native-paper';
+import { Text, TextInput, Button, RadioButton, Card, Menu } from 'react-native-paper';
 import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
 import { styles } from '../styles/register.js';
@@ -8,13 +8,46 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import BASE_URL from '../common/baseurl.js'
 import * as ImagePicker from 'expo-image-picker';
 
+// Barangay data with zip codes
+const BARANGAYS = [
+  { name: "Bagong Ilog", zipCode: "1600" },
+  { name: "Bagong Katipunan", zipCode: "1600" },
+  { name: "Bambang", zipCode: "1600" },
+  { name: "Buting", zipCode: "1600" },
+  { name: "Caniogan", zipCode: "1606" },
+  { name: "Dela Paz", zipCode: "1600" },
+  { name: "Kalawaan", zipCode: "1600" },
+  { name: "Kapasigan", zipCode: "1600" },
+  { name: "Kapitolyo", zipCode: "1603" },
+  { name: "Malinao", zipCode: "1600" },
+  { name: "Manggahan", zipCode: "1611" },
+  { name: "Maybunga", zipCode: "1607" },
+  { name: "Oranbo", zipCode: "1600" },
+  { name: "Palatiw", zipCode: "1600" },
+  { name: "Pinagbuhatan", zipCode: "1602" },
+  { name: "Pineda", zipCode: "1600" },
+  { name: "Rosario", zipCode: "1609" },
+  { name: "Sagad", zipCode: "1600" },
+  { name: "San Antonio", zipCode: "1600" },
+  { name: "San Joaquin", zipCode: "1601" },
+  { name: "San Jose", zipCode: "1600" },
+  { name: "San Miguel", zipCode: "1600" },
+  { name: "San Nicolas", zipCode: "1600" },
+  { name: "Santa Cruz", zipCode: "1600" },
+  { name: "Santa Lucia", zipCode: "1608" },
+  { name: "Santa Rosa", zipCode: "1600" },
+  { name: "Santo Tomas", zipCode: "1600" },
+  { name: "Santolan", zipCode: "1610" },
+  { name: "Ugong", zipCode: "1604" },
+  { name: "Green Park", zipCode: "1612" }
+];
+
 const Register = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
   const [currentSection, setCurrentSection] = useState(0);
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
-
- 
+  const [barangayMenuVisible, setBarangayMenuVisible] = useState(false); // Menu state
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -47,15 +80,14 @@ const Register = ({ navigation }) => {
   if (!fontsLoaded) {
     return null;
   }
-    const pickImage = async () => {
-    // Request permission to access media library
+
+  const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       alert('Sorry, we need camera roll permissions to make this work!');
       return;
     }
 
-    // Launch image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -74,6 +106,16 @@ const Register = ({ navigation }) => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // Handle barangay selection
+  const handleBarangaySelect = (barangay) => {
+    const selectedBarangay = BARANGAYS.find(b => b.name === barangay);
+    if (selectedBarangay) {
+      handleInputChange('barangay', selectedBarangay.name);
+      handleInputChange('zip_code', selectedBarangay.zipCode);
+    }
+    setBarangayMenuVisible(false);
   };
 
   const handleNext = () => {
@@ -95,92 +137,85 @@ const Register = ({ navigation }) => {
     'Account Security'
   ];
 
+  const handleRegister = async () => {
+    try {
+      if (!formData.firstname || !formData.lastname || !formData.birthday || 
+          !formData.gender || !formData.mobile_no || !formData.email || 
+          !formData.address || !formData.barangay || !formData.zip_code || 
+          !formData.password) {
+        alert('Please fill in all required fields');
+        return;
+      }
 
-const handleRegister = async () => {
-  try {
-    // Validation first
-    if (!formData.firstname || !formData.lastname || !formData.birthday || 
-        !formData.gender || !formData.mobile_no || !formData.email || 
-        !formData.address || !formData.barangay || !formData.zip_code || 
-        !formData.password) {
-      alert('Please fill in all required fields');
-      return;
-    }
+      if (formData.password !== formData.confirmPassword) {
+        alert('Passwords do not match');
+        return;
+      }
 
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
+      const formDataToSend = new FormData();
 
-    // Create single FormData instance
-    const formDataToSend = new FormData();
+      const fieldsToSend = {
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        middlename: formData.middlename || '',
+        address: formData.address,
+        barangay: formData.barangay,
+        email: formData.email,
+        password: formData.password,
+        birthday: formData.birthday,
+        age: formData.age,
+        mobile_no: formData.mobile_no,
+        landline_no: formData.landline_no || '',
+        zip_code: formData.zip_code,
+        gender: formData.gender,
+        role: 'user'
+      };
 
-    // Append all text fields (exclude confirmPassword and img)
-    const fieldsToSend = {
-      firstname: formData.firstname,
-      lastname: formData.lastname,
-      middlename: formData.middlename || '',
-      address: formData.address,
-      barangay: formData.barangay,
-      email: formData.email,
-      password: formData.password,
-      birthday: formData.birthday,
-      age: formData.age,
-      mobile_no: formData.mobile_no, // Keep as string to avoid conversion issues
-      landline_no: formData.landline_no || '',
-      zip_code: formData.zip_code,
-      gender: formData.gender,
-      role: 'customer'
-    };
-
-    // Append all fields to FormData
-    Object.entries(fieldsToSend).forEach(([key, value]) => {
-      formDataToSend.append(key, value);
-    });
-
-    // Handle image separately if exists
-    if (formData.img) {
-      const uriParts = formData.img.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      
-      formDataToSend.append('img', {
-        uri: formData.img,
-        name: `photo.${fileType}`,
-        type: `image/${fileType}`,
+      Object.entries(fieldsToSend).forEach(([key, value]) => {
+        formDataToSend.append(key, value);
       });
+
+      if (formData.img) {
+        const uriParts = formData.img.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        
+        formDataToSend.append('img', {
+          uri: formData.img,
+          name: `photo.${fileType}`,
+          type: `image/${fileType}`,
+        });
+      }
+
+      console.log('Sending registration data...');
+
+      const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Registration successful:', response.data);
+      alert('Registration successful!');
+      
+      if (navigation) {
+        navigation.navigate('Login');
+      }
+
+    } catch (error) {
+      console.error('Registration error:', error.response?.data || error.message);
+      
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          'Registration failed. Please try again.';
+      alert(`Registration failed: ${errorMessage}`);
     }
+  };
 
-    console.log('Sending registration data...');
-
-    const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    console.log('Registration successful:', response.data);
-    alert('Registration successful!');
-    
-    if (navigation) {
-      navigation.navigate('Login');
-    }
-
-  } catch (error) {
-    console.error('Registration error:', error.response?.data || error.message);
-    
-    // Better error handling
-    const errorMessage = error.response?.data?.detail || 
-                        error.response?.data?.message || 
-                        'Registration failed. Please try again.';
-    alert(`Registration failed: ${errorMessage}`);
-  }
-};
   const renderPersonalInfo = () => (
     <View style={styles.sectionContainer}>
       <Text variant="titleLarge" style={styles.sectionTitle}>Personal Information</Text>
       <Text style={styles.sectionSubtitle}>Identity & demographic info</Text>
 
-      {/* Profile Image */}
       <View style={styles.imageContainer}>
         <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
           {formData.img ? (
@@ -244,7 +279,6 @@ const handleRegister = async () => {
         placeholder='Auto-calculated from birthday'
       />
 
-      {/* Gender Selection */}
       <Text style={styles.fieldLabel}>Gender *</Text>
       <View style={styles.radioContainer}>
         <View style={styles.radioOption}>
@@ -335,23 +369,46 @@ const handleRegister = async () => {
         contentStyle={styles.inputContent}
       />
 
-      <TextInput
-        label="Barangay *"
-        value={formData.barangay}
-        onChangeText={(value) => handleInputChange('barangay', value)}
-        mode="outlined"
-        style={styles.input}
-        contentStyle={styles.inputContent}
-      />
+      {/* Barangay Dropdown Menu */}
+      <Menu
+        visible={barangayMenuVisible}
+        onDismiss={() => setBarangayMenuVisible(false)}
+        anchor={
+          <TextInput
+            label="Barangay *"
+            value={formData.barangay}
+            mode="outlined"
+            style={styles.input}
+            contentStyle={styles.inputContent}
+            editable={false}
+            right={<TextInput.Icon icon="menu-down" onPress={() => setBarangayMenuVisible(true)} />}
+            onPressIn={() => setBarangayMenuVisible(true)}
+            placeholder="Select Barangay"
+          />
+        }
+        contentStyle={{ maxHeight: 400, backgroundColor: '#fff' }}
+      >
+        <ScrollView style={{ maxHeight: 300 }}>
+          {BARANGAYS.map((brgy) => (
+            <Menu.Item
+              key={brgy.name}
+              onPress={() => handleBarangaySelect(brgy.name)}
+              title={`${brgy.name} (${brgy.zipCode})`}
+            />
+          ))}
+        </ScrollView>
+      </Menu>
 
+      {/* Auto-filled Zip Code */}
       <TextInput
         label="Zip Code *"
         value={formData.zip_code}
-        onChangeText={(value) => handleInputChange('zip_code', value)}
         mode="outlined"
         style={styles.input}
         keyboardType="numeric"
         contentStyle={styles.inputContent}
+        editable={false}
+        placeholder="Auto-filled from Barangay"
       />
     </View>
   );
@@ -415,13 +472,11 @@ const handleRegister = async () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
         <View style={styles.header}>
           <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
           <Text variant="headlineSmall" style={styles.welcomeText}>Create Account</Text>
         </View>
 
-        {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           {sections.map((section, index) => (
             <View key={index} style={styles.progressItem}>
@@ -446,12 +501,10 @@ const handleRegister = async () => {
           ))}
         </View>
 
-        {/* Form Content */}
         <Card style={styles.formCard}>
           {renderCurrentSection()}
         </Card>
 
-        {/* Navigation Buttons */}
         <View style={styles.buttonContainer}>
           {currentSection > 0 && (
             <Button
@@ -485,49 +538,46 @@ const handleRegister = async () => {
           )}
         </View>
 
-        {/* Login Link */}
-          {currentSection === 3 && (
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <Text
-                style={styles.loginLink}
-                onPress={() => navigation && navigation.navigate('Login')}
-              >
-                Sign in here
-              </Text>
-            </View>
-          )}
+        {currentSection === 3 && (
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text
+              style={styles.loginLink}
+              onPress={() => navigation && navigation.navigate('Login')}
+            >
+              Sign in here
+            </Text>
+          </View>
+        )}
       </ScrollView>
-    {open && (
-  <DateTimePicker
-    value={date}
-    mode="date"
-    display="default"
-    onChange={(event, selectedDate) => {
-      setOpen(false);
-      if (selectedDate) {
-        setDate(selectedDate);
-        const formattedDate = selectedDate.toISOString().split('T')[0];
-        handleInputChange('birthday', formattedDate);
-        
-        // Auto-calculate age
-        const today = new Date();
-        const birthDate = new Date(selectedDate);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        
-        handleInputChange('age', age.toString());
-      }
-    }}
-  />
-)}
+      {open && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setOpen(false);
+            if (selectedDate) {
+              setDate(selectedDate);
+              const formattedDate = selectedDate.toISOString().split('T')[0];
+              handleInputChange('birthday', formattedDate);
+              
+              const today = new Date();
+              const birthDate = new Date(selectedDate);
+              let age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              
+              if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+              }
+              
+              handleInputChange('age', age.toString());
+            }
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
-
 
 export default Register;
