@@ -16,7 +16,7 @@ async def register_user(
     password: str = Form(...),
     birthday: date = Form(...),
     age: int = Form(...),
-    mobile_no: int = Form(...),
+    mobile_no: str = Form(...),
     landline_no: str = Form(...),
     zip_code: int = Form(...),
     gender: Gender = Form(...),

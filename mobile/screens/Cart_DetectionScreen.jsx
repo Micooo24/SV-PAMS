@@ -10,11 +10,12 @@ import {
   Image,
   ActivityIndicator,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import BASE_URL from "../common/baseurl.js";
 import BoxOverlay from "../components/BoxOverlay";
+import FloatingNavBar from "../components/FloatingNavBar";
 
 const backendURL = `${BASE_URL}/api/vendor/carts/predict`;
 
@@ -57,7 +58,7 @@ export default function CartDetectionScreen() {
     try {
       const response = await axios.post(backendURL, formData, {
         headers: { "Content-Type": "multipart/form-data" },
-        timeout: 0
+        timeout: 0,
       });
       setPredictions(response.data.predictions || []);
     } catch (error) {
@@ -77,35 +78,41 @@ export default function CartDetectionScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <MaterialCommunityIcons name="cart-outline" size={32} color="#2563eb" />
+        <Ionicons name="cart-outline" size={32} color="#2563eb" />
         <View style={styles.headerTextContainer}>
           <Text style={styles.headerTitle}>Cart Detection System</Text>
           <Text style={styles.headerSubtitle}>AI-Powered Recognition</Text>
         </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {!imageUri && !isLoading && (
           <View style={styles.uploadSection}>
-            <MaterialCommunityIcons name="cloud-upload" size={80} color="#cbd5e1" />
+            <Ionicons name="cloud-upload-outline" size={80} color="#cbd5e1" />
             <Text style={styles.uploadTitle}>Upload Image</Text>
             <Text style={styles.uploadSubtitle}>
               Choose from gallery or capture a new photo
             </Text>
 
             <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.primaryButton} onPress={pickImage}>
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={pickImage}
+              >
                 <Ionicons name="images-outline" size={22} color="#fff" />
                 <Text style={styles.buttonText}>Gallery</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.secondaryButton} onPress={takePhoto}>
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={takePhoto}
+              >
                 <Ionicons name="camera-outline" size={22} color="#2563eb" />
                 <Text style={styles.secondaryButtonText}>Camera</Text>
               </TouchableOpacity>
@@ -131,7 +138,12 @@ export default function CartDetectionScreen() {
                 </View>
                 <View style={styles.statCard}>
                   <Text style={styles.statValue}>
-                    {((predictions.reduce((sum, p) => sum + p.confidence, 0) / predictions.length) * 100).toFixed(0)}%
+                    {(
+                      (predictions.reduce((sum, p) => sum + p.confidence, 0) /
+                        predictions.length) *
+                      100
+                    ).toFixed(0)}
+                    %
                   </Text>
                   <Text style={styles.statLabel}>Confidence</Text>
                 </View>
@@ -140,18 +152,28 @@ export default function CartDetectionScreen() {
 
             {/* Image Preview */}
             <View style={styles.imageCard}>
-              <Image source={{ uri: imageUri }} style={styles.image} resizeMode="contain" />
-              <BoxOverlay predictions={predictions} imageWidth={350} imageHeight={350} />
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.image}
+                resizeMode="contain"
+              />
+              <BoxOverlay
+                predictions={predictions}
+                imageWidth={350}
+                imageHeight={350}
+              />
             </View>
 
             {/* Detection List */}
             {predictions.length > 0 && (
               <View style={styles.detailsCard}>
-                <Text style={styles.sectionTitle}>Detections ({predictions.length})</Text>
+                <Text style={styles.sectionTitle}>
+                  Detections ({predictions.length})
+                </Text>
                 {predictions.map((pred, idx) => (
                   <View key={idx} style={styles.detailItem}>
                     <View style={styles.detailLeft}>
-                      <MaterialCommunityIcons name="cart" size={20} color="#2563eb" />
+                      <Ionicons name="cart" size={20} color="#2563eb" />
                       <Text style={styles.detailText}>Cart #{idx + 1}</Text>
                     </View>
                     <Text style={styles.confidenceText}>
@@ -169,6 +191,8 @@ export default function CartDetectionScreen() {
           </View>
         )}
       </ScrollView>
+
+      <FloatingNavBar />
     </SafeAreaView>
   );
 }
@@ -184,6 +208,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderTopWidth: 30,
+    borderTopColor: "#e2e8f0",
     borderBottomWidth: 1,
     borderBottomColor: "#e2e8f0",
   },

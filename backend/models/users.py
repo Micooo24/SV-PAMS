@@ -24,7 +24,7 @@ class User(BaseModel):
     password: str
     birthday: date
     age: int
-    mobile_no: int
+    mobile_no: str  # Changed from int to str
     landline_no: str
     zip_code: int
     gender: Optional[Gender] = None

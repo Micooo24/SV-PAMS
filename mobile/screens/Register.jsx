@@ -1,12 +1,20 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Image } from 'react-native';
-import { Text, TextInput, Button, RadioButton, Card } from 'react-native-paper';
-import { useGlobalFonts } from '../hooks/font';
-import axios from 'axios';
-import { styles } from '../styles/register.js';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import BASE_URL from '../common/baseurl.js'
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+  Image,
+} from "react-native";
+import { Text, TextInput, Button, RadioButton, Card } from "react-native-paper";
+import { useGlobalFonts } from "../hooks/font";
+import axios from "axios";
+import { styles } from "../styles/register.js";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import BASE_URL from "../common/baseurl.js";
+import * as ImagePicker from "expo-image-picker";
 
 const Register = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
@@ -14,44 +22,42 @@ const Register = ({ navigation }) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
 
- 
-
   const [formData, setFormData] = useState({
     // Personal Information
-    firstname: '',
-    middlename: '',
-    lastname: '',
-    birthday: '',
-    age: '',
-    gender: '',
+    firstname: "",
+    middlename: "",
+    lastname: "",
+    birthday: "",
+    age: "",
+    gender: "",
     img: null,
-    
+
     // Contact Information
-    mobile_no: '',
-    landline_no: '',
-    email: '',
-    
+    mobile_no: "",
+    landline_no: "",
+    email: "",
+
     // Address Information
-    address: '',
-    barangay: '',
-    zip_code: '',
-    
+    address: "",
+    barangay: "",
+    zip_code: "",
+
     // Account Security
-    password: '',
-    confirmPassword: '',
+    password: "",
+    confirmPassword: "",
   });
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   if (!fontsLoaded) {
     return null;
   }
-    const pickImage = async () => {
+  const pickImage = async () => {
     // Request permission to access media library
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      alert('Sorry, we need camera roll permissions to make this work!');
+    if (status !== "granted") {
+      alert("Sorry, we need camera roll permissions to make this work!");
       return;
     }
 
@@ -65,14 +71,14 @@ const Register = ({ navigation }) => {
 
     if (!result.canceled) {
       const selectedImageUri = result.assets[0].uri;
-      handleInputChange('img', selectedImageUri);
+      handleInputChange("img", selectedImageUri);
     }
   };
 
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -89,95 +95,132 @@ const Register = ({ navigation }) => {
   };
 
   const sections = [
-    'Personal Information',
-    'Contact Information', 
-    'Address Information',
-    'Account Security'
+    "Personal Information",
+    "Contact Information",
+    "Address Information",
+    "Account Security",
   ];
 
+  const handleRegister = async () => {
+    try {
+      console.log("=".repeat(50));
+      console.log("Starting registration process...");
 
-const handleRegister = async () => {
-  try {
-    // Validation first
-    if (!formData.firstname || !formData.lastname || !formData.birthday || 
-        !formData.gender || !formData.mobile_no || !formData.email || 
-        !formData.address || !formData.barangay || !formData.zip_code || 
-        !formData.password) {
-      alert('Please fill in all required fields');
-      return;
+      // Validation
+      if (
+        !formData.firstname ||
+        !formData.lastname ||
+        !formData.birthday ||
+        !formData.gender ||
+        !formData.mobile_no ||
+        !formData.email ||
+        !formData.address ||
+        !formData.barangay ||
+        !formData.zip_code ||
+        !formData.password
+      ) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        alert("Passwords do not match");
+        return;
+      }
+
+      console.log("Using BASE_URL:", BASE_URL);
+      console.log("Registration endpoint:", `${BASE_URL}/api/users/register`);
+
+      // Create FormData
+      const formDataToSend = new FormData();
+
+      // Append all text fields
+      formDataToSend.append("firstname", formData.firstname.trim());
+      formDataToSend.append("lastname", formData.lastname.trim());
+      formDataToSend.append("middlename", formData.middlename?.trim() || "");
+      formDataToSend.append("address", formData.address.trim());
+      formDataToSend.append("barangay", formData.barangay.trim());
+      formDataToSend.append("email", formData.email.toLowerCase().trim());
+      formDataToSend.append("password", formData.password);
+      formDataToSend.append("birthday", formData.birthday);
+      formDataToSend.append("age", formData.age.toString());
+      formDataToSend.append("mobile_no", formData.mobile_no.trim()); // Keep as string
+      formDataToSend.append("landline_no", formData.landline_no?.trim() || "");
+      formDataToSend.append("zip_code", formData.zip_code.trim()); // Keep as string
+      formDataToSend.append("gender", formData.gender);
+      formDataToSend.append("role", "customer");
+
+      console.log("Form data prepared:");
+      console.log("- firstname:", formData.firstname);
+      console.log("- email:", formData.email);
+      console.log("- mobile_no:", formData.mobile_no);
+      console.log("- birthday:", formData.birthday);
+
+      // Handle image if exists
+      if (formData.img) {
+        const uriParts = formData.img.split(".");
+        const fileType = uriParts[uriParts.length - 1];
+
+        formDataToSend.append("img", {
+          uri: formData.img,
+          name: `photo.${fileType}`,
+          type: `image/${fileType}`,
+        });
+        console.log("Image attached to form");
+      }
+
+      console.log("Sending registration request...");
+
+      const response = await axios.post(
+        `${BASE_URL}/api/users/register`,
+        formDataToSend,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
+
+      console.log("Registration successful:", response.data);
+      console.log("=".repeat(50));
+
+      alert("Registration successful! Please login to continue.");
+
+      if (navigation) {
+        navigation.navigate("Login");
+      }
+    } catch (error) {
+      console.error("=".repeat(50));
+      console.error("Registration error:");
+      console.error("Error message:", error.message);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("BASE_URL used:", BASE_URL);
+      console.error("=".repeat(50));
+
+      let errorMessage = "Registration failed. Please try again.";
+
+      if (error.message === "Network Error") {
+        errorMessage = `Cannot connect to server\n\nServer: ${BASE_URL}\n\nPlease check:\n1. Backend server is running (python server.py)\n2. IP address matches your computer's IP\n3. Both devices on same WiFi network\n4. Firewall allows port 8000\n5. Check terminal for server IP address`;
+      } else if (error.response) {
+        errorMessage =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          `Server error: ${error.response.status}`;
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Request timeout. Server took too long to respond.";
+      }
+
+      alert(errorMessage);
     }
+  };
 
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-
-    // Create single FormData instance
-    const formDataToSend = new FormData();
-
-    // Append all text fields (exclude confirmPassword and img)
-    const fieldsToSend = {
-      firstname: formData.firstname,
-      lastname: formData.lastname,
-      middlename: formData.middlename || '',
-      address: formData.address,
-      barangay: formData.barangay,
-      email: formData.email,
-      password: formData.password,
-      birthday: formData.birthday,
-      age: formData.age,
-      mobile_no: formData.mobile_no, // Keep as string to avoid conversion issues
-      landline_no: formData.landline_no || '',
-      zip_code: formData.zip_code,
-      gender: formData.gender,
-      role: 'customer'
-    };
-
-    // Append all fields to FormData
-    Object.entries(fieldsToSend).forEach(([key, value]) => {
-      formDataToSend.append(key, value);
-    });
-
-    // Handle image separately if exists
-    if (formData.img) {
-      const uriParts = formData.img.split('.');
-      const fileType = uriParts[uriParts.length - 1];
-      
-      formDataToSend.append('img', {
-        uri: formData.img,
-        name: `photo.${fileType}`,
-        type: `image/${fileType}`,
-      });
-    }
-
-    console.log('Sending registration data...');
-
-    const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    console.log('Registration successful:', response.data);
-    alert('Registration successful!');
-    
-    if (navigation) {
-      navigation.navigate('Login');
-    }
-
-  } catch (error) {
-    console.error('Registration error:', error.response?.data || error.message);
-    
-    // Better error handling
-    const errorMessage = error.response?.data?.detail || 
-                        error.response?.data?.message || 
-                        'Registration failed. Please try again.';
-    alert(`Registration failed: ${errorMessage}`);
-  }
-};
   const renderPersonalInfo = () => (
     <View style={styles.sectionContainer}>
-      <Text variant="titleLarge" style={styles.sectionTitle}>Personal Information</Text>
+      <Text variant="titleLarge" style={styles.sectionTitle}>
+        Personal Information
+      </Text>
       <Text style={styles.sectionSubtitle}>Identity & demographic info</Text>
 
       {/* Profile Image */}
@@ -196,7 +239,7 @@ const handleRegister = async () => {
       <TextInput
         label="First Name *"
         value={formData.firstname}
-        onChangeText={(value) => handleInputChange('firstname', value)}
+        onChangeText={(value) => handleInputChange("firstname", value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -205,7 +248,7 @@ const handleRegister = async () => {
       <TextInput
         label="Middle Name"
         value={formData.middlename}
-        onChangeText={(value) => handleInputChange('middlename', value)}
+        onChangeText={(value) => handleInputChange("middlename", value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -214,7 +257,7 @@ const handleRegister = async () => {
       <TextInput
         label="Last Name *"
         value={formData.lastname}
-        onChangeText={(value) => handleInputChange('lastname', value)}
+        onChangeText={(value) => handleInputChange("lastname", value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -229,19 +272,19 @@ const handleRegister = async () => {
         contentStyle={styles.inputContent}
         showSoftInputOnFocus={false}
         editable={false}
-        placeholder='Select your birthday'
+        placeholder="Select your birthday"
       />
 
       <TextInput
         label="Age"
         value={formData.age}
-        onChangeText={(value) => handleInputChange('age', value)}
+        onChangeText={(value) => handleInputChange("age", value)}
         mode="outlined"
         style={styles.input}
         keyboardType="numeric"
         editable={false}
         contentStyle={styles.inputContent}
-        placeholder='Auto-calculated from birthday'
+        placeholder="Auto-calculated from birthday"
       />
 
       {/* Gender Selection */}
@@ -250,8 +293,8 @@ const handleRegister = async () => {
         <View style={styles.radioOption}>
           <RadioButton
             value="male"
-            status={formData.gender === 'male' ? 'checked' : 'unchecked'}
-            onPress={() => handleInputChange('gender', 'male')}
+            status={formData.gender === "male" ? "checked" : "unchecked"}
+            onPress={() => handleInputChange("gender", "male")}
             color="#2563eb"
           />
           <Text style={styles.radioText}>Male</Text>
@@ -259,8 +302,8 @@ const handleRegister = async () => {
         <View style={styles.radioOption}>
           <RadioButton
             value="female"
-            status={formData.gender === 'female' ? 'checked' : 'unchecked'}
-            onPress={() => handleInputChange('gender', 'female')}
+            status={formData.gender === "female" ? "checked" : "unchecked"}
+            onPress={() => handleInputChange("gender", "female")}
             color="#2563eb"
           />
           <Text style={styles.radioText}>Female</Text>
@@ -268,8 +311,8 @@ const handleRegister = async () => {
         <View style={styles.radioOption}>
           <RadioButton
             value="other"
-            status={formData.gender === 'other' ? 'checked' : 'unchecked'}
-            onPress={() => handleInputChange('gender', 'other')}
+            status={formData.gender === "other" ? "checked" : "unchecked"}
+            onPress={() => handleInputChange("gender", "other")}
             color="#2563eb"
           />
           <Text style={styles.radioText}>Other</Text>
@@ -280,13 +323,15 @@ const handleRegister = async () => {
 
   const renderContactInfo = () => (
     <View style={styles.sectionContainer}>
-      <Text variant="titleLarge" style={styles.sectionTitle}>Contact Information</Text>
+      <Text variant="titleLarge" style={styles.sectionTitle}>
+        Contact Information
+      </Text>
       <Text style={styles.sectionSubtitle}>How to reach you</Text>
 
       <TextInput
         label="Mobile Number *"
         value={formData.mobile_no}
-        onChangeText={(value) => handleInputChange('mobile_no', value)}
+        onChangeText={(value) => handleInputChange("mobile_no", value)}
         mode="outlined"
         style={styles.input}
         keyboardType="phone-pad"
@@ -297,7 +342,7 @@ const handleRegister = async () => {
       <TextInput
         label="Landline Number"
         value={formData.landline_no}
-        onChangeText={(value) => handleInputChange('landline_no', value)}
+        onChangeText={(value) => handleInputChange("landline_no", value)}
         mode="outlined"
         style={styles.input}
         keyboardType="phone-pad"
@@ -308,7 +353,7 @@ const handleRegister = async () => {
       <TextInput
         label="Email Address *"
         value={formData.email}
-        onChangeText={(value) => handleInputChange('email', value)}
+        onChangeText={(value) => handleInputChange("email", value)}
         mode="outlined"
         style={styles.input}
         keyboardType="email-address"
@@ -320,13 +365,15 @@ const handleRegister = async () => {
 
   const renderAddressInfo = () => (
     <View style={styles.sectionContainer}>
-      <Text variant="titleLarge" style={styles.sectionTitle}>Address Information</Text>
+      <Text variant="titleLarge" style={styles.sectionTitle}>
+        Address Information
+      </Text>
       <Text style={styles.sectionSubtitle}>Location & residency info</Text>
 
       <TextInput
         label="Address *"
         value={formData.address}
-        onChangeText={(value) => handleInputChange('address', value)}
+        onChangeText={(value) => handleInputChange("address", value)}
         mode="outlined"
         style={styles.input}
         placeholder="Street, House Number, etc."
@@ -338,7 +385,7 @@ const handleRegister = async () => {
       <TextInput
         label="Barangay *"
         value={formData.barangay}
-        onChangeText={(value) => handleInputChange('barangay', value)}
+        onChangeText={(value) => handleInputChange("barangay", value)}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
@@ -347,7 +394,7 @@ const handleRegister = async () => {
       <TextInput
         label="Zip Code *"
         value={formData.zip_code}
-        onChangeText={(value) => handleInputChange('zip_code', value)}
+        onChangeText={(value) => handleInputChange("zip_code", value)}
         mode="outlined"
         style={styles.input}
         keyboardType="numeric"
@@ -358,20 +405,24 @@ const handleRegister = async () => {
 
   const renderAccountSecurity = () => (
     <View style={styles.sectionContainer}>
-      <Text variant="titleLarge" style={styles.sectionTitle}>Account Security</Text>
-      <Text style={styles.sectionSubtitle}>Login credentials & authentication</Text>
+      <Text variant="titleLarge" style={styles.sectionTitle}>
+        Account Security
+      </Text>
+      <Text style={styles.sectionSubtitle}>
+        Login credentials & authentication
+      </Text>
 
       <TextInput
         label="Password *"
         value={formData.password}
-        onChangeText={(value) => handleInputChange('password', value)}
+        onChangeText={(value) => handleInputChange("password", value)}
         mode="outlined"
         style={styles.input}
         secureTextEntry={!showPassword}
         contentStyle={styles.inputContent}
         right={
-          <TextInput.Icon 
-            icon={showPassword ? "eye-off" : "eye"} 
+          <TextInput.Icon
+            icon={showPassword ? "eye-off" : "eye"}
             onPress={() => setShowPassword(!showPassword)}
           />
         }
@@ -380,66 +431,82 @@ const handleRegister = async () => {
       <TextInput
         label="Confirm Password *"
         value={formData.confirmPassword}
-        onChangeText={(value) => handleInputChange('confirmPassword', value)}
+        onChangeText={(value) => handleInputChange("confirmPassword", value)}
         mode="outlined"
         style={styles.input}
         secureTextEntry={!showConfirmPassword}
         contentStyle={styles.inputContent}
         right={
-          <TextInput.Icon 
-            icon={showConfirmPassword ? "eye-off" : "eye"} 
+          <TextInput.Icon
+            icon={showConfirmPassword ? "eye-off" : "eye"}
             onPress={() => setShowConfirmPassword(!showConfirmPassword)}
           />
         }
       />
 
       <Text style={styles.passwordHint}>
-        Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and special characters.
+        Password must be at least 8 characters long and contain uppercase,
+        lowercase, numbers, and special characters.
       </Text>
     </View>
   );
 
   const renderCurrentSection = () => {
     switch (currentSection) {
-      case 0: return renderPersonalInfo();
-      case 1: return renderContactInfo();
-      case 2: return renderAddressInfo();
-      case 3: return renderAccountSecurity();
-      default: return renderPersonalInfo();
+      case 0:
+        return renderPersonalInfo();
+      case 1:
+        return renderContactInfo();
+      case 2:
+        return renderAddressInfo();
+      case 3:
+        return renderAccountSecurity();
+      default:
+        return renderPersonalInfo();
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
-          <Text variant="headlineSmall" style={styles.welcomeText}>Create Account</Text>
+          <Text variant="headlineLarge" style={styles.logoText}>
+            SV: PAMS
+          </Text>
+          <Text variant="headlineSmall" style={styles.welcomeText}>
+            Create Account
+          </Text>
         </View>
 
         {/* Progress Indicator */}
         <View style={styles.progressContainer}>
           {sections.map((section, index) => (
             <View key={index} style={styles.progressItem}>
-              <View style={[
-                styles.progressDot,
-                index <= currentSection && styles.progressDotActive
-              ]}>
-                <Text style={[
-                  styles.progressNumber,
-                  index <= currentSection && styles.progressNumberActive
-                ]}>
+              <View
+                style={[
+                  styles.progressDot,
+                  index <= currentSection && styles.progressDotActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.progressNumber,
+                    index <= currentSection && styles.progressNumberActive,
+                  ]}
+                >
                   {index + 1}
                 </Text>
               </View>
-              <Text style={[
-                styles.progressLabel,
-                index === currentSection && styles.progressLabelActive
-              ]}>
+              <Text
+                style={[
+                  styles.progressLabel,
+                  index === currentSection && styles.progressLabelActive,
+                ]}
+              >
                 {section}
               </Text>
             </View>
@@ -447,9 +514,7 @@ const handleRegister = async () => {
         </View>
 
         {/* Form Content */}
-        <Card style={styles.formCard}>
-          {renderCurrentSection()}
-        </Card>
+        <Card style={styles.formCard}>{renderCurrentSection()}</Card>
 
         {/* Navigation Buttons */}
         <View style={styles.buttonContainer}>
@@ -463,7 +528,7 @@ const handleRegister = async () => {
               Previous
             </Button>
           )}
-          
+
           {currentSection < 3 ? (
             <Button
               mode="contained"
@@ -486,48 +551,50 @@ const handleRegister = async () => {
         </View>
 
         {/* Login Link */}
-          {currentSection === 3 && (
-            <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <Text
-                style={styles.loginLink}
-                onPress={() => navigation && navigation.navigate('Login')}
-              >
-                Sign in here
-              </Text>
-            </View>
-          )}
+        {currentSection === 3 && (
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Already have an account? </Text>
+            <Text
+              style={styles.loginLink}
+              onPress={() => navigation && navigation.navigate("Login")}
+            >
+              Sign in here
+            </Text>
+          </View>
+        )}
       </ScrollView>
-    {open && (
-  <DateTimePicker
-    value={date}
-    mode="date"
-    display="default"
-    onChange={(event, selectedDate) => {
-      setOpen(false);
-      if (selectedDate) {
-        setDate(selectedDate);
-        const formattedDate = selectedDate.toISOString().split('T')[0];
-        handleInputChange('birthday', formattedDate);
-        
-        // Auto-calculate age
-        const today = new Date();
-        const birthDate = new Date(selectedDate);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        
-        handleInputChange('age', age.toString());
-      }
-    }}
-  />
-)}
+      {open && (
+        <DateTimePicker
+          value={date}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setOpen(false);
+            if (selectedDate) {
+              setDate(selectedDate);
+              const formattedDate = selectedDate.toISOString().split("T")[0];
+              handleInputChange("birthday", formattedDate);
+
+              // Auto-calculate age
+              const today = new Date();
+              const birthDate = new Date(selectedDate);
+              let age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+
+              if (
+                monthDiff < 0 ||
+                (monthDiff === 0 && today.getDate() < birthDate.getDate())
+              ) {
+                age--;
+              }
+
+              handleInputChange("age", age.toString());
+            }
+          }}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 };
-
 
 export default Register;

@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import "./Auth.css";
+import axios from "axios";
+
+const BASE_URL = "http://192.168.1.7:8000";
 
 const Register = ({ onBack, onLogin }) => {
   const [formData, setFormData] = useState({
@@ -123,28 +126,65 @@ const Register = ({ onBack, onLogin }) => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting registration...");
+      console.log("Using BASE_URL:", BASE_URL);
+
       const registrationData = {
-        ...formData,
-        age: calculateAge(formData.birthday),
-        mobile_no: parseInt(formData.mobile_no),
-        zip_code: parseInt(formData.zip_code),
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        middlename: formData.middlename || "",
+        address: formData.address,
+        barangay: formData.barangay,
+        email: formData.email,
+        password: formData.password,
+        birthday: formData.birthday,
+        age: calculateAge(formData.birthday).toString(),
+        mobile_no: formData.mobile_no,
+        landline_no: formData.landline_no || "",
+        zip_code: formData.zip_code,
+        gender: formData.gender,
         role: "vendor",
       };
 
-      delete registrationData.confirmPassword;
+      console.log(
+        "Sending registration data to:",
+        `${BASE_URL}/api/users/register`
+      );
 
-      // TODO: Implement actual registration API call
-      console.log("Registration attempt:", registrationData);
+      const response = await axios.post(
+        `${BASE_URL}/api/users/register`,
+        registrationData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Handle successful registration
+      console.log("Registration successful:", response.data);
       alert("Registration successful! You can now login.");
       onLogin();
     } catch (error) {
-      console.error("Registration error:", error);
-      setErrors({ general: "Registration failed. Please try again." });
+      console.error("Registration error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        baseURL: BASE_URL,
+      });
+
+      let errorMessage = "Registration failed. Please try again.";
+
+      if (error.message === "Network Error") {
+        errorMessage = `Cannot connect to server at ${BASE_URL}\n\nPlease check:\n1. Backend server is running\n2. IP address is correct (192.168.1.7)\n3. Both devices are on same network\n4. No firewall blocking the connection`;
+      } else if (error.response) {
+        errorMessage =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          `Server error: ${error.response.status}`;
+      }
+
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }

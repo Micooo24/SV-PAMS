@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import "./Auth.css";
+import axios from "axios";
+
+const BASE_URL = "http://192.168.1.7:8000";
 
 const Login = ({ onBack, onRegister }) => {
   const [formData, setFormData] = useState({
@@ -53,17 +56,54 @@ const Login = ({ onBack, onRegister }) => {
     setIsLoading(true);
 
     try {
-      // TODO: Implement actual login API call
-      console.log("Login attempt:", formData);
+      console.log("Attempting login for:", formData.email);
+      console.log("Using BASE_URL:", BASE_URL);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await axios.post(
+        `${BASE_URL}/api/users/login`,
+        {
+          email: formData.email,
+          password: formData.password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          timeout: 10000,
+        }
+      );
 
-      // Handle successful login
+      console.log("Login successful:", response.data);
+
+      // Store token if provided
+      if (response.data.token) {
+        localStorage.setItem("authToken", response.data.token);
+      }
+
       alert("Login successful!");
+
+      // Handle navigation or state update here
+      // e.g., redirect to dashboard
     } catch (error) {
-      console.error("Login error:", error);
-      setErrors({ general: "Login failed. Please try again." });
+      console.error("Login error details:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        baseURL: BASE_URL,
+      });
+
+      let errorMessage = "Login failed. Please try again.";
+
+      if (error.message === "Network Error") {
+        errorMessage = `Cannot connect to server at ${BASE_URL}\n\nPlease check:\n1. Backend server is running\n2. IP address is correct (192.168.1.7)\n3. Both devices are on same network\n4. No firewall blocking the connection`;
+      } else if (error.response) {
+        errorMessage =
+          error.response?.data?.detail ||
+          error.response?.data?.message ||
+          "Invalid email or password";
+      }
+
+      setErrors({ general: errorMessage });
     } finally {
       setIsLoading(false);
     }

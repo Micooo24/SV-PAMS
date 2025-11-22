@@ -1,15 +1,22 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Text, TextInput, Button, IconButton } from 'react-native-paper';
-import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import { useGlobalFonts } from '../hooks/font';
-import axios from 'axios';
-import BASE_URL from '../common/baseurl.js';
+import React, { useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import { Text, TextInput, Button, IconButton } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useGlobalFonts } from "../hooks/font";
+import axios from "axios";
+import BASE_URL from "../common/baseurl.js";
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -19,114 +26,136 @@ const Login = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
+      console.log("=".repeat(50));
+      console.log("Starting login process...");
+
       // Validation
       if (!email || !password) {
-        Alert.alert('Validation Error', 'Please enter both email and password');
+        Alert.alert("Validation Error", "Please enter both email and password");
         return;
       }
 
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        Alert.alert('Validation Error', 'Please enter a valid email address');
+        Alert.alert("Validation Error", "Please enter a valid email address");
         return;
       }
 
       setLoading(true);
 
+      console.log("Using BASE_URL:", BASE_URL);
+      console.log("Login endpoint:", `${BASE_URL}/api/users/login`);
+      console.log("Email:", email.toLowerCase().trim());
+
       // Create FormData for login
       const formData = new FormData();
-      formData.append('email', email.toLowerCase().trim());
-      formData.append('password', password);
+      formData.append("email", email.toLowerCase().trim());
+      formData.append("password", password);
 
-      console.log('Attempting login for:', email);
+      console.log("Sending login request...");
 
       // Make login request
-      const response = await axios.post(`${BASE_URL}/api/users/login`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await axios.post(
+        `${BASE_URL}/api/users/login`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 30000, // 30 second timeout
+        }
+      );
 
-      console.log('Login successful:', response.data);
+      console.log("Login successful:", response.data.message);
+      console.log("User role:", response.data.user.role);
 
-      //  Store user data and token in AsyncStorage
+      // Store user data in AsyncStorage
       try {
         await AsyncStorage.multiSet([
-          ['access_token', response.data.access_token],
-          ['token_type', response.data.token_type],
-          ['expires_in', response.data.expires_in.toString()],
-          ['user_data', JSON.stringify(response.data.user)],
-          ['user_id', response.data.user._id],
-          ['user_email', response.data.user.email],
-          ['user_firstname', response.data.user.firstname],
-          ['user_lastname', response.data.user.lastname],
-          ['user_role', response.data.user.role],
-          ['user_mobile', response.data.user.mobile_no.toString()],
-          ['user_address', response.data.user.address],
-          ['user_barangay', response.data.user.barangay],
-          ['user_img', response.data.user.img],
+          ["access_token", response.data.access_token],
+          ["token_type", response.data.token_type],
+          ["expires_in", response.data.expires_in.toString()],
+          ["user_data", JSON.stringify(response.data.user)],
+          ["user_id", response.data.user._id],
+          ["user_email", response.data.user.email],
+          ["user_firstname", response.data.user.firstname],
+          ["user_lastname", response.data.user.lastname],
+          ["user_role", response.data.user.role],
+          ["user_mobile", response.data.user.mobile_no || ""],
+          ["user_address", response.data.user.address || ""],
+          ["user_barangay", response.data.user.barangay || ""],
+          ["user_img", response.data.user.img || ""],
         ]);
 
-        console.log('User data stored in AsyncStorage');
+        console.log("User data stored in AsyncStorage");
       } catch (storageError) {
-        console.error('AsyncStorage error:', storageError);
+        console.error("AsyncStorage error:", storageError);
       }
 
       const userData = response.data.user;
-      
-      Alert.alert(
-        'Login Successful',
-        `Welcome back, ${userData.firstname}!`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate based on user role
-              if (userData.role === 'customer') {
-                navigation?.navigate('Home');
-              } else if (userData.role === 'vendor') {
-                navigation?.navigate('VendorDashboard');
-              } else if (userData.role === 'admin') {
-                navigation?.navigate('AdminDashboard');
-              } else {
-                navigation?.navigate('Home'); // Default navigation
-              }
-            }
-          }
-        ]
-      );
 
+      console.log("=".repeat(50));
+
+      Alert.alert("Login Successful", `Welcome back, ${userData.firstname}!`, [
+        {
+          text: "OK",
+          onPress: () => {
+            // Navigate based on user role
+            if (userData.role === "customer") {
+              navigation?.navigate("Home");
+            } else if (userData.role === "vendor") {
+              navigation?.navigate("VendorDashboard");
+            } else if (userData.role === "admin") {
+              navigation?.navigate("AdminDashboard");
+            } else {
+              navigation?.navigate("Home");
+            }
+          },
+        },
+      ]);
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
-      
-      // Handle specific error messages
-      let errorMessage = 'Login failed. Please try again.';
-      
-      if (error.response?.status === 400) {
-        errorMessage = error.response.data?.detail || 'Invalid email or password';
+      console.error("=".repeat(50));
+      console.error("Login error:");
+      console.error("Error message:", error.message);
+      console.error("Error response:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      console.error("BASE_URL used:", BASE_URL);
+      console.error("=".repeat(50));
+
+      let errorMessage = "Login failed. Please try again.";
+
+      if (error.message === "Network Error") {
+        errorMessage = `Cannot connect to server\n\nServer: ${BASE_URL}\n\nPlease check:\n1. Backend server is running\n2. IP address is correct\n3. Same WiFi network\n4. Port 8000 is open`;
+      } else if (error.response?.status === 400) {
+        errorMessage =
+          error.response.data?.detail || "Invalid email or password";
       } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.message === 'Network Error') {
-        errorMessage = 'Network error. Please check your connection.';
+        errorMessage = "Server error. Please try again later.";
+      } else if (error.code === "ECONNABORTED") {
+        errorMessage = "Request timeout. Server took too long to respond.";
       }
-      
-      Alert.alert('Login Failed', errorMessage);
+
+      Alert.alert("Login Failed", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
-          <Text variant="headlineSmall" style={styles.welcomeText}>Welcome Back</Text>
+          <Text variant="headlineLarge" style={styles.logoText}>
+            SV: PAMS
+          </Text>
+          <Text variant="headlineSmall" style={styles.welcomeText}>
+            Welcome Back
+          </Text>
           <Text variant="bodyMedium" style={styles.subtitleText}>
             Sign in to your account to continue
           </Text>
@@ -160,8 +189,8 @@ const Login = ({ navigation }) => {
             contentStyle={styles.inputContent}
             disabled={loading}
             right={
-              <TextInput.Icon 
-                icon={showPassword ? "eye-off" : "eye"} 
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
                 onPress={() => setShowPassword(!showPassword)}
               />
             }
@@ -169,9 +198,11 @@ const Login = ({ navigation }) => {
 
           {/* Forgot Password */}
           <View style={styles.forgotContainer}>
-            <Text 
+            <Text
               style={styles.forgotText}
-              onPress={() => navigation && navigation.navigate('ForgotPassword')}
+              onPress={() =>
+                navigation && navigation.navigate("ForgotPassword")
+              }
             >
               Forgot Password?
             </Text>
@@ -186,7 +217,7 @@ const Login = ({ navigation }) => {
             loading={loading}
             disabled={loading}
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
 
           {/* Divider */}
@@ -202,7 +233,7 @@ const Login = ({ navigation }) => {
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="google"
-            onPress={() => console.log('Google login')}
+            onPress={() => console.log("Google login")}
             disabled={loading}
           >
             Continue with Google
@@ -213,7 +244,7 @@ const Login = ({ navigation }) => {
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="facebook"
-            onPress={() => console.log('Facebook login')}
+            onPress={() => console.log("Facebook login")}
             disabled={loading}
           >
             Continue with Facebook
@@ -224,7 +255,7 @@ const Login = ({ navigation }) => {
             <Text style={styles.signupText}>Don't have an account? </Text>
             <Text
               style={styles.signupLink}
-              onPress={() => navigation && navigation.navigate('Register')}
+              onPress={() => navigation && navigation.navigate("Register")}
             >
               Sign up here
             </Text>
@@ -238,110 +269,110 @@ const Login = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   logoText: {
-    fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
-    textAlign: 'center',
+    fontFamily: "Poppins-Bold",
+    color: "#2563eb",
+    textAlign: "center",
     marginBottom: 16,
   },
   welcomeText: {
-    fontFamily: 'Poppins-Bold',
-    color: '#333',
-    textAlign: 'center',
+    fontFamily: "Poppins-Bold",
+    color: "#333",
+    textAlign: "center",
     marginBottom: 8,
   },
   subtitleText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
-    textAlign: 'center',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
+    textAlign: "center",
   },
   formContainer: {
-    width: '100%',
+    width: "100%",
   },
   input: {
     marginBottom: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   inputContent: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
   },
   forgotContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     marginBottom: 24,
   },
   forgotText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#2563eb',
+    fontFamily: "Poppins-Regular",
+    color: "#2563eb",
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: "#2563eb",
     borderRadius: 8,
     paddingVertical: 4,
     marginBottom: 24,
   },
   loginButtonDisabled: {
-    backgroundColor: '#94a3b8',
+    backgroundColor: "#94a3b8",
   },
   buttonText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 24,
   },
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
   },
   dividerText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
     marginHorizontal: 16,
     fontSize: 14,
   },
   socialButton: {
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     borderRadius: 8,
     marginBottom: 12,
     paddingVertical: 2,
   },
   socialButtonText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#333',
+    fontFamily: "Poppins-Regular",
+    color: "#333",
     fontSize: 14,
   },
   signupContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 24,
   },
   signupText: {
-    fontFamily: 'Poppins-Regular',
-    color: '#666',
+    fontFamily: "Poppins-Regular",
+    color: "#666",
     fontSize: 14,
   },
   signupLink: {
-    fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
+    fontFamily: "Poppins-Bold",
+    color: "#2563eb",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 
