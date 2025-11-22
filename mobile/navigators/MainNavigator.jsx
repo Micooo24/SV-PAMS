@@ -1,21 +1,34 @@
+// navigators/MainNavigator.jsx
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import Home from "../screens/Home";
+
+// Public Screens
+import SplashLoadingScreen from "../screens/SplashingLoadingScreen";
+import AppIntroScreen from "../screens/AppIntroScreen";
 import Welcome from "../screens/Welcome";
-import DocSubmission from "../screens/DocSubmission";
 import AuthNavigator from "./AuthNavigator";
-import VendorCarts from "../screens/Cart_DetectionScreen";
+import DocSubmission from "../screens/DocSubmission";
+
+// Authenticated App with Bottom Tabs
+import AppTabs from "./AppTabs";
 
 const Stack = createNativeStackNavigator();
 
 const MainNavigator = () => {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Welcome" component={Welcome} options={{ headerShown: false }} />
-      <Stack.Screen name="Auth" component={AuthNavigator} options={{ headerShown: false }} />
-      <Stack.Screen name="DocSubmission" component={DocSubmission} options={{ headerShown: false }} />
-      <Stack.Screen name="Home" component={Home} options={{ headerShown: false }} />
-      <Stack.Screen name="VendorCarts" component={VendorCarts} options={{ headerShown: false }} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {/* Onboarding & Auth */}
+      <Stack.Screen name="SplashLoading" component={SplashLoadingScreen} />
+      <Stack.Screen name="AppIntro" component={AppIntroScreen} />
+      <Stack.Screen name="Welcome" component={Welcome} />
+      <Stack.Screen name="Auth" component={AuthNavigator} />
+
+      {/* Full App with Bottom Tabs */}
+      <Stack.Screen name="MainApp" component={AppTabs} />
+
+      {/* Full-screen modals on top of tabs */}
+      <Stack.Screen name="DocSubmission" component={DocSubmission} />
+      {/* Add more later: DigitalPermit, Payments, etc. */}
     </Stack.Navigator>
   );
 };

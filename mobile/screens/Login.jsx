@@ -84,7 +84,7 @@ const Login = ({ navigation }) => {
             onPress: () => {
               // Navigate based on user role
               if (userData.role === 'customer') {
-                navigation?.navigate('Home');
+                navigation.navigate('MainApp');
               } else if (userData.role === 'vendor') {
                 navigation?.navigate('VendorDashboard');
               } else if (userData.role === 'admin') {
