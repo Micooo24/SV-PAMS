@@ -1,19 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronUp, LayoutDashboard, Shield, Users, Settings, FileText, AlertTriangle } from "lucide-react";
+import logo from "../assets/images/logo1.png"; 
+import {
+  ChevronDown,
+  ChevronUp,
+  LayoutDashboard,
+  Shield,
+  Users,
+  Settings,
+  FileText,
+  AlertTriangle,
+  Menu,
+} from "lucide-react";
 
 export default function Sidebar({ role }) {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
 
   const toggleMenu = (menu) => {
     setExpandedMenus((prev) => ({ ...prev, [menu]: !prev[menu] }));
   };
 
-  // Route paths for menus and submenus
   const routeMap = {
     superadmin: {
-      "Dashboard": "/superadmin",
+      Dashboard: "/superadmin",
       "Manage Admins": "/superadmin/manage-admins",
       "Manage Sanitary Officers": "/superadmin/manage-sanitary",
       "Assign Roles": "/superadmin/roles",
@@ -23,23 +34,23 @@ export default function Sidebar({ role }) {
       "AI Monitoring Settings": "/superadmin/ai-settings",
       "Analytics & Reports": "/superadmin/analytics",
       "Activity Logs": "/superadmin/logs",
-      "Backups": "/superadmin/backups",
+      Backups: "/superadmin/backups",
     },
     admin: {
-      "Dashboard": "/admin",
+      Dashboard: "/admin",
       "Approve / Deny Applications": "/admin/approve-applications",
       "Renew Permits": "/admin/renew-permits",
       "Suspend / Revoke Vendors": "/admin/suspend-vendors",
       "Manage Images & AI Monitoring": "/admin/images-ai",
       "Vendor Records": "/admin/vendor-records",
       "AI Monitoring": "/admin/ai-monitoring",
-      "Reports": "/admin/reports",
+      Reports: "/admin/reports",
       "Send Notifications": "/admin/notifications",
       "Manage Documents": "/admin/documents",
       "Manage User Submissions": "/admin/usersubmissions",
     },
     sanitary: {
-      "Dashboard": "/sanitary",
+      Dashboard: "/sanitary",
       "Inspection Tasks": "/sanitary/inspection",
       "Violation Reports": "/sanitary/violations",
       "AI Alerts": "/sanitary/alerts",
@@ -73,7 +84,11 @@ export default function Sidebar({ role }) {
       {
         title: "Manage Vendor Permits",
         icon: <FileText size={16} />,
-        subItems: ["Approve / Deny Applications", "Renew Permits", "Suspend / Revoke Vendors"],
+        subItems: [
+          "Approve / Deny Applications",
+          "Renew Permits",
+          "Suspend / Revoke Vendors",
+        ],
       },
       { title: "Manage Images & AI Monitoring", icon: <FileText size={16} /> },
       { title: "Vendor Records", icon: <Users size={16} /> },
@@ -103,19 +118,42 @@ export default function Sidebar({ role }) {
 
   const styles = {
     sidebar: {
-      width: "250px",
+      width: collapsed ? "70px" : "250px",
       backgroundColor: palette.bg,
       color: palette.text,
       minHeight: "100vh",
-      padding: "20px",
+      padding: "20px 10px",
       fontFamily: "Poppins, sans-serif",
       borderRight: "1px solid #cbd6e2",
+      transition: "width 0.3s ease",
+      overflow: "hidden",
     },
-    roleTitle: {
-      fontSize: "20px",
-      fontWeight: "700",
+    header: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: collapsed ? "center" : "space-between",
       marginBottom: "30px",
-      textTransform: "capitalize",
+      color: palette.text,
+      flexDirection: collapsed ? "column" : "row",
+      gap: collapsed ? "10px" : "0",
+    },
+    logoWrap: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontWeight: "700",
+      fontSize: "18px",
+    },
+    logoImg: {
+      width: "30px",
+      height: "30px",
+      objectFit: "contain",
+    },
+    toggleBtn: {
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
     menuItem: {
       padding: "10px 14px",
@@ -144,7 +182,20 @@ export default function Sidebar({ role }) {
 
   return (
     <aside style={styles.sidebar}>
-      <h2 style={styles.roleTitle}>{role}</h2>
+      <div style={styles.header}>
+        <div style={styles.logoWrap}>
+          <img src={logo} alt="System Logo" style={styles.logoImg} />
+          {!collapsed && <span>SV-PAMS </span>}
+        </div>
+        <div style={styles.toggleBtn} onClick={() => setCollapsed(!collapsed)}>
+          <Menu size={22} />
+        </div>
+      </div>
+
+      {!collapsed && (
+        <h2 style={{ fontSize: "16px", marginBottom: "20px" }}>{role}</h2>
+      )}
+
       <ul style={{ listStyle: "none", padding: 0 }}>
         {menus.map((menu) => (
           <li key={menu.title}>
@@ -157,29 +208,41 @@ export default function Sidebar({ role }) {
                   navigate(routeMap[role][menu.title]);
                 }
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = palette.hover)
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = "transparent")
+              }
             >
               <div style={styles.menuLeft}>
                 {menu.icon}
-                {menu.title}
+                {!collapsed && menu.title}
               </div>
-              {menu.subItems && (
+              {menu.subItems && !collapsed && (
                 <span>
-                  {expandedMenus[menu.title] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  {expandedMenus[menu.title] ? (
+                    <ChevronUp size={16} />
+                  ) : (
+                    <ChevronDown size={16} />
+                  )}
                 </span>
               )}
             </div>
 
-            {menu.subItems && expandedMenus[menu.title] && (
+            {menu.subItems && expandedMenus[menu.title] && !collapsed && (
               <ul style={{ listStyle: "none", padding: 0 }}>
                 {menu.subItems.map((subItem) => (
                   <li
                     key={subItem}
                     style={styles.subMenu}
                     onClick={() => navigate(routeMap[role][subItem])}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = palette.hover)
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = "transparent")
+                    }
                   >
                     {subItem}
                   </li>
