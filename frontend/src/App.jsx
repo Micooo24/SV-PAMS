@@ -12,7 +12,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import UserSubmissions from "./pages/admin/UserSubmissions";
 import BaseDocument from "./pages/admin/BaseDocument";
 
-import Compare from "./test_code/Compare";
+
 
 import { mockUsers } from "./mockUsers";
 
@@ -100,7 +100,6 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
-        <Route path="/compare" element={<Compare />} />
       </Routes>
 
     </Router>

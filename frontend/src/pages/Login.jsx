@@ -43,7 +43,7 @@ export default function Login() {
         } else if (user?.role === 'sanitary') {
           navigate('/sanitary');
         } else {
-          navigate('/compare'); // default for regular users
+          navigate('/'); // default for regular users
         }
       } else {
         setError("Login failed. Please check your credentials.");
