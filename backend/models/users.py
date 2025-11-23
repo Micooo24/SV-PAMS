@@ -5,9 +5,10 @@ from typing   import Optional, List
 from enum import Enum
 
 class Role (str, Enum):
+    superadmin = "superadmin"
     admin = "admin"
-    customer = "customer"
     vendor = "vendor"
+    user = "user"
     
 class Gender (str, Enum):
     male = "male"

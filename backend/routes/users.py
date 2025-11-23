@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.users import register, login
+from controllers.users import register, login, google_login
 from models.users import Role, Gender
 from datetime import date
+from typing import Optional
 
 router = APIRouter()
 
@@ -35,3 +36,14 @@ async def login_user(
     password: str = Form(...)
 ):
     return await login(email, password)
+
+
+@router.post("/google-login")
+async def google_login_user(
+    email: str = Form(...),
+    givenName: Optional[str] = Form(None),
+    familyName: Optional[str] = Form(None),
+    photo: Optional[str] = Form(None),
+    name: str = Form(...)
+):
+    return await google_login(email, givenName, familyName, photo, name)
