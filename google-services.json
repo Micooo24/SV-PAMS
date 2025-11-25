@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "657897595229",
+    "project_id": "sv-pams-477706",
+    "storage_bucket": "sv-pams-477706.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:657897595229:android:0959719e836ac25b2408b4",
+        "android_client_info": {
+          "package_name": "com.mico.svpams_android"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "657897595229-hirp3v2ub09d4m8155d57ijn6irpbo1k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mico.svpams_android",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "657897595229-4n9iti8l04h4f9e4pmlh7uk73rbcp0fb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9VxIjmuhOSBFHi4R5h0YMQr_IhIgjUNU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "657897595229-4n9iti8l04h4f9e4pmlh7uk73rbcp0fb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
