@@ -41,3 +41,13 @@ android/
 
 assets/images/
 assets/fonts/
+
+#for firebase credentials must be hidden
+firebase
+
+common/baseurl.js
+
+google-services.json
+
+package-lock.json
+package.json
