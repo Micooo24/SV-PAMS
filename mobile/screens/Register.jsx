@@ -3,10 +3,12 @@ import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Touchable
 import { Text, TextInput, Button, RadioButton, Card, Menu } from 'react-native-paper';
 import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
-import { styles } from '../styles/register.js';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import BASE_URL from '../common/baseurl.js'
 import * as ImagePicker from 'expo-image-picker';
+import {styles }  from '../styles/register';
+import { auth } from '../firebase/firebaseConfig'; // ← Import Firebase auth
+import { createUserWithEmailAndPassword } from 'firebase/auth'; // ← Import create user function
 
 // Barangay data with zip codes
 const BARANGAYS = [
@@ -48,6 +50,7 @@ const Register = ({ navigation }) => {
   const [date, setDate] = useState(new Date());
   const [open, setOpen] = useState(false);
   const [barangayMenuVisible, setBarangayMenuVisible] = useState(false); // Menu state
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -76,6 +79,19 @@ const Register = ({ navigation }) => {
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Define the Custom Blue & Black Theme for Input
+  const customInputTheme = {
+    colors: {
+      primary: '#2563eb', // BLUE: Label color when focused & outline color when focused
+      onSurfaceVariant: 'black', // BLACK: Label color when unfocused
+      text: 'black', // BLACK: Input text color
+      placeholder: 'black', // BLACK: Placeholder text color
+      background: 'white', // WHITE: Background color
+      outline: 'black', // BLACK: Outline border color (unfocused)
+    },
+    roundness: 8, // Rounded corners
+  };
 
   if (!fontsLoaded) {
     return null;
@@ -137,20 +153,46 @@ const Register = ({ navigation }) => {
     'Account Security'
   ];
 
-  const handleRegister = async () => {
+ const handleRegister = async () => {
     try {
+      setLoading(true); // ← Start loading
+
+      // Validation
       if (!formData.firstname || !formData.lastname || !formData.birthday || 
           !formData.gender || !formData.mobile_no || !formData.email || 
           !formData.address || !formData.barangay || !formData.zip_code || 
           !formData.password) {
         alert('Please fill in all required fields');
+        setLoading(false);
         return;
       }
 
       if (formData.password !== formData.confirmPassword) {
         alert('Passwords do not match');
+        setLoading(false);
         return;
       }
+
+      // Password strength validation (optional but recommended)
+      if (formData.password.length < 8) {
+        alert('Password must be at least 8 characters long');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Step 1: Creating Firebase Auth user...');
+
+      // ✅ STEP 1: Create Firebase Auth User
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email.toLowerCase().trim(),
+        formData.password
+      );
+
+      console.log('✅ Firebase Auth user created:', userCredential.user.uid);
+
+      // ✅ STEP 2: Register user in your backend
+      console.log('Step 2: Registering user in backend...');
 
       const formDataToSend = new FormData();
 
@@ -160,7 +202,7 @@ const Register = ({ navigation }) => {
         middlename: formData.middlename || '',
         address: formData.address,
         barangay: formData.barangay,
-        email: formData.email,
+        email: formData.email.toLowerCase().trim(),
         password: formData.password,
         birthday: formData.birthday,
         age: formData.age,
@@ -168,7 +210,8 @@ const Register = ({ navigation }) => {
         landline_no: formData.landline_no || '',
         zip_code: formData.zip_code,
         gender: formData.gender,
-        role: 'user'
+        role: 'user',
+        firebase_uid: userCredential.user.uid // ← Send Firebase UID to backend
       };
 
       Object.entries(fieldsToSend).forEach(([key, value]) => {
@@ -186,30 +229,62 @@ const Register = ({ navigation }) => {
         });
       }
 
-      console.log('Sending registration data...');
-
       const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
 
-      console.log('Registration successful:', response.data);
-      alert('Registration successful!');
+      console.log('✅ Backend registration successful:', response.data);
+
+      alert('Registration successful! You can now login.');
       
       if (navigation) {
         navigation.navigate('Login');
       }
 
     } catch (error) {
-      console.error('Registration error:', error.response?.data || error.message);
-      
-      const errorMessage = error.response?.data?.detail || 
-                          error.response?.data?.message || 
-                          'Registration failed. Please try again.';
-      alert(`Registration failed: ${errorMessage}`);
+      console.error('❌ Registration error:', error);
+
+      // Handle Firebase Auth errors
+      if (error.code) {
+        let firebaseErrorMessage = '';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            firebaseErrorMessage = 'This email is already registered. Please login instead.';
+            break;
+          case 'auth/invalid-email':
+            firebaseErrorMessage = 'Invalid email address format.';
+            break;
+          case 'auth/weak-password':
+            firebaseErrorMessage = 'Password is too weak. Please use a stronger password.';
+            break;
+          case 'auth/network-request-failed':
+            firebaseErrorMessage = 'Network error. Please check your internet connection.';
+            break;
+          default:
+            firebaseErrorMessage = `Firebase error: ${error.message}`;
+        }
+        
+        alert(`Registration failed: ${firebaseErrorMessage}`);
+      } 
+      // Handle backend errors
+      else if (error.response?.data) {
+        const errorMessage = error.response?.data?.detail || 
+                            error.response?.data?.message || 
+                            'Registration failed. Please try again.';
+        alert(`Registration failed: ${errorMessage}`);
+      } 
+      // Handle other errors
+      else {
+        alert('Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false); // ← Stop loading
     }
   };
+
 
   const renderPersonalInfo = () => (
     <View style={styles.sectionContainer}>
@@ -235,6 +310,8 @@ const Register = ({ navigation }) => {
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
@@ -244,6 +321,8 @@ const Register = ({ navigation }) => {
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
@@ -253,18 +332,22 @@ const Register = ({ navigation }) => {
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
         label="Birthday *"
         value={formData.birthday}
-        right={<TextInput.Icon icon="calendar" onPress={() => setOpen(true)} />}
+        right={<TextInput.Icon icon="calendar" onPress={() => setOpen(true)} iconColor="black" />}
         mode="outlined"
         style={styles.input}
         contentStyle={styles.inputContent}
         showSoftInputOnFocus={false}
         editable={false}
         placeholder='Select your birthday'
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
@@ -277,6 +360,8 @@ const Register = ({ navigation }) => {
         editable={false}
         contentStyle={styles.inputContent}
         placeholder='Auto-calculated from birthday'
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <Text style={styles.fieldLabel}>Gender *</Text>
@@ -326,6 +411,8 @@ const Register = ({ navigation }) => {
         keyboardType="phone-pad"
         placeholder="+63 9XX XXX XXXX"
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
@@ -337,6 +424,8 @@ const Register = ({ navigation }) => {
         keyboardType="phone-pad"
         placeholder="(02) XXX XXXX"
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       <TextInput
@@ -348,6 +437,8 @@ const Register = ({ navigation }) => {
         keyboardType="email-address"
         autoCapitalize="none"
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
     </View>
   );
@@ -367,6 +458,8 @@ const Register = ({ navigation }) => {
         multiline
         numberOfLines={3}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
       />
 
       {/* Barangay Dropdown Menu */}
@@ -381,9 +474,11 @@ const Register = ({ navigation }) => {
             style={styles.input}
             contentStyle={styles.inputContent}
             editable={false}
-            right={<TextInput.Icon icon="menu-down" onPress={() => setBarangayMenuVisible(true)} />}
+            right={<TextInput.Icon icon="menu-down" onPress={() => setBarangayMenuVisible(true)} iconColor="black" />}
             onPressIn={() => setBarangayMenuVisible(true)}
             placeholder="Select Barangay"
+            theme={customInputTheme}
+            textColor="black"
           />
         }
         contentStyle={{ maxHeight: 400, backgroundColor: '#fff' }}
@@ -409,6 +504,8 @@ const Register = ({ navigation }) => {
         contentStyle={styles.inputContent}
         editable={false}
         placeholder="Auto-filled from Barangay"
+        theme={customInputTheme}
+        textColor="black"
       />
     </View>
   );
@@ -426,9 +523,12 @@ const Register = ({ navigation }) => {
         style={styles.input}
         secureTextEntry={!showPassword}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
         right={
           <TextInput.Icon 
             icon={showPassword ? "eye-off" : "eye"} 
+            iconColor="black"
             onPress={() => setShowPassword(!showPassword)}
           />
         }
@@ -442,9 +542,12 @@ const Register = ({ navigation }) => {
         style={styles.input}
         secureTextEntry={!showConfirmPassword}
         contentStyle={styles.inputContent}
+        theme={customInputTheme}
+        textColor="black"
         right={
           <TextInput.Icon 
             icon={showConfirmPassword ? "eye-off" : "eye"} 
+            iconColor="black"
             onPress={() => setShowConfirmPassword(!showConfirmPassword)}
           />
         }
@@ -579,5 +682,21 @@ const Register = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
+
+// Local StyleSheet to override imported styles or add new ones
+const localStyles = StyleSheet.create({
+  logoText: {
+    color: '#2563eb', // Blue
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10
+  },
+  welcomeText: {
+    color: 'black', // Black
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  // Add other overrides if needed, though most are handled inline or via customInputTheme
+});
 
 export default Register;

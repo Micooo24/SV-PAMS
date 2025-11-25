@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
   },
   radioText: {
     fontFamily: 'Poppins-Regular',
-    color: '#333',
+    color: '#000000',
     marginLeft: 4,
   },
   passwordHint: {
@@ -176,6 +176,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
   loginContainer: {
     flexDirection: 'row',

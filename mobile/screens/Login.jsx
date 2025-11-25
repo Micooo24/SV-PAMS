@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Text, TextInput, Button, IconButton } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
 import BASE_URL from '../common/baseurl.js';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, GoogleAuthProvider, signInWithCredential } from '../firebase/firebaseConfig';
+
+// 1. IMPORT GOOGLE SIGN IN LIBRARY
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
@@ -15,9 +16,81 @@ const Login = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // 2. CONFIGURE GOOGLE SIGN IN ON LOAD
+  useEffect(() => {
+    GoogleSignin.configure({
+      // PASTE YOUR WEB CLIENT ID HERE (From google-services.json)
+      webClientId: '657897595229-tf6au9pbiob6k48tulhv54mft4on8n4g.apps.googleusercontent.com', 
+      offlineAccess: true,
+    });
+  }, []);
+
   if (!fontsLoaded) {
     return null;
   }
+
+  // 3. HANDLE GOOGLE LOGIN FUNCTION
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+
+      // Force account selection
+      try {
+        await GoogleSignin.signOut();
+      } catch (error) {
+        console.log('Sign out check (safe to ignore):', error);
+      }
+
+      const response = await GoogleSignin.signIn();
+      const userInfo = response.data?.user || response.user; // Handle version differences
+      
+      console.log('Google User Info:', userInfo);
+
+      // MOCK DATA for role (Replace with backend call in real app)
+      const mockUserRole = 'customer'; 
+
+      await AsyncStorage.setItem('user_data', JSON.stringify(userInfo));
+      await AsyncStorage.setItem('user_email', userInfo.email);
+      await AsyncStorage.setItem('user_firstname', userInfo.givenName);
+      await AsyncStorage.setItem('user_role', mockUserRole); 
+      
+      Alert.alert(
+        'Login Successful',
+        `Welcome ${userInfo.name}!`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              if (mockUserRole === 'customer') {
+                navigation.navigate('MainApp');
+              } else if (mockUserRole === 'vendor') {
+                navigation?.navigate('VendorDashboard');
+              } else if (mockUserRole === 'admin') {
+                navigation?.navigate('AdminDashboard');
+              } else {
+                navigation?.navigate('Home'); 
+              }
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.log('Google Login Error:', error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled login');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('Login in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Google Play Services not available');
+      } else {
+        Alert.alert('Login Failed', error.toString());
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     try {
@@ -34,16 +107,6 @@ const Login = ({ navigation }) => {
 
       setLoading(true);
 
-      // Authenticate with Firebase first
-      const firebaseUserCredential = await signInWithEmailAndPassword(
-        auth, 
-        email.toLowerCase().trim(), 
-        password
-      );
-      
-      console.log('Firebase User:', firebaseUserCredential.user);
-
-      // Then authenticate with backend
       const formData = new FormData();
       formData.append('email', email.toLowerCase().trim());
       formData.append('password', password);
@@ -58,24 +121,27 @@ const Login = ({ navigation }) => {
 
       console.log('Login successful:', response.data);
 
-      await AsyncStorage.multiSet([
-        ['access_token', response.data.access_token],
-        ['token_type', response.data.token_type],
-        ['expires_in', response.data.expires_in.toString()],
-        ['user_data', JSON.stringify(response.data.user)],
-        ['user_id', response.data.user._id],
-        ['user_email', response.data.user.email],
-        ['user_firstname', response.data.user.firstname],
-        ['user_lastname', response.data.user.lastname],
-        ['user_role', response.data.user.role],
-        ['user_mobile', response.data.user.mobile_no.toString()],
-        ['user_address', response.data.user.address],
-        ['user_barangay', response.data.user.barangay],
-        ['user_img', response.data.user.img],
-        ['firebase_uid', firebaseUserCredential.user.uid],
-      ]);
+      try {
+        await AsyncStorage.multiSet([
+          ['access_token', response.data.access_token],
+          ['token_type', response.data.token_type],
+          ['expires_in', response.data.expires_in.toString()],
+          ['user_data', JSON.stringify(response.data.user)],
+          ['user_id', response.data.user._id],
+          ['user_email', response.data.user.email],
+          ['user_firstname', response.data.user.firstname],
+          ['user_lastname', response.data.user.lastname],
+          ['user_role', response.data.user.role],
+          ['user_mobile', response.data.user.mobile_no.toString()],
+          ['user_address', response.data.user.address],
+          ['user_barangay', response.data.user.barangay],
+          ['user_img', response.data.user.img],
+        ]);
 
-      console.log('User data stored in AsyncStorage');
+        console.log('User data stored in AsyncStorage');
+      } catch (storageError) {
+        console.error('AsyncStorage error:', storageError);
+      }
 
       const userData = response.data.user;
       
@@ -86,14 +152,14 @@ const Login = ({ navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              if (userData.role === 'user' || userData.role === 'customer') {
+              if (userData.role === 'customer') {
                 navigation.navigate('MainApp');
               } else if (userData.role === 'vendor') {
                 navigation?.navigate('VendorDashboard');
               } else if (userData.role === 'admin') {
                 navigation?.navigate('AdminDashboard');
               } else {
-                navigation?.navigate('Home');
+                navigation?.navigate('Home'); 
               }
             }
           }
@@ -101,33 +167,32 @@ const Login = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.error('Login error:', error);
-      
+      console.error('Login error:', error.response?.data || error.message);
       let errorMessage = 'Login failed. Please try again.';
-      
-      // Handle Firebase errors
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later';
-      } else if (error.response?.status === 400) {
+      if (error.response?.status === 400) {
         errorMessage = error.response.data?.detail || 'Invalid email or password';
       } else if (error.response?.status === 500) {
         errorMessage = 'Server error. Please try again later.';
       } else if (error.message === 'Network Error') {
         errorMessage = 'Network error. Please check your connection.';
       }
-      
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Define the Black & Blue Theme for Input
+  const customInputTheme = {
+    colors: {
+      primary: '#2563eb', // BLUE: Label color when focused & outline color when focused
+      onSurfaceVariant: 'black', // BLACK: Label color when unfocused
+      text: 'black', // BLACK: Input text color
+      placeholder: 'black', // BLACK: Placeholder text color
+      background: 'white', // WHITE: Background color
+      outline: 'black', // BLACK: Outline border color (unfocused)
+    },
+    roundness: 8, // Rounded corners
   };
 
   return (
@@ -147,7 +212,7 @@ const Login = ({ navigation }) => {
 
         {/* Form Container */}
         <View style={styles.formContainer}>
-          {/* Email Input */}
+          {/* Email Input - Custom Theme */}
           <TextInput
             label="Email"
             value={email}
@@ -159,9 +224,11 @@ const Login = ({ navigation }) => {
             autoComplete="email"
             contentStyle={styles.inputContent}
             disabled={loading}
+            theme={customInputTheme} // <--- APPLY THEME HERE
+            textColor="black" // Ensures text typed is black
           />
 
-          {/* Password Input */}
+          {/* Password Input - Custom Theme */}
           <TextInput
             label="Password"
             value={password}
@@ -172,9 +239,12 @@ const Login = ({ navigation }) => {
             autoComplete="password"
             contentStyle={styles.inputContent}
             disabled={loading}
+            theme={customInputTheme} // <--- APPLY THEME HERE
+            textColor="black" // Ensures text typed is black
             right={
               <TextInput.Icon 
                 icon={showPassword ? "eye-off" : "eye"} 
+                iconColor="black" // Make eye icon black
                 onPress={() => setShowPassword(!showPassword)}
               />
             }
@@ -215,8 +285,9 @@ const Login = ({ navigation }) => {
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="google"
-            onPress={() => console.log('Google login')}
+            onPress={handleGoogleLogin} 
             disabled={loading}
+            textColor="black" // Text is black
           >
             Continue with Google
           </Button>
@@ -228,6 +299,7 @@ const Login = ({ navigation }) => {
             icon="facebook"
             onPress={() => console.log('Facebook login')}
             disabled={loading}
+            textColor="black" // Text is black
           >
             Continue with Facebook
           </Button>
@@ -264,19 +336,19 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
+    color: '#2563eb', // BLUE: Logo
     textAlign: 'center',
     marginBottom: 16,
   },
   welcomeText: {
     fontFamily: 'Poppins-Bold',
-    color: '#333',
+    color: 'black', // BLACK: Welcome text
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitleText: {
     fontFamily: 'Poppins-Regular',
-    color: '#666',
+    color: 'black', // BLACK: Subtitle
     textAlign: 'center',
   },
   formContainer: {
@@ -288,6 +360,7 @@ const styles = StyleSheet.create({
   },
   inputContent: {
     fontFamily: 'Poppins-Regular',
+    color: 'black', // Input text
   },
   forgotContainer: {
     alignItems: 'flex-end',
@@ -295,11 +368,11 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontFamily: 'Poppins-Regular',
-    color: '#2563eb',
+    color: '#2563eb', // BLUE: Forgot Password Link
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#2563eb', // BLUE: Login Button Background
     borderRadius: 8,
     paddingVertical: 4,
     marginBottom: 24,
@@ -311,6 +384,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 16,
     fontWeight: '600',
+    color: 'white', // WHITE: Login Button Text
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -320,23 +394,23 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#e0e0e0', // Grey divider (better for blue theme)
   },
   dividerText: {
     fontFamily: 'Poppins-Regular',
-    color: '#666',
+    color: 'black', // BLACK: "or" text
     marginHorizontal: 16,
     fontSize: 14,
   },
   socialButton: {
-    borderColor: '#e0e0e0',
+    borderColor: 'black', // BLACK: Border for social buttons
     borderRadius: 8,
     marginBottom: 12,
     paddingVertical: 2,
   },
   socialButtonText: {
     fontFamily: 'Poppins-Regular',
-    color: '#333',
+    color: 'black', // BLACK: Text for social buttons
     fontSize: 14,
   },
   signupContainer: {
@@ -347,14 +421,15 @@ const styles = StyleSheet.create({
   },
   signupText: {
     fontFamily: 'Poppins-Regular',
-    color: '#666',
+    color: 'black', // BLACK: "Don't have an account?"
     fontSize: 14,
   },
   signupLink: {
     fontFamily: 'Poppins-Bold',
-    color: '#2563eb',
+    color: '#2563eb', // BLUE: "Sign up here" link
     fontSize: 14,
     fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });
 

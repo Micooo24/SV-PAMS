@@ -85,6 +85,7 @@ export const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
   loginContainer: {
     flexDirection: 'row',
