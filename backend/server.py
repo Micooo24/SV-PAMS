@@ -5,6 +5,9 @@ import uvicorn
 # Routes 
 from routes import users, appointments, permit_applications, vendors, reports, reviews, base_documents, document_submissions, vendor_carts
 
+# Admin Routes
+from routes.admin import admin_vendor_carts
+
 # Declaration
 app = FastAPI()
 
@@ -58,6 +61,7 @@ api_app.include_router(document_submissions.router, prefix="/users/document-subm
 
 # admin api
 api_app.include_router(base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
+api_app.include_router(admin_vendor_carts.router, prefix ="/admin/vendor-carts", tags=["Admin Vendor Carts"])
 
 # vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])

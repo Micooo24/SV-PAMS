@@ -11,8 +11,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import UserSubmissions from "./pages/admin/UserSubmissions";
 import BaseDocument from "./pages/admin/BaseDocument";
+import AdminVendorCartMonitoring from "./pages/admin/VendorCartMonitoring";
 
-
+// import Compare from "./test_code/Compare";
 
 import { mockUsers } from "./mockUsers";
 
@@ -93,6 +94,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
         <Route path="/admin/documents" element={<BaseDocument />} />
         <Route path="/admin/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
+        <Route path="/admin/vendor-cart-monitoring" element={<AdminVendorCartMonitoring onLogout={handleLogout} />} />
 
         {/* Sanitary */}
         <Route path="/sanitary" element={<SanitaryDashboard onLogout={handleLogout} />} />
@@ -100,6 +102,7 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
+        {/* <Route path="/compare" element={<Compare />} /> */}
       </Routes>
 
     </Router>

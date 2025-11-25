@@ -41,7 +41,7 @@ export default function Sidebar({ role }) {
       "Approve / Deny Applications": "/admin/approve-applications",
       "Renew Permits": "/admin/renew-permits",
       "Suspend / Revoke Vendors": "/admin/suspend-vendors",
-      "Manage Images & AI Monitoring": "/admin/images-ai",
+      "Manage Images & AI Monitoring": "/admin/vendor-cart-monitoring",
       "Vendor Records": "/admin/vendor-records",
       "AI Monitoring": "/admin/ai-monitoring",
       Reports: "/admin/reports",

@@ -69,3 +69,36 @@ def upload_image(image_file, folder="uploads"):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+    
+
+def upload_image_cart(image_bytes: bytes, folder="uploads"):
+    """
+    Uploads an image to Cloudinary with size validation.
+    Args:
+        image_bytes: Raw image bytes
+        folder: Cloudinary folder name
+    Returns:
+        Secure URL of uploaded file
+    """
+    try:
+        # Validate file size
+        file_size = len(image_bytes)
+        if file_size > MAX_FILE_SIZE:
+            size_mb = file_size / (1024 * 1024)
+            raise HTTPException(
+                status_code=400, 
+                detail=f"File size ({size_mb:.2f}MB) exceeds maximum allowed size of 10MB"
+            )
+
+        # Upload to Cloudinary
+        response = cloudinary.uploader.upload(
+            image_bytes,
+            folder=folder,
+            resource_type="image"
+        )
+
+        return response.get("secure_url")
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
