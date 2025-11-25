@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalFonts } from '../hooks/font';
 import axios from 'axios';
 import BASE_URL from '../common/baseurl.js';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, GoogleAuthProvider, signInWithCredential } from '../firebase/firebaseConfig';
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
@@ -19,13 +21,11 @@ const Login = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
-      // Validation
       if (!email || !password) {
         Alert.alert('Validation Error', 'Please enter both email and password');
         return;
       }
 
-      // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         Alert.alert('Validation Error', 'Please enter a valid email address');
@@ -34,14 +34,22 @@ const Login = ({ navigation }) => {
 
       setLoading(true);
 
-      // Create FormData for login
+      // Authenticate with Firebase first
+      const firebaseUserCredential = await signInWithEmailAndPassword(
+        auth, 
+        email.toLowerCase().trim(), 
+        password
+      );
+      
+      console.log('Firebase User:', firebaseUserCredential.user);
+
+      // Then authenticate with backend
       const formData = new FormData();
       formData.append('email', email.toLowerCase().trim());
       formData.append('password', password);
 
       console.log('Attempting login for:', email);
 
-      // Make login request
       const response = await axios.post(`${BASE_URL}/api/users/login`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -50,28 +58,24 @@ const Login = ({ navigation }) => {
 
       console.log('Login successful:', response.data);
 
-      //  Store user data and token in AsyncStorage
-      try {
-        await AsyncStorage.multiSet([
-          ['access_token', response.data.access_token],
-          ['token_type', response.data.token_type],
-          ['expires_in', response.data.expires_in.toString()],
-          ['user_data', JSON.stringify(response.data.user)],
-          ['user_id', response.data.user._id],
-          ['user_email', response.data.user.email],
-          ['user_firstname', response.data.user.firstname],
-          ['user_lastname', response.data.user.lastname],
-          ['user_role', response.data.user.role],
-          ['user_mobile', response.data.user.mobile_no.toString()],
-          ['user_address', response.data.user.address],
-          ['user_barangay', response.data.user.barangay],
-          ['user_img', response.data.user.img],
-        ]);
+      await AsyncStorage.multiSet([
+        ['access_token', response.data.access_token],
+        ['token_type', response.data.token_type],
+        ['expires_in', response.data.expires_in.toString()],
+        ['user_data', JSON.stringify(response.data.user)],
+        ['user_id', response.data.user._id],
+        ['user_email', response.data.user.email],
+        ['user_firstname', response.data.user.firstname],
+        ['user_lastname', response.data.user.lastname],
+        ['user_role', response.data.user.role],
+        ['user_mobile', response.data.user.mobile_no.toString()],
+        ['user_address', response.data.user.address],
+        ['user_barangay', response.data.user.barangay],
+        ['user_img', response.data.user.img],
+        ['firebase_uid', firebaseUserCredential.user.uid],
+      ]);
 
-        console.log('User data stored in AsyncStorage');
-      } catch (storageError) {
-        console.error('AsyncStorage error:', storageError);
-      }
+      console.log('User data stored in AsyncStorage');
 
       const userData = response.data.user;
       
@@ -82,15 +86,14 @@ const Login = ({ navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              // Navigate based on user role
-              if (userData.role === 'customer') {
+              if (userData.role === 'user' || userData.role === 'customer') {
                 navigation.navigate('MainApp');
               } else if (userData.role === 'vendor') {
                 navigation?.navigate('VendorDashboard');
               } else if (userData.role === 'admin') {
                 navigation?.navigate('AdminDashboard');
               } else {
-                navigation?.navigate('Home'); // Default navigation
+                navigation?.navigate('Home');
               }
             }
           }
@@ -98,12 +101,22 @@ const Login = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
+      console.error('Login error:', error);
       
-      // Handle specific error messages
       let errorMessage = 'Login failed. Please try again.';
       
-      if (error.response?.status === 400) {
+      // Handle Firebase errors
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later';
+      } else if (error.response?.status === 400) {
         errorMessage = error.response.data?.detail || 'Invalid email or password';
       } else if (error.response?.status === 500) {
         errorMessage = 'Server error. Please try again later.';

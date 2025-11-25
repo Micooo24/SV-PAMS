@@ -7,12 +7,12 @@ let BASE_URL = '';
 // let jane_url =
 // let janna_url =
 // let lei_url =
-let mico_url ='http://192.168.1.182:8000';
+let mico_url ='http://192.168.1.181:8000';
 
 //LOCALHOST
 {Platform.OS == 'android'
 ? BASE_URL = mico_url
-: BASE_URL = 'http://192.168.1.182:8000'
+: BASE_URL = 'http://192.168.1.181:8000'
 }
 
 
