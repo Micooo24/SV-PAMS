@@ -157,6 +157,12 @@ const Home = ({ navigation }) => {
                 <Text style={styles.tileTitle}>My Cart</Text>
                 <Text style={styles.tileSub}>Plate: ABC-123</Text>
               </TouchableOpacity>
+
+              {/* View Vendor Location */}
+              <TouchableOpacity style={styles.tile} onPress={() => navigation.navigate('VendorLocation')}>
+                <MaterialCommunityIcons name="map" size={40} color="#2563eb" />
+                <Text style={styles.tileTitleDark}>View Vendor Location</Text>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -165,7 +171,7 @@ const Home = ({ navigation }) => {
                 <Text style={styles.tileTitleDark}>Track Application</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.tile}>
+              <TouchableOpacity style={styles.tile} onPress={() => navigation.navigate('CustomerMap')}>
                 <MaterialCommunityIcons name="map-marker-radius" size={40} color="#2563eb" />
                 <Text style={styles.tileTitleDark}>View Map</Text>
               </TouchableOpacity>

@@ -18,6 +18,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import axios from "axios";
 import BASE_URL from "../common/baseurl.js";
 import BoxOverlay from "../components/BoxOverlay";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const backendURL = `${BASE_URL}/api/vendor/carts/predict`;
 
@@ -26,9 +27,19 @@ export default function CartDetectionScreen() {
   const [predictions, setPredictions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(true);
+  const [userRole, setUserRole] = useState("user"); 
 
   const cameraRef = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
+
+  useEffect(() => {
+    // Fetch user role from AsyncStorage or backend
+    const fetchUserRole = async () => {
+      const role = await AsyncStorage.getItem("user_role"); 
+      setUserRole(role || "user"); 
+    };
+    fetchUserRole();
+  }, []);
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -62,11 +73,26 @@ export default function CartDetectionScreen() {
     formData.append("file", { uri, name: "photo.jpg", type: "image/jpeg" });
 
     try {
+      const accessToken = await AsyncStorage.getItem("access_token"); // Retrieve token from storage
+      const userEmail = await AsyncStorage.getItem("user_email"); // Retrieve email from storage
+      formData.append("email", userEmail); // Add the email field
+
       const response = await axios.post(backendURL, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${accessToken}`, // Add Authorization header
+        },
         timeout: 0,
       });
-      setPredictions(response.data.predictions || []);
+
+      // Validate and handle predictions
+      const data = response.data;
+      if (data && Array.isArray(data.predictions)) {
+        setPredictions(data.predictions);
+      } else {
+        console.warn("Invalid predictions format:", data);
+        setPredictions([]); // Default to an empty array
+      }
     } catch (error) {
       console.error(error);
       alert("Failed to analyze image. Please try again.");
@@ -179,7 +205,9 @@ export default function CartDetectionScreen() {
                 style={styles.image}
                 resizeMode="contain"
               />
-              <BoxOverlay predictions={predictions} imageWidth={350} imageHeight={350} />
+              {userRole === "admin" && (
+                <BoxOverlay predictions={predictions} imageWidth={350} imageHeight={350} />
+              )}
             </View>
 
             {/* Detection List */}

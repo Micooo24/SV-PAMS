@@ -6,6 +6,7 @@ import { View, StyleSheet } from "react-native";
 
 import Home from "../screens/Home";
 import CartDetectionScreen from "../screens/Cart_DetectionScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 
 const Notifications = () => null;
 const Profile = () => null;
@@ -57,7 +58,7 @@ export default function AppTabs() {
 
       <Tab.Screen
         name="Profile"
-        component={Profile}
+        component={ProfileScreen}
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ focused }) => (
@@ -66,6 +67,7 @@ export default function AppTabs() {
         }}
       />
     </Tab.Navigator>
+    
   );
 }
 

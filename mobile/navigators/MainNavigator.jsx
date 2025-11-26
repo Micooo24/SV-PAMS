@@ -9,8 +9,17 @@ import Welcome from "../screens/Welcome";
 import AuthNavigator from "./AuthNavigator";
 import DocSubmission from "../screens/DocSubmission";
 
+import PersonalInfo from "../screens/PersonalInfo";
+import BusinessInfo from "../screens/BusinessInfo";
+import Faqs from "../screens/Faqs";
+import About from "../screens/About";
+import Terms from "../screens/Terms";
+
 // Authenticated App with Bottom Tabs
 import AppTabs from "./AppTabs";
+
+import CustomerMapScreen from "../screens/CustomerMapScreen";
+import VendorLocationScreen from "../screens/VendorLocationScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -25,10 +34,19 @@ const MainNavigator = () => {
 
       {/* Full App with Bottom Tabs */}
       <Stack.Screen name="MainApp" component={AppTabs} />
+      <Stack.Screen name="Home" component={AppTabs} />
 
       {/* Full-screen modals on top of tabs */}
       <Stack.Screen name="DocSubmission" component={DocSubmission} />
+      <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
+      <Stack.Screen name="BusinessInfo" component={BusinessInfo} />
+      <Stack.Screen name="Faqs" component={Faqs} />
+      <Stack.Screen name="About" component={About} />
+      <Stack.Screen name="Terms" component={Terms} />
       {/* Add more later: DigitalPermit, Payments, etc. */}
+
+      <Stack.Screen name="CustomerMap" component={CustomerMapScreen} />
+      <Stack.Screen name="VendorLocation" component={VendorLocationScreen} /> 
     </Stack.Navigator>
   );
 };

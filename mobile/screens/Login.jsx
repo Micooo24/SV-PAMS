@@ -9,6 +9,10 @@ import BASE_URL from '../common/baseurl.js';
 // 1. IMPORT GOOGLE SIGN IN LIBRARY
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
+// 2. IMPORT FIREBASE AUTH
+import { auth, GoogleAuthProvider, signInWithCredential } from '../firebase/firebaseConfig'; // Check this path!
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
   const [email, setEmail] = useState('');
@@ -42,31 +46,77 @@ const Login = ({ navigation }) => {
         console.log('Sign out check (safe to ignore):', error);
       }
 
+      // A. Get Response from Google
       const response = await GoogleSignin.signIn();
-      const userInfo = response.data?.user || response.user; // Handle version differences
       
-      console.log('Google User Info:', userInfo);
+      // DEBUGGING LOGS
+      console.log('FULL GOOGLE RESPONSE:', JSON.stringify(response, null, 2));
 
-      // MOCK DATA for role (Replace with backend call in real app)
-      const mockUserRole = 'customer'; 
+      // B. Extract ID Token (Handle different library versions)
+      const idToken = response.data?.idToken || response.idToken;
+      const userInfo = response.data?.user || response.user;
 
-      await AsyncStorage.setItem('user_data', JSON.stringify(userInfo));
-      await AsyncStorage.setItem('user_email', userInfo.email);
-      await AsyncStorage.setItem('user_firstname', userInfo.givenName);
-      await AsyncStorage.setItem('user_role', mockUserRole); 
+      if (!idToken) {
+        throw new Error('No ID Token found in Google response');
+      }
+
+      console.log('ID Token retrieved:', idToken.substring(0, 10) + '...'); // Log first 10 chars for safety
+
+      // C. Create Firebase Credential
+      const googleCredential = GoogleAuthProvider.credential(idToken);
+
+      // D. Sign in to Firebase
+      const firebaseUserCredential = await signInWithCredential(auth, googleCredential);
+      console.log('✅ Firebase Auth successful:', firebaseUserCredential.user.uid);
+
+      // --- STEP E: SEND TO YOUR BACKEND ---
+      const formData = new FormData();
+      formData.append('email', userInfo.email);
+      formData.append('name', userInfo.name || '');
+      formData.append('givenName', userInfo.givenName || '');
+      formData.append('familyName', userInfo.familyName || '');
+      formData.append('photo', userInfo.photo || '');
+      formData.append('provider', 'google'); 
+
+      console.log('Sending to backend...');
+
+      // Make backend request
+      const backendResponse = await axios.post(`${BASE_URL}/api/users/google-login`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      console.log('Backend Response:', backendResponse.data);
+
+      // --- STEP F: SAVE DATA ---
+      const serverUser = backendResponse.data.user;
+      const serverToken = backendResponse.data.access_token;
+
+      await AsyncStorage.multiSet([
+        ['access_token', serverToken],
+        ['user_data', JSON.stringify(serverUser)],
+        ['user_id', serverUser._id],
+        ['user_email', serverUser.email],
+        ['user_firstname', serverUser.firstname],
+        ['user_lastname', serverUser.lastname],
+        ['user_role', serverUser.role], 
+        ['user_img', serverUser.img || userInfo.photo],
+        ['firebase_uid', firebaseUserCredential.user.uid],
+      ]);
       
       Alert.alert(
         'Login Successful',
-        `Welcome ${userInfo.name}!`,
+        `Welcome back, ${serverUser.firstname}!`,
         [
           {
             text: 'OK',
             onPress: () => {
-              if (mockUserRole === 'customer') {
+              if (serverUser.role === 'customer') {
                 navigation.navigate('MainApp');
-              } else if (mockUserRole === 'vendor') {
-                navigation?.navigate('VendorDashboard');
-              } else if (mockUserRole === 'admin') {
+              } else if (serverUser.role === 'vendor') {
+                navigation?.navigate('Home');
+              } else if (serverUser.role === 'admin') {
                 navigation?.navigate('AdminDashboard');
               } else {
                 navigation?.navigate('Home'); 
@@ -77,21 +127,30 @@ const Login = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.log('Google Login Error:', error);
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      console.log('Google/Firebase Login Error:', error);
+      
+      let errorMessage = 'Login failed';
+
+      if (error.code === 'auth/argument-error') {
+        errorMessage = 'Google Sign-In failed: Missing ID Token';
+      } else if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        errorMessage = 'Login cancelled';
         console.log('User cancelled login');
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        console.log('Login in progress');
+        errorMessage = 'Login in progress';
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Google Play Services not available');
+        errorMessage = 'Google Play Services needed';
       } else {
-        Alert.alert('Login Failed', error.toString());
+        errorMessage = error.message || 'An error occurred';
       }
+
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
+  // ... handleLogin logic remains the same ...
   const handleLogin = async () => {
     try {
       if (!email || !password) {
@@ -107,6 +166,16 @@ const Login = ({ navigation }) => {
 
       setLoading(true);
 
+      // Authenticate with Firebase first
+      const firebaseUserCredential = await signInWithEmailAndPassword(
+        auth, 
+        email.toLowerCase().trim(), 
+        password
+      );
+      
+      console.log('Firebase User:', firebaseUserCredential.user);
+
+      // Then authenticate with backend
       const formData = new FormData();
       formData.append('email', email.toLowerCase().trim());
       formData.append('password', password);
@@ -121,27 +190,25 @@ const Login = ({ navigation }) => {
 
       console.log('Login successful:', response.data);
 
-      try {
-        await AsyncStorage.multiSet([
-          ['access_token', response.data.access_token],
-          ['token_type', response.data.token_type],
-          ['expires_in', response.data.expires_in.toString()],
-          ['user_data', JSON.stringify(response.data.user)],
-          ['user_id', response.data.user._id],
-          ['user_email', response.data.user.email],
-          ['user_firstname', response.data.user.firstname],
-          ['user_lastname', response.data.user.lastname],
-          ['user_role', response.data.user.role],
-          ['user_mobile', response.data.user.mobile_no.toString()],
-          ['user_address', response.data.user.address],
-          ['user_barangay', response.data.user.barangay],
-          ['user_img', response.data.user.img],
-        ]);
+      await AsyncStorage.multiSet([
+        ['access_token', response.data.access_token],
+        ['token_type', response.data.token_type],
+        ['expires_in', response.data.expires_in.toString()],
+        ['user_data', JSON.stringify(response.data.user)],
+        ['user_id', response.data.user._id],
+        ['user_email', response.data.user.email],
+        ['user_firstname', response.data.user.firstname],
+        ['user_lastname', response.data.user.lastname],
+        ['user_role', response.data.user.role],
+        ['user_mobile', response.data.user.mobile_no.toString()],
+        ['user_address', response.data.user.address],
+        ['user_barangay', response.data.user.barangay],
+        ['user_img', response.data.user.img],
+        ['user_is_active', JSON.stringify(response.data.user.is_active)],
+        ['firebase_uid', firebaseUserCredential.user.uid],
+      ]);
 
-        console.log('User data stored in AsyncStorage');
-      } catch (storageError) {
-        console.error('AsyncStorage error:', storageError);
-      }
+      console.log('User data stored in AsyncStorage');
 
       const userData = response.data.user;
       
@@ -152,14 +219,14 @@ const Login = ({ navigation }) => {
           {
             text: 'OK',
             onPress: () => {
-              if (userData.role === 'customer') {
+              if (userData.role === 'user' || userData.role === 'customer') {
                 navigation.navigate('MainApp');
               } else if (userData.role === 'vendor') {
-                navigation?.navigate('VendorDashboard');
+                navigation?.navigate('Home');
               } else if (userData.role === 'admin') {
                 navigation?.navigate('AdminDashboard');
               } else {
-                navigation?.navigate('Home'); 
+                navigation?.navigate('Home');
               }
             }
           }
@@ -167,32 +234,58 @@ const Login = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
+      console.error('Login error:', error);
+      
       let errorMessage = 'Login failed. Please try again.';
-      if (error.response?.status === 400) {
+      
+      if (error.code) {
+        switch (error.code) {
+          case 'auth/user-not-found':
+            errorMessage = 'No account found with this email';
+            break;
+          case 'auth/wrong-password':
+            errorMessage = 'Incorrect password';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address';
+            break;
+          case 'auth/user-disabled':
+            errorMessage = 'This account has been disabled';
+            break;
+          case 'auth/too-many-requests':
+            errorMessage = 'Too many failed attempts. Please try again later';
+            break;
+          case 'auth/invalid-credential':
+            errorMessage = 'Invalid email or password';
+            break;
+          default:
+            errorMessage = error.message || 'Authentication failed';
+        }
+      } else if (error.response?.status === 400) {
         errorMessage = error.response.data?.detail || 'Invalid email or password';
       } else if (error.response?.status === 500) {
         errorMessage = 'Server error. Please try again later.';
       } else if (error.message === 'Network Error') {
         errorMessage = 'Network error. Please check your connection.';
       }
+      
       Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  // Define the Black & Blue Theme for Input
+  // Custom Theme for Black & Blue Inputs
   const customInputTheme = {
     colors: {
-      primary: '#2563eb', // BLUE: Label color when focused & outline color when focused
-      onSurfaceVariant: 'black', // BLACK: Label color when unfocused
-      text: 'black', // BLACK: Input text color
-      placeholder: 'black', // BLACK: Placeholder text color
-      background: 'white', // WHITE: Background color
-      outline: 'black', // BLACK: Outline border color (unfocused)
+      primary: '#2563eb', // BLUE: Label & Outline (Focused)
+      onSurfaceVariant: 'black', // BLACK: Label (Unfocused)
+      text: 'black', // BLACK: Input Text
+      placeholder: 'black', // BLACK: Placeholder
+      background: 'white', // WHITE: Background
+      outline: 'black', // BLACK: Outline (Unfocused)
     },
-    roundness: 8, // Rounded corners
+    roundness: 8,
   };
 
   return (
@@ -212,7 +305,7 @@ const Login = ({ navigation }) => {
 
         {/* Form Container */}
         <View style={styles.formContainer}>
-          {/* Email Input - Custom Theme */}
+          {/* Email Input */}
           <TextInput
             label="Email"
             value={email}
@@ -224,11 +317,11 @@ const Login = ({ navigation }) => {
             autoComplete="email"
             contentStyle={styles.inputContent}
             disabled={loading}
-            theme={customInputTheme} // <--- APPLY THEME HERE
-            textColor="black" // Ensures text typed is black
+            theme={customInputTheme}
+            textColor="black"
           />
 
-          {/* Password Input - Custom Theme */}
+          {/* Password Input */}
           <TextInput
             label="Password"
             value={password}
@@ -239,12 +332,12 @@ const Login = ({ navigation }) => {
             autoComplete="password"
             contentStyle={styles.inputContent}
             disabled={loading}
-            theme={customInputTheme} // <--- APPLY THEME HERE
-            textColor="black" // Ensures text typed is black
+            theme={customInputTheme}
+            textColor="black"
             right={
               <TextInput.Icon 
                 icon={showPassword ? "eye-off" : "eye"} 
-                iconColor="black" // Make eye icon black
+                iconColor="black"
                 onPress={() => setShowPassword(!showPassword)}
               />
             }
@@ -287,7 +380,7 @@ const Login = ({ navigation }) => {
             icon="google"
             onPress={handleGoogleLogin} 
             disabled={loading}
-            textColor="black" // Text is black
+            textColor="black"
           >
             Continue with Google
           </Button>
@@ -299,7 +392,7 @@ const Login = ({ navigation }) => {
             icon="facebook"
             onPress={() => console.log('Facebook login')}
             disabled={loading}
-            textColor="black" // Text is black
+            textColor="black"
           >
             Continue with Facebook
           </Button>
@@ -336,19 +429,19 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontFamily: 'Poppins-Bold',
-    color: '#2563eb', // BLUE: Logo
+    color: '#2563eb',
     textAlign: 'center',
     marginBottom: 16,
   },
   welcomeText: {
     fontFamily: 'Poppins-Bold',
-    color: 'black', // BLACK: Welcome text
+    color: 'black',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitleText: {
     fontFamily: 'Poppins-Regular',
-    color: 'black', // BLACK: Subtitle
+    color: 'black',
     textAlign: 'center',
   },
   formContainer: {
@@ -360,7 +453,7 @@ const styles = StyleSheet.create({
   },
   inputContent: {
     fontFamily: 'Poppins-Regular',
-    color: 'black', // Input text
+    color: 'black',
   },
   forgotContainer: {
     alignItems: 'flex-end',
@@ -368,11 +461,11 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontFamily: 'Poppins-Regular',
-    color: '#2563eb', // BLUE: Forgot Password Link
+    color: '#2563eb',
     fontSize: 14,
   },
   loginButton: {
-    backgroundColor: '#2563eb', // BLUE: Login Button Background
+    backgroundColor: '#2563eb',
     borderRadius: 8,
     paddingVertical: 4,
     marginBottom: 24,
@@ -384,7 +477,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     fontSize: 16,
     fontWeight: '600',
-    color: 'white', // WHITE: Login Button Text
+    color: 'white',
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -394,23 +487,23 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e0e0e0', // Grey divider (better for blue theme)
+    backgroundColor: '#e0e0e0',
   },
   dividerText: {
     fontFamily: 'Poppins-Regular',
-    color: 'black', // BLACK: "or" text
+    color: 'black',
     marginHorizontal: 16,
     fontSize: 14,
   },
   socialButton: {
-    borderColor: 'black', // BLACK: Border for social buttons
+    borderColor: 'black',
     borderRadius: 8,
     marginBottom: 12,
     paddingVertical: 2,
   },
   socialButtonText: {
     fontFamily: 'Poppins-Regular',
-    color: 'black', // BLACK: Text for social buttons
+    color: 'black',
     fontSize: 14,
   },
   signupContainer: {
@@ -421,15 +514,14 @@ const styles = StyleSheet.create({
   },
   signupText: {
     fontFamily: 'Poppins-Regular',
-    color: 'black', // BLACK: "Don't have an account?"
+    color: 'black',
     fontSize: 14,
   },
   signupLink: {
     fontFamily: 'Poppins-Bold',
-    color: '#2563eb', // BLUE: "Sign up here" link
+    color: '#2563eb',
     fontSize: 14,
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
 });
 
