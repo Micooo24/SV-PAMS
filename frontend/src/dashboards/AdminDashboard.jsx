@@ -1,14 +1,16 @@
-// src/dashboards/AdminDashboard.jsx
-import React from "react";
+import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 
 export default function AdminDashboard({ onLogout }) {
+  const [collapsed, setCollapsed] = useState(false);
+
   const styles = {
     main: {
-      flex: 1,
+      flexGrow: 1,
       padding: "40px",
       backgroundColor: "#e6eaf0",
       minHeight: "100vh",
+      transition: "margin-left 0.3s ease",
     },
     header: {
       display: "flex",
@@ -42,13 +44,11 @@ export default function AdminDashboard({ onLogout }) {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar role="admin" />
+      <Sidebar role="admin" collapsed={collapsed} setCollapsed={setCollapsed} />
       <main style={styles.main}>
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Dashboard</h1>
-          <button style={styles.logoutButton} onClick={onLogout}>
-            Logout
-          </button>
+          
         </div>
 
         <div style={styles.contentCard}>

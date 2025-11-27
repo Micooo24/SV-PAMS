@@ -11,6 +11,7 @@ import {
   FileText,
   AlertTriangle,
   Menu,
+  LogOut
 } from "lucide-react";
 
 export default function Sidebar({ role }) {
@@ -126,6 +127,9 @@ export default function Sidebar({ role }) {
       fontFamily: "Poppins, sans-serif",
       borderRight: "1px solid #cbd6e2",
       transition: "width 0.3s ease",
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "space-between", 
       overflow: "hidden",
     },
     header: {
@@ -178,80 +182,94 @@ export default function Sidebar({ role }) {
       borderRadius: "8px",
       transition: "0.2s",
     },
+    logout: {
+      padding: "10px 14px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      borderRadius: "10px",
+      fontWeight: 500,
+      transition: "0.25s",
+      color: "#c33",
+    },
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user"); 
+    navigate("/");
   };
 
   return (
     <aside style={styles.sidebar}>
-      <div style={styles.header}>
-        <div style={styles.logoWrap}>
-          <img src={logo} alt="System Logo" style={styles.logoImg} />
-          {!collapsed && <span>SV-PAMS </span>}
+      <div>
+      
+        <div style={styles.header}>
+          <div style={styles.logoWrap}>
+            <img src={logo} alt="System Logo" style={styles.logoImg} />
+            {!collapsed && <span>SV-PAMS </span>}
+          </div>
+          <div style={styles.toggleBtn} onClick={() => setCollapsed(!collapsed)}>
+            <Menu size={22} />
+          </div>
         </div>
-        <div style={styles.toggleBtn} onClick={() => setCollapsed(!collapsed)}>
-          <Menu size={22} />
-        </div>
+
+     
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {menus.map((menu) => (
+            <li key={menu.title}>
+              <div
+                style={{
+                  ...styles.menuItem,
+                  backgroundColor: window.location.pathname === routeMap[role][menu.title] ? palette.active : "transparent",
+                }}
+                onClick={() => {
+                  if (menu.subItems) {
+                    toggleMenu(menu.title);
+                  } else {
+                    navigate(routeMap[role][menu.title]);
+                  }
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    window.location.pathname === routeMap[role][menu.title] ? palette.active : "transparent")
+                }
+              >
+                <div style={styles.menuLeft}>
+                  {menu.icon}
+                  {!collapsed && menu.title}
+                </div>
+                {menu.subItems && !collapsed && (
+                  <span>{expandedMenus[menu.title] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+                )}
+              </div>
+
+              {menu.subItems && expandedMenus[menu.title] && !collapsed && (
+                <ul style={{ listStyle: "none", padding: 0 }}>
+                  {menu.subItems.map((subItem) => (
+                    <li
+                      key={subItem}
+                      style={styles.subMenu}
+                      onClick={() => navigate(routeMap[role][subItem])}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      {subItem}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
 
-      {!collapsed && (
-        <h2 style={{ fontSize: "16px", marginBottom: "20px" }}>{role}</h2>
-      )}
-
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {menus.map((menu) => (
-          <li key={menu.title}>
-            <div
-              style={styles.menuItem}
-              onClick={() => {
-                if (menu.subItems) {
-                  toggleMenu(menu.title);
-                } else {
-                  navigate(routeMap[role][menu.title]);
-                }
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = palette.hover)
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "transparent")
-              }
-            >
-              <div style={styles.menuLeft}>
-                {menu.icon}
-                {!collapsed && menu.title}
-              </div>
-              {menu.subItems && !collapsed && (
-                <span>
-                  {expandedMenus[menu.title] ? (
-                    <ChevronUp size={16} />
-                  ) : (
-                    <ChevronDown size={16} />
-                  )}
-                </span>
-              )}
-            </div>
-
-            {menu.subItems && expandedMenus[menu.title] && !collapsed && (
-              <ul style={{ listStyle: "none", padding: 0 }}>
-                {menu.subItems.map((subItem) => (
-                  <li
-                    key={subItem}
-                    style={styles.subMenu}
-                    onClick={() => navigate(routeMap[role][subItem])}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor = palette.hover)
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = "transparent")
-                    }
-                  >
-                    {subItem}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
+    
+      <div style={styles.logout} onClick={handleLogout}>
+        <LogOut size={16} />
+        {!collapsed && <span>Logout</span>}
+      </div>
     </aside>
   );
 }
