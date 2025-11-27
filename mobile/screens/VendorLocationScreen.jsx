@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { db } from "../firebase/firebaseConfig.js";
+import { db } from '../secrets_mobile/firebase_config';
 import { ref, set } from "firebase/database";
 
 export default function VendorLocationScreen({ navigation }) {

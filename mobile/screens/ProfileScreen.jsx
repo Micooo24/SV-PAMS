@@ -4,7 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/firebaseConfig';
+import { auth } from '../secrets_mobile/firebase_config';
 import { CommonActions } from '@react-navigation/native'; // Critical import
 
 export default function ProfileScreen({ navigation }) {

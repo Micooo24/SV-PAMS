@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import * as Location from "expo-location";
-import { db } from "../firebase/firebaseConfig"; 
+import { db } from "../secrets_mobile/firebase_config"; 
 import { ref, set, onValue } from "firebase/database";
 
 export default function CustomerMapScreen() {
