@@ -478,10 +478,10 @@ const Register = ({ navigation }) => {
             onPressIn={() => setBarangayMenuVisible(true)}
             placeholder="Select Barangay"
             theme={customInputTheme}
-            textColor="black"
+            textColor="#000000"
           />
         }
-        contentStyle={{ maxHeight: 400, backgroundColor: '#fff' }}
+        contentStyle={{ maxHeight: 400, backgroundColor: '#000' }}
       >
         <ScrollView style={{ maxHeight: 300 }}>
           {BARANGAYS.map((brgy) => (
