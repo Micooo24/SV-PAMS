@@ -7,7 +7,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import BASE_URL from '../common/baseurl.js'
 import * as ImagePicker from 'expo-image-picker';
 import {styles }  from '../styles/register';
-import { auth } from '../firebase/firebaseConfig'; // ← Import Firebase auth
+import { auth } from '../secrets_mobile/firebase_config'; // ← Import Firebase auth
 import { createUserWithEmailAndPassword } from 'firebase/auth'; // ← Import create user function
 
 // Barangay data with zip codes

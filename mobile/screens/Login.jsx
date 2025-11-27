@@ -10,7 +10,7 @@ import BASE_URL from '../common/baseurl.js';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 // 2. IMPORT FIREBASE AUTH
-import { auth, GoogleAuthProvider, signInWithCredential } from '../firebase/firebaseConfig'; // Check this path!
+import { auth, GoogleAuthProvider, signInWithCredential } from '../secrets_mobile/firebase_config'; // Check this path!
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const Login = ({ navigation }) => {
