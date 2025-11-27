@@ -1,7 +1,7 @@
 
 # Ignore Python bytecode files
 venv/
-firebase_backend/
+
 __pycache__/
 routes/__pycache__/
 models/__pycache__/
@@ -10,10 +10,9 @@ utils/__pycache__/
 Admin/__pycache__/
 
 
-# config/
 
-# Ignore environment variable files
-.env
+# Ignore secret files and credentials
+secrets_backend/
 
 # Ignore test code
 test_code/
