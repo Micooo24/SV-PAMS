@@ -7,9 +7,12 @@ import cv2
 import numpy as np
 from config.cloudinary_config import upload_image_cart
 from models.vendor_carts import VendorCart
+import os
+
+
 
 # Initialize YOLO model
-model = YOLO("best.pt")
+model = YOLO(os.path.join(os.path.dirname(__file__), '../secrets_backend/best.pt'))
 
 def preprocess_image(image_bytes: bytes):
     """

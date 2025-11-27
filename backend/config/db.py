@@ -4,7 +4,7 @@ from pymongo.server_api import ServerApi
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '../secrets_backend/.env'))
 
 # Get MongoDB URI from environment variables
 uri = os.getenv("MONGODB_URI")
