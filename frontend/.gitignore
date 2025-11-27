@@ -26,3 +26,6 @@ dist-ssr
 
 #  Test File ko to Mico
 src/test_code
+
+# Frontend Credentials
+secrets_frontend/
