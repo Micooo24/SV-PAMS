@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.users import register, login, google_login
+from controllers.auth import register, login, google_login
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional

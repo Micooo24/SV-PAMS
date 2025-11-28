@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Routes 
-from routes import users, appointments, permit_applications, vendors, reports, reviews, base_documents, document_submissions, vendor_carts
+from routes import auth, appointments, permit_applications, vendors, reports, reviews, document_submissions, vendor_carts
 
 # Admin Routes
-from routes.admin import admin_vendor_carts
+from routes.admin import admin_vendor_carts, admin_base_documents
 
 # Declaration
 app = FastAPI()
@@ -55,12 +55,12 @@ api_app = FastAPI()
 app.mount("/api", api_app)
 
 # users api
-api_app.include_router(users.router, prefix="/users", tags=["Users"])
+api_app.include_router(auth.router, prefix="/users/auth", tags=["Users"])
 api_app.include_router(document_submissions.router, prefix="/users/document-submissions", tags=["User Document Submissions"])
 
 
 # admin api
-api_app.include_router(base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
+api_app.include_router(admin_base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
 api_app.include_router(admin_vendor_carts.router, prefix ="/admin/vendor-carts", tags=["Admin Vendor Carts"])
 
 # vendor api

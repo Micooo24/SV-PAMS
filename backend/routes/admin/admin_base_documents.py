@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from typing import Optional
-from controllers.base_document import (
+from controllers.admin.admin_base_document import (
     upload_base_document,
     get_all_base_documents,
     get_base_document_by_id,
