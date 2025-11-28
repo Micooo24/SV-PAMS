@@ -49,7 +49,7 @@ common/baseurl.js
 # Mobile Credentials
 secrets_mobile/
 
-package-lock.json
+
 package.json
 
 .idea/
