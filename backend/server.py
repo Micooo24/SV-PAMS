@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
-# Routes 
-from routes import auth, appointments, permit_applications, vendors, reports, reviews, document_submissions, vendor_carts
+# General Routes 
+from routes import auth, document_submissions, vendor_carts
 
 # Admin Routes
-from routes.admin import admin_vendor_carts, admin_base_documents
+from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions
 
 # Declaration
 app = FastAPI()
@@ -58,33 +58,39 @@ app.mount("/api", api_app)
 api_app.include_router(auth.router, prefix="/users/auth", tags=["Users"])
 api_app.include_router(document_submissions.router, prefix="/users/document-submissions", tags=["User Document Submissions"])
 
-
 # admin api
 api_app.include_router(admin_base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
 api_app.include_router(admin_vendor_carts.router, prefix ="/admin/vendor-carts", tags=["Admin Vendor Carts"])
+api_app.include_router(admin_document_submissions.router, prefix="/admin/document-submissions", tags=["Admin Document Submissions"])
 
 # vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])
 
+# superadmin api
+
+# sanitary api
+
+
+
+
+# for future references
+
+# from routes import appointments, permit_applications, vendors, reports, reviews
+
 # disregard muna -----------------
-api_app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
-api_app.include_router(permit_applications.router, prefix="/permit-applications", tags=["Permit Applications"])
-api_app.include_router(vendors.router, prefix="/vendors", tags=["Vendors"])
-api_app.include_router(reports.router, prefix="/reports", tags=["Reports"])
-api_app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
+# api_app.include_router(appointments.router, prefix="/appointments", tags=["Appointments"])
+# api_app.include_router(permit_applications.router, prefix="/permit-applications", tags=["Permit Applications"])
+# api_app.include_router(vendors.router, prefix="/vendors", tags=["Vendors"])
+# api_app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+# api_app.include_router(reviews.router, prefix="/reviews", tags=["Reviews"])
 # disregard muna -----------------
 
 
-
-# For Localhost
+# For Localhost Web Development
 # if __name__ == "__main__":
 #     uvicorn.run("server:app", reload=True)
 
-#For Mobile
-# if __name__ == "__main__":
-#     uvicorn.run("server:app", host="192.168.227.221", port=8000, reload=True)
-
-# For Deployment
+# For Mobile Device Ip Testing / Deployment
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
     

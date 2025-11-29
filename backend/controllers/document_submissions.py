@@ -195,35 +195,3 @@ def get_submission_by_id(submission_id: str, current_user: dict):
     except Exception as e:
         logger.error(f"Error fetching submission: {str(e)}")
         return {"success": False, "error": str(e)}
-
-
-def get_all_submissions():
-    """Admin: Get all document submissions from all users"""
-    try:
-        submissions = list(
-            db["document_submissions"]
-            .find({})
-            .sort("submitted_at", -1)
-        )
-        
-        # Convert ObjectIds and datetimes to strings
-        for sub in submissions:
-            sub["_id"] = str(sub["_id"])
-            sub["user_id"] = str(sub["user_id"])
-            sub["base_document_id"] = str(sub["base_document_id"])
-            sub["submitted_at"] = sub["submitted_at"].isoformat()
-            if sub.get("reviewed_at"):
-                sub["reviewed_at"] = sub["reviewed_at"].isoformat()
-            if sub.get("reviewed_by"):
-                sub["reviewed_by"] = str(sub["reviewed_by"])
-        
-        logger.info(f"Retrieved {len(submissions)} total submissions")
-        
-        return {
-            "success": True,
-            "submissions": submissions
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching all submissions: {str(e)}")
-        return {"success": False, "error": str(e)}

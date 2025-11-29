@@ -3,7 +3,6 @@ from controllers.document_submissions import (
     submit_document,
     get_user_submissions,
     get_submission_by_id,
-    get_all_submissions
 )
 from utils.utils import get_current_user
 import logging
@@ -13,8 +12,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-# ==================== USER ROUTES ====================
+# Route for user uploading document submissions
 
 @router.post("/upload")
 async def user_submit_document(
@@ -46,7 +44,7 @@ async def user_submit_document(
         logger.error(f"Submission error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# Route for getting all submissions of authenticated user
 @router.get("/my-uploads")
 async def get_submissions(current_user: dict = Depends(get_current_user)):
     """Get all submissions by authenticated user"""
@@ -65,6 +63,7 @@ async def get_submissions(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Route for getting single submission details of users for management
 @router.get("/get-single/{submission_id}")
 async def get_submission(
     submission_id: str,
@@ -86,21 +85,3 @@ async def get_submission(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ==================== ADMIN ROUTES ====================
-
-@router.get("/get-all")
-async def admin_get_all_submissions():
-    """Admin: Get all document submissions from all users"""
-    try:
-        result = get_all_submissions()
-        
-        if not result["success"]:
-            raise HTTPException(status_code=500, detail=result["error"])
-        
-        return {"submissions": result["submissions"]}
-    
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        logger.error(f"Admin fetch error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
