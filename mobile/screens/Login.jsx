@@ -81,7 +81,7 @@ const Login = ({ navigation }) => {
       console.log('Sending to backend...');
 
       // Make backend request
-      const backendResponse = await axios.post(`${BASE_URL}/api/users/google-login`, formData, {
+      const backendResponse = await axios.post(`${BASE_URL}/api/users/auth/google-login`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -182,7 +182,7 @@ const Login = ({ navigation }) => {
 
       console.log('Attempting login for:', email);
 
-      const response = await axios.post(`${BASE_URL}/api/users/login`, formData, {
+      const response = await axios.post(`${BASE_URL}/api/users/auth/login`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

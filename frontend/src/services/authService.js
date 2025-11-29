@@ -5,7 +5,7 @@ const authService = {
 
   login: async (formData) => {
     const response = await axios.post(
-      `${BASE_URL}/api/users/login`,
+      `${BASE_URL}/api/users/auth/login`,
       formData
     );
     

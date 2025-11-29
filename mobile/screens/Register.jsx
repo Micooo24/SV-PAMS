@@ -229,7 +229,7 @@ const Register = ({ navigation }) => {
         });
       }
 
-      const response = await axios.post(`${BASE_URL}/api/users/register`, formDataToSend, {
+      const response = await axios.post(`${BASE_URL}/api/users/auth/register`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
