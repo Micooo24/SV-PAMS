@@ -1,18 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Text, TextInput, Button } from 'react-native-paper';
+import React, { useEffect } from 'react';
+import { Alert } from 'react-native';
+import LoginComponent from '../components/Login';
 import { useGlobalFonts } from '../hooks/font';
 import useAuth from '../hooks/useAuth'; 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import {  styles, customInputTheme }  from '../styles/login';
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-
-  //  USE AUTH HOOK
   const { login, googleLogin, loading, error } = useAuth();
 
   // Configure Google Sign In on load
@@ -27,8 +21,10 @@ const Login = ({ navigation }) => {
     return null;
   }
 
-  //  HANDLE LOGIN USING HOOK
-  const handleLogin = async () => {
+  // HANDLE LOGIN LOGIC
+  const handleLogin = async (email, password) => {
+    console.log('🔐 Starting login process...', { email });
+
     if (!email || !password) {
       Alert.alert('Validation Error', 'Please enter both email and password');
       return;
@@ -41,202 +37,96 @@ const Login = ({ navigation }) => {
     }
 
     const result = await login(email, password);
+    console.log('🔐 Login result:', result);
     
     if (result.success) {
       const userData = result.user;
+      console.log('✅ Login successful, user role:', userData.role);
       
-      Alert.alert(
-        'Login Successful',
-        `Welcome back, ${userData.firstname}!`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate based on role
-              if (userData.role === 'user' || userData.role === 'customer') {
-                navigation.navigate('MainApp');
-              } else if (userData.role === 'vendor') {
-                navigation?.navigate('Home');
-              } else if (userData.role === 'admin') {
-                navigation?.navigate('AdminDashboard');
-              } else {
-                navigation?.navigate('Home');
-              }
-            }
-          }
-        ]
-      );
+      // Navigate immediately without alert for better UX
+      if (userData.role === 'user' || userData.role === 'customer') {
+        console.log('🔄 Navigating to MainApp...');
+        navigation.navigate('MainApp');
+      } else if (userData.role === 'vendor') {
+        console.log('🔄 Navigating to Home...');
+        navigation.navigate('Home');
+      } else if (userData.role === 'admin') {
+        console.log('🔄 Navigating to AdminDashboard...');
+        navigation.navigate('AdminDashboard');
+      } else {
+        console.log('🔄 Navigating to Home (default)...');
+        navigation.navigate('Home');
+      }
+      
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert('Login Successful', `Welcome back, ${userData.firstname}!`);
+      }, 500);
+      
     } else {
+      console.error('❌ Login failed:', result.error);
       Alert.alert('Login Failed', result.error);
     }
   };
 
-  // HANDLE GOOGLE LOGIN USING HOOK
+  // HANDLE GOOGLE LOGIN LOGIC
   const handleGoogleLogin = async () => {
+    console.log('🔐 Starting Google login...');
+    
     const result = await googleLogin();
+    console.log('🔐 Google login result:', result);
     
     if (result.success) {
       const userData = result.user;
+      console.log('✅ Google login successful, user role:', userData.role);
       
-      Alert.alert(
-        'Login Successful',
-        `Welcome, ${userData.firstname}!`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate based on role
-              if (userData.role === 'user') {
-                navigation.navigate('MainApp');
-              } else if (userData.role === 'vendor') {
-                navigation?.navigate('Home');
-              } else if (userData.role === 'admin') {
-                navigation?.navigate('AdminDashboard');
-              } else {
-                navigation?.navigate('Home');
-              }
-            }
-          }
-        ]
-      );
+      // Navigate immediately without alert for better UX
+      if (userData.role === 'user' || userData.role === 'customer') {
+        console.log('🔄 Navigating to MainApp...');
+        navigation.navigate('MainApp');
+      } else if (userData.role === 'vendor') {
+        console.log('🔄 Navigating to Home...');
+        navigation.navigate('Home');
+      } else if (userData.role === 'admin') {
+        console.log('🔄 Navigating to AdminDashboard...');
+        navigation.navigate('AdminDashboard');
+      } else {
+        console.log('🔄 Navigating to Home (default)...');
+        navigation.navigate('Home');
+      }
+      
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert('Login Successful', `Welcome, ${userData.firstname}!`);
+      }, 500);
+      
     } else {
+      console.error('❌ Google login failed:', result.error);
       Alert.alert('Login Failed', result.error);
     }
   };
 
+  // NAVIGATION HANDLERS
+  const handleNavigateToRegister = () => {
+    console.log('🔄 Navigating to Register...');
+    navigation.navigate('Register');
+  };
 
+  const handleNavigateToForgotPassword = () => {
+    console.log('🔄 Navigating to ForgotPassword...');
+    navigation.navigate('ForgotPassword');
+  };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
-          <Text variant="headlineSmall" style={styles.welcomeText}>Welcome Back</Text>
-          <Text variant="bodyMedium" style={styles.subtitleText}>
-            Sign in to your account to continue
-          </Text>
-        </View>
-
-        {/* Show Error */}
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        {/* Form Container */}
-        <View style={styles.formContainer}>
-          {/* Email Input */}
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            contentStyle={styles.inputContent}
-            disabled={loading}
-            theme={customInputTheme}
-            textColor="black"
-          />
-
-          {/* Password Input */}
-          <TextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
-            contentStyle={styles.inputContent}
-            disabled={loading}
-            theme={customInputTheme}
-            textColor="black"
-            right={
-              <TextInput.Icon 
-                icon={showPassword ? "eye-off" : "eye"} 
-                iconColor="black"
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-          />
-
-          {/* Forgot Password */}
-          <View style={styles.forgotContainer}>
-            <Text 
-              style={styles.forgotText}
-              onPress={() => navigation && navigation.navigate('ForgotPassword')}
-            >
-              Forgot Password?
-            </Text>
-          </View>
-
-          {/* Login Button */}
-          <Button
-            mode="contained"
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            labelStyle={styles.buttonText}
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Button>
-
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* Social Login Buttons */}
-          <Button
-            mode="outlined"
-            style={styles.socialButton}
-            labelStyle={styles.socialButtonText}
-            icon="google"
-            onPress={handleGoogleLogin}
-            disabled={loading}
-            textColor="black"
-          >
-            Continue with Google
-          </Button>
-
-          <Button
-            mode="outlined"
-            style={styles.socialButton}
-            labelStyle={styles.socialButtonText}
-            icon="facebook"
-            onPress={() => Alert.alert('Coming Soon', 'Facebook login will be available soon')}
-            disabled={loading}
-            textColor="black"
-          >
-            Continue with Facebook
-          </Button>
-
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <Text
-              style={styles.signupLink}
-              onPress={() => navigation && navigation.navigate('Register')}
-            >
-              Sign up here
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <LoginComponent
+      onLogin={handleLogin}
+      onGoogleLogin={handleGoogleLogin}
+      onNavigateToRegister={handleNavigateToRegister}
+      onNavigateToForgotPassword={handleNavigateToForgotPassword}
+      loading={loading}
+      error={error}
+    />
   );
 };
-
 
 export default Login;
