@@ -2,15 +2,15 @@ import 'dotenv/config';
 
 export default {
   expo: {
-    name: "mobile",
-    slug: "mobile",
+    name: "SV_PAMS",
+    slug: "sv_pams",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/images/logo1.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
-      image: "./assets/splash-icon.png",
+      image: "./assets/images/logo1.png",
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
