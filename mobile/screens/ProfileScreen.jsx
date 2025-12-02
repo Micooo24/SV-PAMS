@@ -2,12 +2,11 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signOut } from 'firebase/auth';
-import { auth } from '../secrets_mobile/firebase_config';
-import { CommonActions } from '@react-navigation/native'; // Critical import
+import { CommonActions } from '@react-navigation/native';
+import useAuth from '../hooks/useAuth'; // Import the auth hook
 
 export default function ProfileScreen({ navigation }) {
+  const { logout, loading } = useAuth(); // Use the logout function from the hook
 
   const handleLogout = () => {
     Alert.alert(
@@ -20,26 +19,20 @@ export default function ProfileScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              // 1. Firebase sign out
-              await signOut(auth);
+              // Use the logout function from the hook
+              const result = await logout();
 
-              // 2. Clear AsyncStorage (all user data)
-              const keys = await AsyncStorage.getAllKeys();
-              const userKeys = keys.filter(key =>
-                key.startsWith('user_') ||
-                ['access_token', 'token_type', 'expires_in', 'user_data', 'firebase_uid'].includes(key)
-              );
-              if (userKeys.length > 0) {
-                await AsyncStorage.multiRemove(userKeys);
+              if (result.success) {
+                // Reset navigation stack completely to Welcome screen
+                navigation.dispatch(
+                  CommonActions.reset({
+                    index: 0,
+                    routes: [{ name: 'Welcome' }],
+                  })
+                );
+              } else {
+                Alert.alert('Error', 'Failed to logout. Please try again.');
               }
-
-              // 3. Reset navigation stack completely to Welcome screen
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [{ name: 'Welcome' }], // This is your welcome screen
-                })
-              );
 
             } catch (error) {
               console.error('Logout error:', error);
@@ -76,13 +69,14 @@ export default function ProfileScreen({ navigation }) {
           <Option label="Terms and Conditions" icon="file-document" onPress={() => navigation.navigate("Terms")} />
           <Option label="TBF" icon="dots-horizontal" onPress={() => {}} />
           
-          {/* LOGOUT - RED */}
+          {/* LOGOUT - RED with loading state */}
           <Option 
-            label="Logout" 
+            label={loading ? "Logging out..." : "Logout"} 
             icon="logout" 
             onPress={handleLogout}
             iconColor="#ef4444"
             textColor="#ef4444"
+            disabled={loading}
           />
         </View>
       </ScrollView>
@@ -90,13 +84,26 @@ export default function ProfileScreen({ navigation }) {
   );
 }
 
-// Reusable Option with customizable colors
-const Option = ({ label, icon, onPress, iconColor = "#2563eb", textColor = "#1e293b" }) => (
-  <TouchableOpacity style={styles.option} onPress={onPress}>
+// Reusable Option with customizable colors and disabled state
+const Option = ({ label, icon, onPress, iconColor = "#2563eb", textColor = "#1e293b", disabled = false }) => (
+  <TouchableOpacity 
+    style={[styles.option, disabled && styles.optionDisabled]} 
+    onPress={disabled ? null : onPress}
+    disabled={disabled}
+  >
     <View style={styles.iconWrapper}>
-      <MaterialCommunityIcons name={icon} size={24} color={iconColor} />
+      <MaterialCommunityIcons 
+        name={icon} 
+        size={24} 
+        color={disabled ? "#94a3b8" : iconColor} 
+      />
     </View>
-    <Text style={[styles.optionText, { color: textColor }]}>{label}</Text>
+    <Text style={[
+      styles.optionText, 
+      { color: disabled ? "#94a3b8" : textColor }
+    ]}>
+      {label}
+    </Text>
   </TouchableOpacity>
 );
 
@@ -105,6 +112,7 @@ const styles = StyleSheet.create({
   header: { fontSize: 32, fontWeight: "700", marginTop: 20, marginHorizontal: 20, color: "#1e293b" },
   section: { marginTop: 20, marginHorizontal: 20, backgroundColor: "#fff", borderRadius: 16, paddingVertical: 10, elevation: 4 },
   option: { flexDirection: "row", alignItems: "center", paddingVertical: 18, paddingHorizontal: 16 },
+  optionDisabled: { opacity: 0.6 },
   iconWrapper: { width: 40, height: 40, borderRadius: 10, backgroundColor: "#dbeafe", justifyContent: "center", alignItems: "center", marginRight: 14 },
   optionText: { fontSize: 16, fontWeight: "600", color: "#1e293b" },
 });
