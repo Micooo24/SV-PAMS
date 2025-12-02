@@ -1,7 +1,6 @@
 
 # Ignore Python bytecode files
 venv/
-svpams-env/
 
 __pycache__/
 routes/__pycache__/
