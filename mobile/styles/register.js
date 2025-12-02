@@ -194,4 +194,48 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  errorContainer: {
+    backgroundColor: '#fee2e2',
+    padding: 12,
+    marginBottom: 20,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#ef4444',
+  },
+  errorText: {
+    color: '#dc2626',
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+  },
+});
+
+
+  // Define the Custom Blue & Black Theme for Input
+ export const customInputTheme = {
+    colors: {
+      primary: '#2563eb', // BLUE: Label color when focused & outline color when focused
+      onSurfaceVariant: 'black', // BLACK: Label color when unfocused
+      text: 'black', // BLACK: Input text color
+      placeholder: 'black', // BLACK: Placeholder text color
+      background: 'white', // WHITE: Background color
+      outline: 'black', // BLACK: Outline border color (unfocused)
+    },
+    roundness: 8, // Rounded corners
+  };
+
+
+// Local StyleSheet to override imported styles or add new ones
+export const localStyles = StyleSheet.create({
+  logoText: {
+    color: '#2563eb', // Blue
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10
+  },
+  welcomeText: {
+    color: 'black', // Black
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  // Add other overrides if needed, though most are handled inline or via customInputTheme
 });

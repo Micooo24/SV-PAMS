@@ -1,6 +1,7 @@
 import axios from "axios";
 import BASE_URL from "../common/baseurl";
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
+import { registerCallableModule } from "react-native";
 
 const authService = {
 
@@ -73,6 +74,26 @@ const authService = {
     
     return response;
   },
+
+  register: async (formData, firebaseUserCredential) => {
+
+      const response = await axios.post(`${BASE_URL}/api/users/auth/register`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+
+      }
+    );
+
+    if (response.data.success && response.data.user) {
+      console.log('Registration successful:', response.data.user);
+    }
+    
+    return response;
+
+  },
+
+
 
   // Helper functions
   getCurrentUser: async () => {

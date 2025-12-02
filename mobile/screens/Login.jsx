@@ -23,7 +23,7 @@ const Login = ({ navigation }) => {
 
   // HANDLE LOGIN LOGIC
   const handleLogin = async (email, password) => {
-    console.log('🔐 Starting login process...', { email });
+    console.log('Starting login process...', { email });
 
     if (!email || !password) {
       Alert.alert('Validation Error', 'Please enter both email and password');
@@ -37,24 +37,20 @@ const Login = ({ navigation }) => {
     }
 
     const result = await login(email, password);
-    console.log('🔐 Login result:', result);
+    console.log('Login result:', result);
     
     if (result.success) {
       const userData = result.user;
-      console.log('✅ Login successful, user role:', userData.role);
+      console.log('Login successful, user role:', userData.role);
       
       // Navigate immediately without alert for better UX
       if (userData.role === 'user' || userData.role === 'customer') {
-        console.log('🔄 Navigating to MainApp...');
         navigation.navigate('MainApp');
       } else if (userData.role === 'vendor') {
-        console.log('🔄 Navigating to Home...');
         navigation.navigate('Home');
       } else if (userData.role === 'admin') {
-        console.log('🔄 Navigating to AdminDashboard...');
         navigation.navigate('AdminDashboard');
       } else {
-        console.log('🔄 Navigating to Home (default)...');
         navigation.navigate('Home');
       }
       
@@ -64,34 +60,30 @@ const Login = ({ navigation }) => {
       }, 500);
       
     } else {
-      console.error('❌ Login failed:', result.error);
+      console.error('Login failed:', result.error);
       Alert.alert('Login Failed', result.error);
     }
   };
 
   // HANDLE GOOGLE LOGIN LOGIC
   const handleGoogleLogin = async () => {
-    console.log('🔐 Starting Google login...');
+    console.log('Starting Google login...');
     
     const result = await googleLogin();
-    console.log('🔐 Google login result:', result);
+    console.log('Google login result:', result);
     
     if (result.success) {
       const userData = result.user;
-      console.log('✅ Google login successful, user role:', userData.role);
+      console.log('Google login successful, user role:', userData.role);
       
       // Navigate immediately without alert for better UX
       if (userData.role === 'user' || userData.role === 'customer') {
-        console.log('🔄 Navigating to MainApp...');
         navigation.navigate('MainApp');
       } else if (userData.role === 'vendor') {
-        console.log('🔄 Navigating to Home...');
         navigation.navigate('Home');
       } else if (userData.role === 'admin') {
-        console.log('🔄 Navigating to AdminDashboard...');
         navigation.navigate('AdminDashboard');
       } else {
-        console.log('🔄 Navigating to Home (default)...');
         navigation.navigate('Home');
       }
       
@@ -101,19 +93,17 @@ const Login = ({ navigation }) => {
       }, 500);
       
     } else {
-      console.error('❌ Google login failed:', result.error);
+      console.error('Google login failed:', result.error);
       Alert.alert('Login Failed', result.error);
     }
   };
 
   // NAVIGATION HANDLERS
   const handleNavigateToRegister = () => {
-    console.log('🔄 Navigating to Register...');
     navigation.navigate('Register');
   };
 
   const handleNavigateToForgotPassword = () => {
-    console.log('🔄 Navigating to ForgotPassword...');
     navigation.navigate('ForgotPassword');
   };
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { auth, GoogleAuthProvider, signInWithCredential } from '../secrets_mobile/firebase_config';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import authService from '../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -10,6 +11,7 @@ export default function useAuth() {
   const [loading, setLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState(null);
+
 
   const login = async (email, password) => {
     try {
@@ -157,6 +159,102 @@ export default function useAuth() {
     }
   };
 
+  const register = async (formData) =>{
+    try{
+      setLoading(true);
+      setError(null);
+
+      console.log("Step 1: Create Firebase Auth User")
+
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email.toLowerCase().trim(),
+        formData.password
+
+      );
+
+      console.log("Firebase user created with Auth")
+
+      console.log("Step 2: Backend Registration via service")
+
+      const formDataToSend = new FormData();
+
+      const fieldsToSend = {
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        middlename: formData.middlename || '',
+        address: formData.address,
+        barangay: formData.barangay,
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        birthday: formData.birthday,
+        age: formData.age,
+        mobile_no: formData.mobile_no,
+        landline_no: formData.landline_no || '',
+        zip_code: formData.zip_code,
+        gender: formData.gender,
+        role: 'user',
+        firebase_uid: userCredential.user.uid 
+      };
+
+      Object.entries(fieldsToSend).forEach(([key, value]) => {
+        formDataToSend.append(key, value);
+      });
+
+      if (formData.img) {
+        const uriParts = formData.img.split('.');
+        const fileType = uriParts[uriParts.length - 1];
+        
+        formDataToSend.append('img', {
+          uri: formData.img,
+          name: `photo.${fileType}`,
+          type: `image/${fileType}`,
+        });
+      }
+       const response = await authService.register(formDataToSend, userCredential);
+
+      console.log('Registration successful via useAuth hook');
+      return { success: true, user: response.data.user || {} };
+      
+    } catch (err) {
+      console.error('Registration error in useAuth:', err);
+
+      let errorMessage = 'Registration failed. Please try again.';
+
+       // Handle Firebase Auth errors
+      if (err.code) {
+        switch (err.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered. Please login instead.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address format.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Password is too weak. Please use a stronger password.';
+            break;
+          case 'auth/network-request-failed':
+            errorMessage = 'Network error. Please check your internet connection.';
+            break;
+          default:
+            errorMessage = `Firebase error: ${err.message}`;
+        }
+      } 
+
+      // Handle backend errors
+      else if (err.response?.data) {
+        errorMessage = err.response?.data?.detail || 
+                      err.response?.data?.message || 
+                      'Registration failed. Please try again.';
+      }
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     try {
       setLoading(true);
@@ -199,6 +297,7 @@ export default function useAuth() {
     // Actions
     login,
     googleLogin,
+    register,
     logout,
   };
 }
