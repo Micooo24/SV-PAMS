@@ -7,7 +7,8 @@ from controllers.admin.admin_base_document import (
     get_base_document_by_id,
     update_base_document_by_id,
     delete_base_document_by_id,
-    toggle_base_document_status
+    toggle_base_document_status,
+    get_active_base_documents
 )
 import logging
 
@@ -164,7 +165,23 @@ async def update_document_status(
         logger.error(f"Status update error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+@router.get("/active")
+async def get_active_documents():
+    """Get all active base documents"""
+    try:
+        result = get_active_base_documents()
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["error"])
+        
+        return {"active_documents": result["active_documents"]}
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Active documents error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
 # User endpoints (if users also need to view base documents)
 # @router.get("/base-documents")
 # async def get_base_documents_public(category: str = None):

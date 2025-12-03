@@ -281,3 +281,23 @@ def toggle_base_document_status(document_id: str, is_active: bool):
             "success": False,
             "error": str(e)
         }
+
+def get_active_base_documents():
+    """Get all active base documents"""
+    try:
+        documents = list(db["base_documents"].find({"is_active": True}))
+        
+        for doc in documents:
+            doc["_id"] = str(doc["_id"])
+        
+        return {
+            "success": True,
+            "active_documents": documents
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching active documents: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }

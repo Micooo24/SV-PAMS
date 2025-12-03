@@ -12,7 +12,7 @@ import {
   Image,
   RefreshControl
 } from 'react-native';
-import { IconButton, Button, Card } from 'react-native-paper';
+import { IconButton, Button, Card, Menu, Divider } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -27,10 +27,40 @@ const DocSubmission = ({ navigation }) => {
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // New state for base documents
+  const [baseDocuments, setBaseDocuments] = useState([]);
+  const [selectedBaseDocument, setSelectedBaseDocument] = useState(null);
+  const [loadingBaseDocuments, setLoadingBaseDocuments] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
 
   useEffect(() => {
     fetchSubmissions();
+    fetchBaseDocuments();
   }, []);
+
+  const fetchBaseDocuments = async () => {
+    try {
+      setLoadingBaseDocuments(true);
+      const response = await axios.get(`${BASE_URL}/api/admin/base-documents/get-all`);
+      
+      if (response.data.documents) {
+        // Filter only active documents
+        const activeDocuments = response.data.documents.filter(doc => doc.is_active === true);
+        setBaseDocuments(activeDocuments);
+        
+        // Auto-select first document if available
+        if (activeDocuments.length > 0) {
+          setSelectedBaseDocument(activeDocuments[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching base documents:', error);
+      Alert.alert('Error', 'Failed to load document templates');
+    } finally {
+      setLoadingBaseDocuments(false);
+    }
+  };
 
   const fetchSubmissions = async () => {
     try {
@@ -67,7 +97,6 @@ const DocSubmission = ({ navigation }) => {
 
   if (!fontsLoaded) return null;
 
-  // Updated to use Expo DocumentPicker
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -89,7 +118,6 @@ const DocSubmission = ({ navigation }) => {
       const file = result.assets[0];
       console.log('Document picked:', file);
 
-      // Check file size (limit to 10MB)
       if (file.size > 10 * 1024 * 1024) {
         Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
         return;
@@ -115,6 +143,11 @@ const DocSubmission = ({ navigation }) => {
       return;
     }
 
+    if (!selectedBaseDocument) {
+      Alert.alert('No Template Selected', 'Please select a document template first');
+      return;
+    }
+
     try {
       setUploading(true);
 
@@ -131,13 +164,16 @@ const DocSubmission = ({ navigation }) => {
         type: selectedFile.type,
         name: selectedFile.name,
       });
-      formData.append('base_document_id', '6912137e097441c95d48e7b8');
+      // Use the selected base document's _id instead of hardcoded value
+      formData.append('base_document_id', selectedBaseDocument._id);
       formData.append('notes', 'Submitted via mobile app');
 
       console.log('Uploading document...', {
         name: selectedFile.name,
         type: selectedFile.type,
-        size: selectedFile.size
+        size: selectedFile.size,
+        baseDocumentId: selectedBaseDocument._id,
+        baseDocumentTitle: selectedBaseDocument.title
       });
 
       const response = await axios.post(
@@ -186,8 +222,8 @@ const DocSubmission = ({ navigation }) => {
     }
   };
 
-  // ... rest of your functions remain the same ...
-
+  // ...existing code for getStatusDisplay, formatDate, formatFileSize, getFileIcon, renderFilePreview...
+  
   const getStatusDisplay = (status) => {
     const statusMap = {
       approved: { color: '#10b981', icon: 'check-circle', text: 'Approved' },
@@ -281,6 +317,47 @@ const DocSubmission = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upload Document</Text>
           
+          {/* Base Document Selection */}
+          <View style={styles.templateSection}>
+            <Text style={styles.templateLabel}>Document Template:</Text>
+            {loadingBaseDocuments ? (
+              <View style={styles.loadingTemplate}>
+                <ActivityIndicator size="small" color="#2563eb" />
+                <Text style={styles.loadingTemplateText}>Loading templates...</Text>
+              </View>
+            ) : (
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <TouchableOpacity 
+                    style={styles.templateSelector}
+                    onPress={() => setMenuVisible(true)}
+                    disabled={baseDocuments.length === 0}
+                  >
+                    <View style={styles.templateSelectorContent}>
+                      <Text style={styles.templateSelectorText}>
+                        {selectedBaseDocument ? selectedBaseDocument.title : 'Select Template'}
+                      </Text>
+                      <IconButton icon="chevron-down" iconColor="#64748b" size={20} />
+                    </View>
+                  </TouchableOpacity>
+                }
+              >
+                {baseDocuments.map((doc) => (
+                  <Menu.Item
+                    key={doc._id}
+                    onPress={() => {
+                      setSelectedBaseDocument(doc);
+                      setMenuVisible(false);
+                    }}
+                    title={doc.title}
+                  />
+                ))}
+              </Menu>
+            )}
+          </View>
+          
           <TouchableOpacity onPress={pickDocument} style={styles.uploadButton} disabled={uploading}>
             <IconButton icon="file-upload" iconColor="#2563eb" size={32} />
             <Text style={styles.uploadButtonText}>
@@ -293,7 +370,7 @@ const DocSubmission = ({ navigation }) => {
 
           {renderFilePreview()}
 
-          {selectedFile && !submissionResult && (
+          {selectedFile && !submissionResult && selectedBaseDocument && (
             <Button 
               mode="contained" 
               style={styles.submitButton} 
@@ -421,8 +498,8 @@ const DocSubmission = ({ navigation }) => {
   );
 };
 
-// ... keep all your existing styles ...
 const styles = StyleSheet.create({
+  // ...existing styles...
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
@@ -433,6 +510,43 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b', textAlign: 'center' },
   section: { paddingHorizontal: 24, paddingTop: 32 },
   sectionTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#1e293b', marginBottom: 16 },
+  
+  // New styles for template selection
+  templateSection: { marginBottom: 20 },
+  templateLabel: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#1e293b', marginBottom: 8 },
+  templateSelector: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+  },
+  templateSelectorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  templateSelectorText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#1e293b',
+    flex: 1,
+  },
+  loadingTemplate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+  },
+  loadingTemplateText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: '#64748b',
+    marginLeft: 8,
+  },
+  
   statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   uploadButton: { 
     borderWidth: 2, 
