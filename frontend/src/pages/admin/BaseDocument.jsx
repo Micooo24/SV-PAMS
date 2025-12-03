@@ -15,7 +15,8 @@ export default function AdminDashboard({ onLogout }) {
     fetchDocuments,
     uploadDocument,
     updateDocument,
-    deleteDocument
+    deleteDocument,
+    updateDocumentStatus
   } = useDocuments();
 
   const [openUploadModal, setOpenUploadModal] = useState(false);
@@ -30,6 +31,13 @@ export default function AdminDashboard({ onLogout }) {
   const handleDelete = async (documentId) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       await deleteDocument(documentId);
+    }
+  };
+
+  const handleStatusToggle = async (documentId, newStatus) => {
+    const statusText = newStatus ? 'activate' : 'deactivate';
+    if (window.confirm(`Are you sure you want to ${statusText} this document?`)) {
+      await updateDocumentStatus(documentId, newStatus);
     }
   };
 
@@ -56,6 +64,7 @@ export default function AdminDashboard({ onLogout }) {
           error={error}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onStatusToggle={handleStatusToggle}
         />
 
         <DocumentUploadModal

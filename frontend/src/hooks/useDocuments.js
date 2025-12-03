@@ -59,6 +59,20 @@ export default function useDocuments() {
     }
   };
 
+  const updateDocumentStatus = async (id, isActive) => {
+    try {
+      await documentService.updateStatus(id, isActive);
+      const statusText = isActive ? "activated" : "deactivated";
+      alert(`Document ${statusText} successfully!`);
+      await fetchDocuments();
+      return true;
+    } catch (err) {
+      console.error("Status update failed:", err);
+      alert("Failed to update document status");
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchDocuments();
   }, []);
@@ -70,6 +84,7 @@ export default function useDocuments() {
     fetchDocuments,
     uploadDocument,
     updateDocument,
-    deleteDocument
+    deleteDocument,
+    updateDocumentStatus
   };
 }

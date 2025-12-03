@@ -25,7 +25,13 @@ const documentService = {
 
   delete: async (id) => {
     return await axios.delete(`${BASE_URL}/api/admin/base-documents/delete/${id}`);
+  },
+  
+  updateStatus: async (id, isActive) => {
+    return await axios.patch(`${BASE_URL}/api/admin/base-documents/status/${id}?is_active=${isActive}`);
   }
+
+
 };
 
 export default documentService;

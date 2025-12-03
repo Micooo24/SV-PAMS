@@ -13,7 +13,7 @@ import {
   RefreshControl
 } from 'react-native';
 import { IconButton, Button, Card } from 'react-native-paper';
-import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useGlobalFonts } from '../hooks/font';
@@ -67,41 +67,51 @@ const DocSubmission = ({ navigation }) => {
 
   if (!fontsLoaded) return null;
 
-  const pickImage = async () => {
+  // Updated to use Expo DocumentPicker
+  const pickDocument = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'We need gallery permissions to select images');
+      const result = await DocumentPicker.getDocumentAsync({
+        type: [
+          'image/*',
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        ],
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
+      if (result.canceled) {
+        console.log('User cancelled document picker');
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1,
-      });
+      const file = result.assets[0];
+      console.log('Document picked:', file);
 
-      if (!result.canceled) {
-        const uri = result.assets[0].uri;
-        const fileType = uri.split('.').pop();
-        const mimeType = fileType === 'png' ? 'image/png' : 'image/jpeg';
-        
-        setSelectedFile({
-          uri,
-          name: `image_${Date.now()}.${fileType}`,
-          type: mimeType,
-        });
-        setSubmissionResult(null);
+      // Check file size (limit to 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
+        return;
       }
+
+      setSelectedFile({
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType,
+        size: file.size,
+      });
+      setSubmissionResult(null);
+
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick image: ' + error.message);
+      console.error('DocumentPicker Error:', error);
+      Alert.alert('Error', 'Failed to pick document: ' + error.message);
     }
   };
 
   const submitDocument = async () => {
     if (!selectedFile) {
-      Alert.alert('No File Selected', 'Please select an image first');
+      Alert.alert('No File Selected', 'Please select a document first');
       return;
     }
 
@@ -124,7 +134,11 @@ const DocSubmission = ({ navigation }) => {
       formData.append('base_document_id', '6912137e097441c95d48e7b8');
       formData.append('notes', 'Submitted via mobile app');
 
-      console.log('Uploading with axios...');
+      console.log('Uploading document...', {
+        name: selectedFile.name,
+        type: selectedFile.type,
+        size: selectedFile.size
+      });
 
       const response = await axios.post(
         `${BASE_URL}/api/users/document-submissions/upload`,
@@ -134,6 +148,7 @@ const DocSubmission = ({ navigation }) => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
+          timeout: 60000,
         }
       );
 
@@ -171,6 +186,8 @@ const DocSubmission = ({ navigation }) => {
     }
   };
 
+  // ... rest of your functions remain the same ...
+
   const getStatusDisplay = (status) => {
     const statusMap = {
       approved: { color: '#10b981', icon: 'check-circle', text: 'Approved' },
@@ -191,6 +208,57 @@ const DocSubmission = ({ navigation }) => {
     });
   };
 
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const getFileIcon = (type) => {
+    if (type?.includes('image')) return 'file-image';
+    if (type?.includes('pdf')) return 'file-pdf-box';
+    if (type?.includes('word') || type?.includes('document')) return 'file-document';
+    return 'file';
+  };
+
+  const renderFilePreview = () => {
+    if (!selectedFile) return null;
+
+    const isImage = selectedFile.type?.includes('image');
+
+    return (
+      <View style={styles.fileCard}>
+        {isImage ? (
+          <Image source={{ uri: selectedFile.uri }} style={styles.previewImage} />
+        ) : (
+          <View style={styles.fileIconContainer}>
+            <IconButton 
+              icon={getFileIcon(selectedFile.type)} 
+              iconColor="#2563eb" 
+              size={32} 
+            />
+          </View>
+        )}
+        <View style={styles.fileInfo}>
+          <Text style={styles.fileLabel}>Selected File:</Text>
+          <Text style={styles.fileName} numberOfLines={2}>{selectedFile.name}</Text>
+          <Text style={styles.fileSize}>{formatFileSize(selectedFile.size)}</Text>
+        </View>
+        <IconButton 
+          icon="close" 
+          iconColor="#ef4444" 
+          size={20} 
+          onPress={() => {
+            setSelectedFile(null);
+            setSubmissionResult(null);
+          }} 
+        />
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -202,7 +270,6 @@ const DocSubmission = ({ navigation }) => {
         }
       >
         
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>SV</Text>
@@ -211,33 +278,28 @@ const DocSubmission = ({ navigation }) => {
           <Text style={styles.subtitle}>Upload and track your status of application</Text>
         </View>
 
-        {/* Document Submission */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upload Document</Text>
           
-          <TouchableOpacity onPress={pickImage} style={styles.uploadButton} disabled={uploading}>
-            <IconButton icon="image" iconColor="#2563eb" size={32} />
+          <TouchableOpacity onPress={pickDocument} style={styles.uploadButton} disabled={uploading}>
+            <IconButton icon="file-upload" iconColor="#2563eb" size={32} />
             <Text style={styles.uploadButtonText}>
-              {selectedFile ? 'Change Image' : 'Select Image'}
+              {selectedFile ? 'Change Document' : 'Select Document'}
+            </Text>
+            <Text style={styles.uploadHelpText}>
+              Supports: Images, PDF, Word documents (Max 10MB)
             </Text>
           </TouchableOpacity>
 
-          {selectedFile && (
-            <View style={styles.fileCard}>
-              <Image source={{ uri: selectedFile.uri }} style={styles.previewImage} />
-              <View style={styles.fileInfo}>
-                <Text style={styles.fileLabel}>Selected Image:</Text>
-                <Text style={styles.fileName}>{selectedFile.name}</Text>
-              </View>
-              <IconButton icon="close" iconColor="#ef4444" size={20} onPress={() => {
-                setSelectedFile(null);
-                setSubmissionResult(null);
-              }} />
-            </View>
-          )}
+          {renderFilePreview()}
 
           {selectedFile && !submissionResult && (
-            <Button mode="contained" style={styles.submitButton} onPress={submitDocument} disabled={uploading}>
+            <Button 
+              mode="contained" 
+              style={styles.submitButton} 
+              onPress={submitDocument} 
+              disabled={uploading}
+            >
               {uploading ? 'Submitting...' : 'Submit Document'}
             </Button>
           )}
@@ -294,7 +356,6 @@ const DocSubmission = ({ navigation }) => {
           )}
         </View>
 
-        {/* Submission Status Section */}
         <View style={styles.section}>
           <View style={styles.statusHeader}>
             <Text style={styles.sectionTitle}>My Submissions</Text>
@@ -360,6 +421,7 @@ const DocSubmission = ({ navigation }) => {
   );
 };
 
+// ... keep all your existing styles ...
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1 },
@@ -372,13 +434,46 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 24, paddingTop: 32 },
   sectionTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#1e293b', marginBottom: 16 },
   statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  uploadButton: { borderWidth: 2, borderColor: '#2563eb', borderRadius: 12, borderStyle: 'dashed', paddingVertical: 32, alignItems: 'center', backgroundColor: '#f8fafc' },
+  uploadButton: { 
+    borderWidth: 2, 
+    borderColor: '#2563eb', 
+    borderRadius: 12, 
+    borderStyle: 'dashed', 
+    paddingVertical: 32, 
+    alignItems: 'center', 
+    backgroundColor: '#f8fafc' 
+  },
   uploadButtonText: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#2563eb', marginTop: 8 },
-  fileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 12, marginTop: 16 },
+  uploadHelpText: { 
+    fontSize: 12, 
+    fontFamily: 'Poppins-Regular', 
+    color: '#94a3b8', 
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 16
+  },
+  fileCard: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f1f5f9', 
+    borderRadius: 12, 
+    padding: 12, 
+    marginTop: 16 
+  },
   previewImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12 },
+  fileIconContainer: { 
+    width: 60, 
+    height: 60, 
+    borderRadius: 8, 
+    backgroundColor: '#e2e8f0', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    marginRight: 12 
+  },
   fileInfo: { flex: 1 },
   fileLabel: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#64748b' },
-  fileName: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#1e293b' },
+  fileName: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#1e293b', marginTop: 2 },
+  fileSize: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#94a3b8', marginTop: 2 },
   submitButton: { backgroundColor: '#2563eb', borderRadius: 12, marginTop: 16 },
   loadingContainer: { alignItems: 'center', paddingVertical: 32 },
   loadingText: { marginTop: 16, fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b' },

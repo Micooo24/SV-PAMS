@@ -55,7 +55,7 @@ async def upload_base_document(file, title: str, category: str, description: str
 def get_all_base_documents(category: str = None):
     """Get all active base documents"""
     try:
-        query = {"is_active": True}
+        query = {}
         if category:
             query["category"] = category
         
@@ -227,6 +227,56 @@ def delete_base_document_by_id(document_id: str):
     
     except Exception as e:
         logger.error(f"Error deleting document: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+        
+def toggle_base_document_status(document_id: str, is_active: bool):
+    """Toggle active/inactive status of base document"""
+    try:
+        # Check if document exists
+        existing_doc = db["base_documents"].find_one({"_id": ObjectId(document_id)})
+        
+        if not existing_doc:
+            return {
+                "success": False,
+                "error": "Document not found"
+            }
+        
+        # Update the status
+        update_fields = {
+            "is_active": is_active,
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Perform update
+        result = db["base_documents"].update_one(
+            {"_id": ObjectId(document_id)},
+            {"$set": update_fields}
+        )
+        
+        if result.modified_count == 0:
+            return {
+                "success": False,
+                "error": "Failed to update document status"
+            }
+        
+        # Fetch updated document
+        updated_doc = db["base_documents"].find_one({"_id": ObjectId(document_id)})
+        updated_doc["_id"] = str(updated_doc["_id"])
+        
+        status_text = "activated" if is_active else "deactivated"
+        logger.info(f"Base document {status_text}: {document_id}")
+        
+        return {
+            "success": True,
+            "document": updated_doc,
+            "message": f"Document {status_text} successfully"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error updating document status: {str(e)}")
         return {
             "success": False,
             "error": str(e)

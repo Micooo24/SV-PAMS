@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form, HTTPException, Query
 from typing import Optional
+from fastapi.responses import JSONResponse
 from controllers.admin.admin_base_document import (
     upload_base_document,
     get_all_base_documents,
     get_base_document_by_id,
     update_base_document_by_id,
-    delete_base_document_by_id
+    delete_base_document_by_id,
+    toggle_base_document_status
 )
 import logging
 
@@ -134,6 +136,34 @@ async def admin_delete_base_document(document_id: str):
     except Exception as e:
         logger.error(f"Delete error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+    
+@router.patch("/status/{document_id}")
+async def update_document_status(
+    document_id: str,
+    is_active: bool = Query(..., description="Set document as active (true) or inactive (false)")
+):
+    """Toggle active/inactive status of a base document"""
+    try:
+        result = toggle_base_document_status(document_id, is_active)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=404, detail=result["error"])
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": result["message"],
+                "document": result["document"]
+            }
+        )
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Status update error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # User endpoints (if users also need to view base documents)
 # @router.get("/base-documents")

@@ -37,7 +37,7 @@ export default function UserSubmissions({ onLogout }) {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${BASE_URL}/api/users/document-submissions/get-all`);
+      const response = await axios.get(`${BASE_URL}/api/admin/document-submissions/get-all`);
       setSubmissions(response.data.submissions);
       setError(null);
     } catch (err) {
