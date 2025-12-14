@@ -39,30 +39,32 @@ const DocSubmission = ({ navigation }) => {
     fetchBaseDocuments();
   }, []);
 
-  const fetchBaseDocuments = async () => {
-    try {
-      setLoadingBaseDocuments(true);
-      const response = await axios.get(`${BASE_URL}/api/admin/base-documents/get-all`);
+const fetchBaseDocuments = async () => {
+  try {
+    setLoadingBaseDocuments(true);
+    const response = await axios.get(`${BASE_URL}/api/admin/base-documents/active`);
+    
+    if (response.data.active_documents) {
+      // Filter only permits category from the active documents
+      const activePermitDocuments = response.data.active_documents.filter(
+        doc => doc.category === 'permits'
+      );
+      setBaseDocuments(activePermitDocuments);
       
-      if (response.data.documents) {
-        // Filter only active documents
-        const activeDocuments = response.data.documents.filter(doc => doc.is_active === true);
-        setBaseDocuments(activeDocuments);
-        
-        // Auto-select first document if available
-        if (activeDocuments.length > 0) {
-          setSelectedBaseDocument(activeDocuments[0]);
-        }
+      // Auto-select first document if available
+      if (activePermitDocuments.length > 0) {
+        setSelectedBaseDocument(activePermitDocuments[0]);
       }
-    } catch (error) {
-      console.error('Error fetching base documents:', error);
-      Alert.alert('Error', 'Failed to load document templates');
-    } finally {
-      setLoadingBaseDocuments(false);
     }
-  };
+  } catch (error) {
+    console.error('Error fetching base documents:', error);
+    Alert.alert('Error', 'Failed to load permit templates');
+  } finally {
+    setLoadingBaseDocuments(false);
+  }
+};
 
-  const fetchSubmissions = async () => {
+const fetchSubmissions = async () => {
     try {
       setLoadingSubmissions(true);
       const token = await AsyncStorage.getItem('access_token');
@@ -222,7 +224,7 @@ const DocSubmission = ({ navigation }) => {
     }
   };
 
-  // ...existing code for getStatusDisplay, formatDate, formatFileSize, getFileIcon, renderFilePreview...
+  
   
   const getStatusDisplay = (status) => {
     const statusMap = {
@@ -499,7 +501,6 @@ const DocSubmission = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  // ...existing styles...
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
