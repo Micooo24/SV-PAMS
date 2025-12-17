@@ -122,7 +122,7 @@ const LoginComponent = ({
             disabled={loading}
             textColor="black"
           >
-            Continue with Google
+            Google
           </Button>
 
           <Button
@@ -134,7 +134,7 @@ const LoginComponent = ({
             disabled={loading}
             textColor="black"
           >
-            Continue with Facebook
+            Facebook
           </Button>
 
           {/* Sign Up Link */}

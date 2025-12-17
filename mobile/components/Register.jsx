@@ -343,7 +343,7 @@ const RegisterComponent = ({
             textColor="#000000"
           />
         }
-        contentStyle={{ maxHeight: 400, backgroundColor: '#000' }}
+        contentStyle={{ maxHeight: 400, backgroundColor: '#fff' }}
       >
         <ScrollView style={{ maxHeight: 300 }}>
           {BARANGAYS.map((brgy) => (
