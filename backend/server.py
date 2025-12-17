@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+# Start Firestore monitor for vendor location events (runs in background thread)
+from secrets_backend.controllers.firestore_monitor import start_monitor as start_firestore_monitor
 
 # General Routes 
 from routes import auth, document_submissions, vendor_carts
@@ -8,6 +10,7 @@ from routes import auth, document_submissions, vendor_carts
 # Admin Routes
 from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions
 
+start_firestore_monitor()  # This will listen for Firestore changes and log events to MongoDB
 # Declaration
 app = FastAPI()
 
