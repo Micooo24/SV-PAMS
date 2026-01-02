@@ -5,6 +5,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import authService from '../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging from '@react-native-firebase/messaging';
 
 export default function useAuth() {
   const [user, setUser] = useState(null);
@@ -12,11 +13,38 @@ export default function useAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [error, setError] = useState(null);
 
+  const getFCMToken = async () => {
+    try {
+      // Request permission
+      const authStatus = await messaging().requestPermission();
+      const enabled = 
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED || 
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        console.log('Authorization status:', authStatus);
+        
+        // Get FCM token
+        const token = await messaging().getToken();
+        console.log('FCM Token:', token);
+        return token;
+      }
+      
+      console.log('User notification permission denied');
+      return null;
+    } catch (error) {
+      console.error('Error getting FCM token:', error);
+      return null;
+    }
+  };
 
   const login = async (email, password) => {
     try {
       setLoading(true);
       setError(null);
+
+      const fcmToken = await getFCMToken();
+      console.log('FCM Token retrieved:', fcmToken);
 
       console.log('Step 1: Firebase Authentication...');
       // Firebase Auth
@@ -27,6 +55,9 @@ export default function useAuth() {
       const formData = new FormData();
       formData.append('email', email.toLowerCase().trim());
       formData.append('password', password);
+      if (fcmToken) {
+        formData.append('fcm_token', fcmToken);
+      }
       
       const response = await authService.login(formData);
       
@@ -92,6 +123,9 @@ export default function useAuth() {
       setLoading(true);
       setError(null);
 
+      const fcmToken = await getFCMToken();
+      console.log('FCM Token retrieved:', fcmToken);
+
       console.log('Step 1: Google Sign-In...');
       await GoogleSignin.hasPlayServices();
 
@@ -125,6 +159,9 @@ export default function useAuth() {
       formData.append('familyName', userInfo.familyName || '');
       formData.append('photo', userInfo.photo || '');
       formData.append('provider', 'google');
+      if (fcmToken) {
+        formData.append('fcm_token', fcmToken);
+      }
 
       const backendResponse = await authService.googleLogin(formData, firebaseUserCredential, userInfo);
       

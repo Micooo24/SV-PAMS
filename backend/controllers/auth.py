@@ -117,7 +117,8 @@ async def register(
 # Login with 1-Day Token Expiration
 async def login(
     email: str = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    fcm_token: Optional[str] = Form(None)
 ):
     try:
         user = db["users"].find_one({"email": email.lower().strip()})
@@ -137,11 +138,23 @@ async def login(
             }
             # No expires_delta parameter = uses default 1 day from utils.py
         )
-
+        
+        update_data = {"last_login": datetime.now().isoformat()}   
+        
+        if fcm_token:
+                # Single Device FCM Token
+                update_data["fcm_token"] = fcm_token
+            
+            # # Optional: Multiple Device FCM Tokens
+            # db["users"].update_one(
+            #     {"_id": user["_id"]},
+            #     {"$addToSet": {"fcm_tokens": fcm_token}}
+            # )
+        
         # Update last login
         db["users"].update_one(
             {"_id": user["_id"]},
-            {"$set": {"last_login": datetime.now().isoformat()}}
+            {"$set": update_data}
         )
 
         # Prepare user response (remove password)
@@ -181,7 +194,8 @@ async def google_login(
     givenName: Optional[str] = Form(None),
     familyName: Optional[str] = Form(None),
     photo: Optional[str] = Form(None),
-    name: str = Form(...)
+    name: str = Form(...),
+    fcm_token: Optional[str] = Form(None)
 ):
     """
     Handle Google OAuth login - matches normal login structure
@@ -205,7 +219,16 @@ async def google_login(
             # Update last login and photo if provided
             update_data = {"last_login": datetime.now().isoformat()}
             if photo:
-                update_data["img"] = photo
+                update_data["img"] = photo   
+            if fcm_token:
+                # Single Device FCM Token
+                update_data["fcm_token"] = fcm_token
+            
+            # # Optional: Multiple Device FCM Tokens
+            # db["users"].update_one(
+            #     {"_id": user["_id"]},
+            #     {"$addToSet": {"fcm_tokens": fcm_token}}
+            # )
             
             db["users"].update_one(
                 {"_id": existing_user["_id"]},

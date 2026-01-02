@@ -33,9 +33,10 @@ async def register_user(
 @router.post("/login")
 async def login_user(
     email: str = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    fcm_token: Optional[str] = Form(None)
 ):
-    return await login(email, password)
+    return await login(email, password, fcm_token)
 
 
 @router.post("/google-login")
@@ -44,6 +45,7 @@ async def google_login_user(
     givenName: Optional[str] = Form(None),
     familyName: Optional[str] = Form(None),
     photo: Optional[str] = Form(None),
-    name: str = Form(...)
+    name: str = Form(...),
+    fcm_token: Optional[str] = Form(None)
 ):
-    return await google_login(email, givenName, familyName, photo, name)
+    return await google_login(email, givenName, familyName, photo, name, fcm_token)
