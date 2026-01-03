@@ -12,7 +12,7 @@ export default function App() {
   //Handle foreground only notifications
     useEffect(() => {
     const unsubscribe = messaging().onMessage(async remoteMessage => {
-      console.log('Background notification received');
+      console.log('Foreground notification received');
       
       Alert.alert(
         remoteMessage.notification?.title || 'New Notification',
