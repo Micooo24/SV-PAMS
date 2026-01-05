@@ -208,7 +208,9 @@ async def verify_otp_endpoint(
 
 
 #  Resend OTP
-async def resend_otp(email: str = Form(...)):
+async def resend_otp(
+    
+    email: str = Form(...)):
     """Resend OTP to user's email"""
     try:
         user = db["users"].find_one({"email": email.lower().strip()})

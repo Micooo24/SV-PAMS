@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.auth import register, login, google_login
+from controllers.auth import register, login, google_login, verify_otp_endpoint, resend_otp
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional
@@ -49,3 +49,18 @@ async def google_login_user(
     fcm_token: Optional[str] = Form(None)
 ):
     return await google_login(email, givenName, familyName, photo, name, fcm_token)
+
+@router.post("/otp-verify")
+async def verify_otp_endpoint(
+    email: str = Form(...),
+    otp_code: str = Form(...)
+    
+):
+    return await verify_otp_endpoint(email, otp_code)
+
+
+@router.post("/resend-otp")
+async def resend_otp(
+  email: str = Form(...)  
+):
+    return await resend_otp(email)
