@@ -32,16 +32,29 @@ const Register = ({ navigation }) => {
       return;
     }
 
+    // Email validation (Gmail only)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    if (!emailRegex.test(formData.email)) {
+      Alert.alert('Validation Error', 'Please use a valid Gmail address');
+      return;
+    }
+
+    console.log('Submitting registration:', formData.email);
+
+    // ✅ Call register (sends OTP to email)
     const result = await register(formData);
 
     if (result.success) {
       Alert.alert(
-        'Registration Successful', 
-        'Your account has been created! You can now login.',
+        'Registration Successful!', 
+        'A verification code has been sent to your email. Please check your inbox.',
         [
           {
             text: 'OK',
-            onPress: () => navigation.navigate('Login')
+            onPress: () => navigation.navigate('OTPVerification', {
+              email: formData.email,
+              password: formData.password  // ✅ Pass password to OTP screen
+            })
           }
         ]
       );

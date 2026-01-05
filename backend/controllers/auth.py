@@ -52,7 +52,7 @@ async def register(
     barangay: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
-    birthday: str = Form(...),
+    birthday: Optional[str] = Form(None),
     age: int = Form(...),
     mobile_no: int = Form(...),
     landline_no: str = Form(""),
@@ -62,54 +62,108 @@ async def register(
     img: UploadFile = File(None)
 ):
     try:
-        # Validate with User model
-        user_model = User(
-            firstname=firstname.strip(),
-            lastname=lastname.strip(),
-            middlename=middlename.strip(),
-            address=address.strip(),
-            barangay=barangay.strip(),
-            email=email,  # Will validate Gmail
-            password=password,
-            birthday=birthday,
-            age=age,
-            mobile_no=mobile_no,
-            landline_no=landline_no.strip(),
-            zip_code=zip_code,
-            gender=gender,
-            role=role
-        )
+       
+        gender_enum = None
+        if gender and gender.strip():
+            gender_lower = gender.lower().strip()
+            logger.info(f"Converting gender '{gender}' to enum...")
+            if gender_lower == "male":
+                gender_enum = Gender.male
+            elif gender_lower == "female":
+                gender_enum = Gender.female
+            else:
+                logger.error(f"Invalid gender value: '{gender}'")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Gender must be 'male' or 'female', received: '{gender}'"
+                )
         
+        birthday_str = ""
+        if birthday:
+            logger.info(f"Processing birthday: '{birthday}' (type: {type(birthday).__name__})")
+            if isinstance(birthday, str):
+                birthday_str = birthday.strip()
+            elif isinstance(birthday, date):
+                birthday_str = birthday.isoformat()
+            
+            # Validate format
+            try:
+                datetime.strptime(birthday_str, "%Y-%m-%d")
+                logger.info(f"Birthday validated: '{birthday_str}'")
+            except ValueError as e:
+                logger.error(f"Invalid birthday format: '{birthday_str}' - {str(e)}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid birthday format. Use YYYY-MM-DD, received: '{birthday}'"
+                )
+        
+        logger.info("Creating User model...")
+        
+        # Validate with User model
+        try:
+            user_model = User(
+                firstname=firstname.strip(),
+                lastname=lastname.strip(),
+                middlename=middlename.strip() if middlename else "",
+                address=address.strip(),
+                barangay=barangay.strip(),
+                email=email.lower().strip(), 
+                password=password,
+                birthday=birthday_str,
+                age=age,
+                mobile_no=mobile_no,
+                landline_no=landline_no.strip() if landline_no else "",
+                zip_code=zip_code,
+                gender=gender_enum, 
+                role=role
+            )
+            logger.info("User model created successfully!")
+        except Exception as validation_error:
+            logger.error(f"User model validation failed: {str(validation_error)}")
+            logger.error(f"Validation error type: {type(validation_error).__name__}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Validation error: {str(validation_error)}"
+            )
+        
+        # Check if email already exists
         if db["users"].find_one({"email": user_model.email}):
+            logger.warning(f"Email already registered: {user_model.email}")
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Hash password
         hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
+        # Upload image
         img_url = None
         if img and img.filename:
+            logger.info(f"Uploading image: {img.filename}")
             result = cloudinary.uploader.upload(img.file, folder="users")
             img_url = result.get("secure_url")
+            logger.info(f"Image uploaded: {img_url}")
         
-        #  Generate OTP
+        # Generate OTP
         otp_code = generate_otp()
         otp_expiry = get_otp_expiry()
+        logger.info(f"OTP generated for {user_model.email}")
         
         # Convert model to dict
         user_dict = user_model.model_dump()
         user_dict.update({
             "password": hashed_password.decode('utf-8'),
             "img": img_url,
-            "role": "user",  # Force user role
-            "is_active": False,  # Not active until verified
-            "is_verified": False,  # Not verified yet
+            "role": "user",
+            "is_active": False,
+            "is_verified": False,
             "created_at": datetime.now().isoformat()
         })
-        #  NO otp_code in database!
 
+        # Insert user
         inserted_user = db["users"].insert_one(user_dict)
         user_dict["_id"] = str(inserted_user.inserted_id)
+        logger.info(f"User inserted with ID: {user_dict['_id']}")
         
-        #  Store OTP in memory (not database)
+        # Store OTP in memory
         store_otp(user_model.email, otp_code, otp_expiry)
         
         # Send OTP email
@@ -121,8 +175,10 @@ async def register(
         
         if not email_sent:
             logger.warning(f"Failed to send OTP email to {user_model.email}")
+        else:
+            logger.info(f"OTP email sent successfully to {user_model.email}")
         
-        logger.info(f"User registered, OTP sent (in-memory): {email}")
+        logger.info("Registration completed successfully!")
         return {
             "message": "Registration successful. Please check your Gmail for OTP verification code.",
             "email": user_model.email,
@@ -130,11 +186,11 @@ async def register(
         }
     
     except HTTPException as e:
+        logger.error(f"HTTPException: {e.detail}")
         raise e
     except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
 
 #  Verify OTP Endpoint
 async def verify_otp_endpoint(

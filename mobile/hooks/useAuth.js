@@ -200,93 +200,87 @@ export default function useAuth() {
     }
   };
 
-  const register = async (formData) =>{
-    try{
-      setLoading(true);
-      setError(null);
+const register = async (formData) => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      console.log("Step 1: Backend Registration via service")
+    const formDataToSend = new FormData();
 
-      const formDataToSend = new FormData();
+    const fieldsToSend = {
+      firstname: formData.firstname,
+      lastname: formData.lastname,
+      middlename: formData.middlename || '',
+      address: formData.address,
+      barangay: formData.barangay,
+      email: formData.email.toLowerCase().trim(),
+      password: formData.password,
+      birthday: formData.birthday,
+      age: formData.age,
+      mobile_no: formData.mobile_no,
+      landline_no: formData.landline_no || '',
+      zip_code: formData.zip_code,
+      gender: formData.gender,
+      role: 'user',
+    };
 
-      const fieldsToSend = {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
-        middlename: formData.middlename || '',
-        address: formData.address,
-        barangay: formData.barangay,
-        email: formData.email.toLowerCase().trim(),
-        password: formData.password,
-        birthday: formData.birthday,
-        age: formData.age,
-        mobile_no: formData.mobile_no,
-        landline_no: formData.landline_no || '',
-        zip_code: formData.zip_code,
-        gender: formData.gender,
-        role: 'user',
-      };
+    Object.entries(fieldsToSend).forEach(([key, value]) => {
+      formDataToSend.append(key, value);
+    });
 
-      Object.entries(fieldsToSend).forEach(([key, value]) => {
-        formDataToSend.append(key, value);
-      });
-
-      if (formData.img) {
-        const uriParts = formData.img.split('.');
-        const fileType = uriParts[uriParts.length - 1];
-        
-        formDataToSend.append('img', {
-          uri: formData.img,
-          name: `photo.${fileType}`,
-          type: `image/${fileType}`,
-        });
-      }
-       const response = await authService.register(formDataToSend);
-
-      console.log('Registration successful via useAuth hook - OTP send to email');
-      return { 
-        success: true, 
-        email: response.data.email,
-        message: response.data.message 
-      };
+    if (formData.img) {
+      const uriParts = formData.img.split('.');
+      const fileType = uriParts[uriParts.length - 1];
       
-    } catch (err) {
-      console.error('Registration error in useAuth:', err);
-
-      let errorMessage = 'Registration failed. Please try again.';
-
-       // Handle Firebase Auth errors
-      if (err.code) {
-        switch (err.code) {
-          case 'auth/email-already-in-use':
-            errorMessage = 'This email is already registered. Please login instead.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Invalid email address format.';
-            break;
-          case 'auth/weak-password':
-            errorMessage = 'Password is too weak. Please use a stronger password.';
-            break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Network error. Please check your internet connection.';
-            break;
-          default:
-            errorMessage = `Firebase error: ${err.message}`;
-        }
-      } 
-
-      // Handle backend errors
-      else if (err.response?.data) {
-        errorMessage = err.response?.data?.detail || 
-                      err.response?.data?.message || 
-                      'Registration failed. Please try again.';
-      }
-
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
+      formDataToSend.append('img', {
+        uri: formData.img,
+        name: `photo.${fileType}`,
+        type: `image/${fileType}`,
+      });
     }
-  };
+
+    const response = await authService.register(formDataToSend);
+
+    return { 
+      success: true, 
+      email: response.data.email,
+      message: response.data.message 
+    };
+    
+  } catch (err) {
+    console.error('Registration error:', err);
+
+    let errorMessage = 'Registration failed. Please try again.';
+
+    if (err.code) {
+      switch (err.code) {
+        case 'auth/email-already-in-use':
+          errorMessage = 'This email is already registered. Please login instead.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Invalid email address format.';
+          break;
+        case 'auth/weak-password':
+          errorMessage = 'Password is too weak. Please use a stronger password.';
+          break;
+        case 'auth/network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection.';
+          break;
+        default:
+          errorMessage = `Firebase error: ${err.message}`;
+      }
+    } else if (err.response?.data) {
+      errorMessage = err.response?.data?.detail || 
+                    err.response?.data?.message || 
+                    'Registration failed. Please try again.';
+    }
+
+    setError(errorMessage);
+    return { success: false, error: errorMessage };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const logout = async () => {
     try {
