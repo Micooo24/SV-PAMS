@@ -101,8 +101,12 @@ export default function useAuth() {
           default:
             errorMessage = err.message || 'Authentication failed';
         }
+        
       } 
       // Handle Backend errors
+      else if (err.response?.status === 403){
+        errorMessage = 'Account not verified. Please verify your account.';
+      }
       else if (err.response?.status === 400) {
         errorMessage = err.response.data?.detail || 'Invalid email or password';
       } else if (err.response?.status === 500) {
@@ -201,18 +205,7 @@ export default function useAuth() {
       setLoading(true);
       setError(null);
 
-      console.log("Step 1: Create Firebase Auth User")
-
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email.toLowerCase().trim(),
-        formData.password
-
-      );
-
-      console.log("Firebase user created with Auth")
-
-      console.log("Step 2: Backend Registration via service")
+      console.log("Step 1: Backend Registration via service")
 
       const formDataToSend = new FormData();
 
@@ -231,7 +224,6 @@ export default function useAuth() {
         zip_code: formData.zip_code,
         gender: formData.gender,
         role: 'user',
-        firebase_uid: userCredential.user.uid 
       };
 
       Object.entries(fieldsToSend).forEach(([key, value]) => {
@@ -248,10 +240,14 @@ export default function useAuth() {
           type: `image/${fileType}`,
         });
       }
-       const response = await authService.register(formDataToSend, userCredential);
+       const response = await authService.register(formDataToSend);
 
-      console.log('Registration successful via useAuth hook');
-      return { success: true, user: response.data.user || {} };
+      console.log('Registration successful via useAuth hook - OTP send to email');
+      return { 
+        success: true, 
+        email: response.data.email,
+        message: response.data.message 
+      };
       
     } catch (err) {
       console.error('Registration error in useAuth:', err);
@@ -324,6 +320,98 @@ export default function useAuth() {
     }
   };
 
+
+  const verify_otp = async (email, otp_code, password) => {
+   try {
+    setLoading(true);
+    setError(null);
+
+    console.log("Step 1: Verifying OTP...")
+
+    const response = await authService.verify_otp(email, otp_code);
+    
+    console.log("Step 2: Create Firebase Auth User")
+
+      const firebaseUserCredential = await createUserWithEmailAndPassword(
+        auth,
+        email.toLowerCase().trim(),
+        password
+
+      );
+
+      await AsyncStorage.setItem('firebase_uid', firebaseUserCredential.user.uid);
+
+
+      
+      setUser(response.data.user);
+      setIsAuthenticated(true);
+
+      console.log('OTP verified successfully - User Logged In');
+      return { 
+          success: true, 
+          user: response.data.user,
+          message: response.data.message 
+        };
+    
+    } catch (err) {
+      console.error('OTP Verification error in useAuth:', err);
+      let errorMessage = 'OTP Verification failed.';
+
+      if (err.response?.status === 400) {
+          errorMessage = err.response.data?.detail || 'Invalid or expired OTP';
+      } else if (err.response?.status === 404) {
+          errorMessage = 'User not found';
+      } else {
+          errorMessage = err.response?.data?.detail || 'Verification failed';
+        }
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+      
+    }  finally {
+        setLoading(false);
+      }
+
+  };
+
+
+  const resend_otp = async (email) => {
+    try {
+    setLoading(true);
+    setError(null);
+
+    console.log("Step 1: Resending OTP...")
+
+    const response = await authService.resend_otp(email);
+
+    console.log('OTP resent successfully');
+      return { 
+        success: true, 
+        message: response.data.message 
+      };
+      
+    } catch (err) {
+      console.error('Resend OTP error:', err);
+
+      let errorMessage = 'Failed to resend OTP';
+
+      if (err.response?.status === 400) {
+        errorMessage = err.response.data?.detail || 'Account already verified';
+      } else if (err.response?.status === 404) {
+        errorMessage = 'User not found';
+      } else {
+        errorMessage = err.response?.data?.detail || 'Failed to send OTP';
+      }
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+    
+  };
+  
+
   return {
     // State
     user,
@@ -336,5 +424,7 @@ export default function useAuth() {
     googleLogin,
     register,
     logout,
+    verify_otp,
+    resend_otp
   };
 }

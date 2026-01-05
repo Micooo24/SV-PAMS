@@ -38,7 +38,6 @@ async def login_user(
 ):
     return await login(email, password, fcm_token)
 
-
 @router.post("/google-login")
 async def google_login_user(
     email: str = Form(...),
@@ -49,8 +48,8 @@ async def google_login_user(
     fcm_token: Optional[str] = Form(None)
 ):
     return await google_login(email, givenName, familyName, photo, name, fcm_token)
-
-@router.post("/otp-verify")
+    
+@router.post("/verify-otp")
 async def verify_otp_endpoint(
     email: str = Form(...),
     otp_code: str = Form(...)

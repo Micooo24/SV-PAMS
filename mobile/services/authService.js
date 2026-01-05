@@ -1,7 +1,7 @@
 import axios from "axios";
 import BASE_URL from "../common/baseurl";
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
-import { registerCallableModule } from "react-native";
+
 
 const authService = {
 
@@ -75,7 +75,7 @@ const authService = {
     return response;
   },
 
-  register: async (formData, firebaseUserCredential) => {
+  register: async (formData) => {
 
       const response = await axios.post(`${BASE_URL}/api/users/auth/register`, formData, {
         headers: {
@@ -93,7 +93,54 @@ const authService = {
 
   },
 
+  verify_otp: async (email, otp_code) => {
+    const formData = new FormData();
+    formData.append('email', email);
+    formData.append('otp_code', otp_code);
 
+    const response = await axios.post(`${BASE_URL}/api/users/auth/verify-otp`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.data.access_token){
+      await AsyncStorage.multiSet([
+        ['access_token', response.data.access_token],
+        ['token_type', response.data.token_type || 'Bearer'],
+        ['expires_in', response.data.expires_in?.toString() || ''],
+        ['user_data', JSON.stringify(response.data.user)],
+        ['user_id', response.data.user._id],
+        ['user_email', response.data.user.email],
+        ['user_firstname', response.data.user.firstname],
+        ['user_lastname', response.data.user.lastname],
+        ['user_role', response.data.user.role],
+        ['user_mobile', response.data.user.mobile_no?.toString() || ''],
+        ['user_address', response.data.user.address || ''],
+        ['user_barangay', response.data.user.barangay || ''],
+        ['user_img', response.data.user.img || ''],
+        ['user_is_active', JSON.stringify(response.data.user.is_active)],    
+      ]);
+    }
+    console.log('OTP Verification', response.data);
+    return response;
+    
+  },
+
+  resend_otp: async (email) => {
+    const formData = new FormData();
+    formData.append('email', email);
+
+    const response = await axios.post(`${BASE_URL}/api/users/auth/resend-otp`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    console.log('Resend OTP response', response.data.email);
+    return response;
+  },
+  
 
   // Helper functions
   getCurrentUser: async () => {
