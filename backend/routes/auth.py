@@ -58,7 +58,6 @@ async def verify_otp_endpoint(
 ):
     return await verify_otp_endpoint(email, otp_code)
 
-
 @router.post("/resend-otp")
 async def resend_otp(
   email: str = Form(...)  
