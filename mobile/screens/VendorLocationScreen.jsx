@@ -7,11 +7,8 @@ import firestore from '@react-native-firebase/firestore';
 import authService from '../services/authService';
 
 export default function VendorLocationScreen({ navigation }) {
-  // Vendor's current location
   const [location, setLocationState] = useState(null);
-  // Is live location sharing active?
   const [trackingActive, setTrackingActive] = useState(false);
-  // Map region state
   const [mapRegion, setMapRegion] = useState({
     latitude: 14.5650,
     longitude: 121.0850,
@@ -100,8 +97,8 @@ export default function VendorLocationScreen({ navigation }) {
           };
           setLocationState(coords);
           setMapRegion({
-            latitude: coords.lat,
-            longitude: coords.lng,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           });
@@ -222,5 +219,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
 

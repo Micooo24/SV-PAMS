@@ -10,11 +10,11 @@ import * as Location from "expo-location";
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
 import authService from '../services/authService';
+import { GOOGLE_MAPS_API_KEY } from '@env';
 
 const CustomerMapScreen = () => {
   const [vendors, setVendors] = useState([]);
   const [customerLoc, setCustomerLoc] = useState(null);
-  // For toggling customer location sharing
   const [trackingActive, setTrackingActive] = useState(false);
   const [locationWatcher, setLocationWatcher] = useState(null);
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -31,6 +31,7 @@ const CustomerMapScreen = () => {
   const [user, setUser] = useState(null);
   const [customerId, setCustomerId] = useState(null);
 
+ 
   // Fetch logged-in user info from AsyncStorage
   useEffect(() => {
     const fetchUser = async () => {
@@ -43,7 +44,6 @@ const CustomerMapScreen = () => {
     fetchUser();
   }, []);
 
-  // Fit map to selected vendor and customer
   useEffect(() => {
     // Listen for active vendors (unified user model: role === 'vendor')
     const unsubscribe = firestore()
@@ -62,6 +62,12 @@ const CustomerMapScreen = () => {
 
   // Removed automatic map centering on vendor selection
 
+    useEffect(() => {
+    console.log('GOOGLE_MAPS_API_KEY from @env:', GOOGLE_MAPS_API_KEY);
+    console.log('Type:', typeof GOOGLE_MAPS_API_KEY);
+    console.log('Length:', GOOGLE_MAPS_API_KEY?.length);
+  }, []);
+
   useEffect(() => {
     // Only calculate route/ETA/distance when both customerLoc and selectedVendor are available
     if (!selectedVendor || !customerLoc) {
@@ -73,7 +79,7 @@ const CustomerMapScreen = () => {
     const fetchRoute = async () => {
       try {
         // Securely get the API key from Expo config (set via .env)
-        const apiKey = ''; //lagay mo rito yung exact apikey sa .env file
+        const apiKey = GOOGLE_MAPS_API_KEY; //lagay mo rito yung exact apikey sa .env file
         const vendorLat = selectedVendor.lat ?? selectedVendor.latitude;
         const vendorLng = selectedVendor.lng ?? selectedVendor.longitude;
         console.log('Selected vendor coords:', vendorLat, vendorLng);
@@ -380,23 +386,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#047857',
     fontWeight: '600',
-  },
-  infoBox: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 20,
-    zIndex: 2,
-  },
-  infoText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 
