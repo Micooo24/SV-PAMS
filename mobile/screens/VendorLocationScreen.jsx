@@ -1,56 +1,73 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import React, { useState, useRef } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
-import { db } from '../secrets_mobile/firebase_config';
-import { ref, set } from "firebase/database";
+import firestore from '@react-native-firebase/firestore';
+// This screen allows the vendor to share their live location to Firestore (not Realtime DB),
+// and manages the 'active' status for real-time tracking by customers.
 
 export default function VendorLocationScreen({ navigation }) {
+  // Vendor's current location
   const [location, setLocationState] = useState(null);
+  // Is live location sharing active?
   const [trackingActive, setTrackingActive] = useState(false);
+  // Map region state
   const [mapRegion, setMapRegion] = useState({
     latitude: 14.5650, // Default to Pasig
     longitude: 121.0850,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
+  // Reference to watcher for cleanup
+  const watcherRef = useRef(null);
+  // TODO: Replace with real vendorId from auth/session
+  const vendorId = 'vendor_001';
 
+  // Toggle vendor live location sharing
   const toggleTracking = async () => {
     if (trackingActive) {
       setTrackingActive(false);
-      alert("Location tracking deactivated.");
+      // Set vendor as inactive in Firestore
+      await firestore().collection('vendors').doc(vendorId).update({
+        active: false,
+        updated_at: new Date().toISOString(),
+      });
+      if (watcherRef.current) {
+        watcherRef.current.remove();
+        watcherRef.current = null;
+      }
+      Alert.alert("Location sharing deactivated.");
     } else {
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        alert("Permission to access location was denied");
+        Alert.alert("Permission to access location was denied");
         return;
       }
-
       setTrackingActive(true);
-      alert("Location tracking activated.");
-
-      Location.watchPositionAsync(
+      Alert.alert("Location sharing activated.");
+      // Start watching position and update Firestore
+      watcherRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
           timeInterval: 3000,
           distanceInterval: 1,
         },
-        (loc) => {
+        async (loc) => {
           const coords = {
-            latitude: loc.coords.latitude,
-            longitude: loc.coords.longitude,
+            lat: loc.coords.latitude,
+            lng: loc.coords.longitude,
+            active: true,
+            updated_at: new Date().toISOString(),
           };
-
-          setLocationState(coords);
+          setLocationState({ latitude: coords.lat, longitude: coords.lng });
           setMapRegion({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
+            latitude: coords.lat,
+            longitude: coords.lng,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           });
-
-          // Update location
-          set(ref(db, "vendors/vendor_001"), coords);
+          // Update vendor document in Firestore
+          await firestore().collection('vendors').doc(vendorId).set(coords, { merge: true });
         }
       );
     }
@@ -61,9 +78,7 @@ export default function VendorLocationScreen({ navigation }) {
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
-
       <Text style={styles.title}>Vendor Live Location</Text>
-
       <MapView
         style={styles.map}
         region={mapRegion}
@@ -71,15 +86,13 @@ export default function VendorLocationScreen({ navigation }) {
       >
         {location && (
           <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
+            coordinate={location}
             title="Your Location"
+            description={trackingActive ? "Sharing live location" : "Location sharing off"}
+            pinColor={trackingActive ? "blue" : "gray"}
           />
         )}
       </MapView>
-
       <TouchableOpacity
         style={styles.button}
         onPress={toggleTracking}
