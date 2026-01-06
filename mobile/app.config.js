@@ -51,7 +51,7 @@ export default {
       googleServicesFile: "./secrets_mobile/google-services.json",
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDv6VxCOMfx_FCg6vu6Ycpsp7IU4S_0FX0" // Fallback API Key
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyDv6VxCOMfx_FCg6vu6Ycpsp7IU4S_0FX0" 
         }
       }
     },
