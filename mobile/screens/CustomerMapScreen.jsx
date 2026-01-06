@@ -1,31 +1,52 @@
-import React, { useEffect, useState, useRef } from "react";
+
+// This screen shows only ACTIVE vendors from Firestore in real-time, and displays route, distance, and ETA using Google APIs.
+
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
+import CustomerMap from '../components/CustomerMap';
+import MapDistanceInfo from '../components/MapDistanceInfo';
+import VendorBottomSheet from '../components/VendorBottomSheet';
 import * as Location from "expo-location";
 import firestore from '@react-native-firebase/firestore';
 import axios from 'axios';
-// This screen shows only ACTIVE vendors from Firestore in real-time, and displays route, distance, and ETA using Google APIs.
+import authService from '../services/authService';
 
-export default function CustomerMapScreen() {
-  // List of active vendors from Firestore
+const CustomerMapScreen = () => {
   const [vendors, setVendors] = useState([]);
-  // Customer's current location
   const [customerLoc, setCustomerLoc] = useState(null);
-  // For toggling customer location sharing
   const [trackingActive, setTrackingActive] = useState(false);
   const [locationWatcher, setLocationWatcher] = useState(null);
-  // For route, distance, and ETA
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [routeCoords, setRouteCoords] = useState([]);
   const [distance, setDistance] = useState(null);
   const [eta, setEta] = useState(null);
-  const mapRef = useRef(null);
+  const [heading, setHeading] = useState(0);
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 14.5650,
+    longitude: 121.0850,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
+  const [user, setUser] = useState(null);
+  const [customerId, setCustomerId] = useState(null);
+
+  // Fetch logged-in user info from AsyncStorage
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userObj = await authService.getCurrentUser();
+      if (userObj && userObj._id) {
+        setUser(userObj);
+        setCustomerId(userObj._id);
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
-    // Listen to Firestore for all active vendors in real-time
-    // Only vendors with active === true are shown
+    // Listen for active vendors (unified user model: role === 'vendor')
     const unsubscribe = firestore()
-      .collection('vendors')
+      .collection('users')
+      .where('role', '==', 'vendor')
       .where('active', '==', true)
       .onSnapshot(snapshot => {
         const vendorList = [];
@@ -37,47 +58,40 @@ export default function CustomerMapScreen() {
     return () => unsubscribe();
   }, []);
 
-  // Fit map to selected vendor and customer
-  useEffect(() => {
-    if (selectedVendor && customerLoc && mapRef.current) {
-      mapRef.current.fitToCoordinates(
-        [
-          { latitude: selectedVendor.lat, longitude: selectedVendor.lng },
-          { latitude: customerLoc.latitude, longitude: customerLoc.longitude },
-        ],
-        {
-          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-          animated: true,
-        }
-      );
-    }
-  }, [selectedVendor, customerLoc]);
+  // Removed automatic map centering on vendor selection
 
-  // Fetch route, distance, and ETA when vendor or customer changes
   useEffect(() => {
+    // Only calculate route/ETA/distance when both customerLoc and selectedVendor are available
+    if (!selectedVendor || !customerLoc) {
+      setRouteCoords([]);
+      setDistance(null);
+      setEta(null);
+      return;
+    }
     const fetchRoute = async () => {
-      if (!selectedVendor || !customerLoc) {
-        setRouteCoords([]);
-        setDistance(null);
-        setEta(null);
-        return;
-      }
       try {
-        // Use Google Directions API for route polyline
-        const apiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${customerLoc.latitude},${customerLoc.longitude}&destination=${selectedVendor.lat},${selectedVendor.lng}&key=${apiKey}`;
+        // Securely get the API key from Expo config (set via .env)
+        const apiKey = ''; //lagay mo rito yung exact apikey sa .env file
+        const vendorLat = selectedVendor.lat ?? selectedVendor.latitude;
+        const vendorLng = selectedVendor.lng ?? selectedVendor.longitude;
+        console.log('Selected vendor coords:', vendorLat, vendorLng);
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${customerLoc.latitude},${customerLoc.longitude}&destination=${vendorLat},${vendorLng}&key=${apiKey}`;
         const res = await axios.get(url);
-        if (res.data.routes.length > 0) {
+        console.log('Directions API response:', res.data);
+        if (res.data.routes.length > 0 && res.data.routes[0].overview_polyline && res.data.routes[0].overview_polyline.points) {
           const points = decodePolyline(res.data.routes[0].overview_polyline.points);
+          console.log('Decoded polyline points:', points);
           setRouteCoords(points);
           setDistance(res.data.routes[0].legs[0].distance.text);
           setEta(res.data.routes[0].legs[0].duration.text);
         } else {
+          console.log('No routes or polyline found in API response');
           setRouteCoords([]);
           setDistance(null);
           setEta(null);
         }
       } catch (err) {
+        console.error('Directions API error:', err);
         setRouteCoords([]);
         setDistance(null);
         setEta(null);
@@ -86,7 +100,6 @@ export default function CustomerMapScreen() {
     fetchRoute();
   }, [selectedVendor, customerLoc]);
 
-  // Polyline decoder for Google Directions API
   function decodePolyline(encoded) {
     let points = [];
     let index = 0, len = encoded.length;
@@ -113,14 +126,30 @@ export default function CustomerMapScreen() {
     }
     return points;
   }
-  // Toggle customer location sharing (permission handling included)
+
   const toggleTracking = async () => {
+    if (!customerId || !user) {
+      Alert.alert('User not loaded', 'Please log in again.');
+      return;
+    }
     if (trackingActive) {
       setTrackingActive(false);
       if (locationWatcher) {
         locationWatcher.remove();
         setLocationWatcher(null);
       }
+      // Set status to deactivated in Firestore and update local marker
+      firestore()
+        .collection('users')
+        .doc(customerId)
+        .set({ active: false, updated_at: new Date().toISOString(), status: 'deactivated' }, { merge: true })
+        .then(() => {
+          console.log('Customer active:false written to Firestore');
+          setCustomerLoc(prev => prev ? { ...prev, active: false, status: 'deactivated' } : null);
+        })
+        .catch((error) => {
+          console.error('Error writing customer active:false to Firestore:', error);
+        });
       Alert.alert("Location tracking deactivated.");
     } else {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -130,121 +159,226 @@ export default function CustomerMapScreen() {
       }
       setTrackingActive(true);
       Alert.alert("Location tracking activated.");
+      let isActive = true;
+      // Set status to active in Firestore
+      firestore()
+        .collection('users')
+        .doc(customerId)
+        .set({ active: true, updated_at: new Date().toISOString(), status: 'active', ...user }, { merge: true })
+        .then(() => {
+          console.log('Customer active:true written to Firestore');
+        })
+        .catch((error) => {
+          console.error('Error writing customer active:true to Firestore:', error);
+        });
       const watcher = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
           timeInterval: 3000,
           distanceInterval: 1,
         },
-        (loc) => {
-          if (!trackingActive) return;
+        async (loc) => {
+          if (!isActive) return;
           const coords = {
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
+            updated_at: new Date().toISOString(),
+            active: true,
+            status: 'active',
+            ...user,
           };
           setCustomerLoc(coords);
-          // Optionally: update customer location in Firestore if needed (not required by requirements)
+          // Update heading if available
+          if (loc.coords.heading !== null && loc.coords.heading !== undefined) {
+            setHeading(loc.coords.heading);
+          }
+          console.log('Attempting to write customer location to Firestore:', coords);
+          firestore()
+            .collection('users')
+            .doc(customerId)
+            .set(coords, { merge: true })
+            .then(() => {
+              console.log('Customer location written to Firestore');
+            })
+            .catch((error) => {
+              console.error('Error writing customer location to Firestore:', error);
+              Alert.alert('Firestore Error', error.message);
+            });
         }
       );
-      setLocationWatcher(watcher);
+      setLocationWatcher({
+        remove: () => {
+          isActive = false;
+          firestore()
+            .collection('users')
+            .doc(customerId)
+            .set({ active: false, updated_at: new Date().toISOString(), status: 'deactivated' }, { merge: true })
+            .then(() => {
+              console.log('Customer active:false written to Firestore');
+            })
+            .catch((error) => {
+              console.error('Error writing customer active:false to Firestore:', error);
+            });
+          watcher.remove();
+        }
+      });
     }
+  };
+
+  // Merge user info into customerLoc for marker/photo display
+  const mergedCustomerLoc = customerLoc && user ? { ...user, ...customerLoc } : null;
+
+  // Handler for 'Go to this' on customer marker (can be extended for custom logic)
+  const handleCustomerSelect = (customer) => {
+    Alert.alert('This is your location', 'You are here!');
   };
 
   return (
     <View style={styles.container}>
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        ref={mapRef}
-        style={styles.map}
-        showsUserLocation={!!customerLoc}
-        onPress={() => {}}
-      >
-        {/* Show all active vendors as blue markers */}
-        {vendors.map(vendor => (
-          <Marker
-            key={vendor.id}
-            coordinate={{ latitude: vendor.lat, longitude: vendor.lng }}
-            title={`Vendor: ${vendor.id}`}
-            description={vendor.active ? "Active" : "Inactive"}
-            pinColor={selectedVendor && selectedVendor.id === vendor.id ? "orange" : "blue"}
-            onPress={() => setSelectedVendor(vendor)}
-          />
-        ))}
-        {/* Show customer location as green marker */}
-        {customerLoc && (
-          <Marker
-            coordinate={customerLoc}
-            title="You"
-            description="Your current location"
-            pinColor="green"
-          />
-        )}
-        {/* Draw route polyline if available */}
-        {routeCoords.length > 0 && (
-          <Polyline
-            coordinates={routeCoords}
-            strokeColor="#2563eb"
-            strokeWidth={4}
-          />
-        )}
-      </MapView>
-      {/* Show distance and ETA if available */}
-      {distance && eta && (
-        <View style={styles.infoBox}>
-          <Text style={styles.infoText}>Distance: {distance} | ETA: {eta}</Text>
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={styles.title}>Customer Map</Text>
+            <Text style={styles.subtitle}>Find nearby vendors</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.locationToggle, trackingActive && styles.locationToggleActive]}
+            onPress={toggleTracking}
+          >
+            <Text style={styles.locationToggleIcon}>
+              {trackingActive ? "📍" : "📍"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.mapWrapper}>
+        <CustomerMap
+          customerLoc={mergedCustomerLoc}
+          vendors={vendors}
+          selectedVendor={selectedVendor}
+          routeCoords={routeCoords}
+          mapRegion={mapRegion}
+          heading={heading}
+          onRegionChange={setMapRegion}
+          onVendorSelect={(vendor) => {
+            setSelectedVendor(vendor);
+          }}
+          onCustomerSelect={handleCustomerSelect}
+        />
+        <MapDistanceInfo 
+          distance={distance} 
+          eta={eta}
+          onClearRoute={selectedVendor && routeCoords.length > 0 ? () => {
+            Alert.alert(
+              'Clear Route',
+              'Do you want to clear the current route?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Clear', style: 'destructive', onPress: () => setSelectedVendor(null) },
+              ]
+            );
+          } : null}
+        />
+        <VendorBottomSheet
+          vendors={vendors}
+          selectedVendor={selectedVendor}
+          onVendorSelect={(vendor) => {
+            setSelectedVendor(vendor);
+          }}
+          customerLoc={mergedCustomerLoc}
+          distance={distance}
+          eta={eta}
+        />
+      </View>
+      {trackingActive && (
+        <View style={styles.statusBar}>
+          <View style={styles.statusIndicator} />
+          <Text style={styles.statusText}>Location sharing active</Text>
         </View>
       )}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={toggleTracking}
-      >
-        <Text style={styles.buttonText}>
-          {trackingActive ? "Deactivate Location" : "Activate Location"}
-        </Text>
-      </TouchableOpacity>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    width: '100%',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e3e8ef',
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  button: {
-    position: 'absolute',
-    bottom: 40,
-    backgroundColor: "#2563eb",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    zIndex: 1,
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  infoBox: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    padding: 10,
-    borderRadius: 8,
-    marginHorizontal: 20,
-    zIndex: 2,
   },
-  infoText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  locationToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e3e8ef',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+  },
+  locationToggleActive: {
+    backgroundColor: '#10b981',
+    borderColor: '#059669',
+  },
+  locationToggleIcon: {
+    fontSize: 24,
+  },
+  mapWrapper: {
+    flex: 1,
+    width: '100%',
+    position: 'relative',
+  },
+  statusBar: {
+    width: '100%',
+    backgroundColor: '#d1fae5',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#10b981',
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10b981',
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#047857',
+    fontWeight: '600',
   },
 });
+
+export default CustomerMapScreen;

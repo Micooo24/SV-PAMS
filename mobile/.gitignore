@@ -53,3 +53,5 @@ secrets_mobile/
 package.json
 
 .idea/
+
+package-lock.json

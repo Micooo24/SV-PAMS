@@ -1,41 +1,74 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import VendorMap from '../components/VendorMap';
+import MapDistanceInfo from '../components/MapDistanceInfo';
 import * as Location from "expo-location";
 import firestore from '@react-native-firebase/firestore';
-// This screen allows the vendor to share their live location to Firestore (not Realtime DB),
-// and manages the 'active' status for real-time tracking by customers.
+import authService from '../services/authService';
 
 export default function VendorLocationScreen({ navigation }) {
-  // Vendor's current location
   const [location, setLocationState] = useState(null);
-  // Is live location sharing active?
   const [trackingActive, setTrackingActive] = useState(false);
-  // Map region state
   const [mapRegion, setMapRegion] = useState({
-    latitude: 14.5650, // Default to Pasig
+    latitude: 14.5650,
     longitude: 121.0850,
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
-  // Reference to watcher for cleanup
+  const [distance, setDistance] = useState(null);
+  const [eta, setEta] = useState(null);
   const watcherRef = useRef(null);
-  // TODO: Replace with real vendorId from auth/session
-  const vendorId = 'vendor_001';
+  const [vendor, setVendor] = useState(null);
+  const [vendorId, setVendorId] = useState(null);
+
+  // Fetch logged-in vendor info from authService
+  useEffect(() => {
+    const fetchVendor = async () => {
+      const userObj = await authService.getCurrentUser();
+      if (userObj && userObj._id && userObj.role === 'vendor') {
+        setVendor(userObj);
+        setVendorId(userObj._id);
+      }
+    };
+    fetchVendor();
+  }, []);
+
+  // Helper to calculate distance and ETA (Haversine formula for demo)
+  function calculateDistanceAndEta(loc1, loc2) {
+    if (!loc1 || !loc2) return { distance: null, eta: null };
+    const toRad = (value) => (value * Math.PI) / 180;
+    const R = 6371; // km
+    const dLat = toRad(loc2.latitude - loc1.latitude);
+    const dLon = toRad(loc2.longitude - loc1.longitude);
+    const lat1 = toRad(loc1.latitude);
+    const lat2 = toRad(loc2.latitude);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    // Assume walking speed 5km/h for ETA
+    const eta = distance ? `${Math.round((distance / 5) * 60)} min` : null;
+    return { distance: `${distance.toFixed(2)} km`, eta };
+  }
 
   // Toggle vendor live location sharing
   const toggleTracking = async () => {
+    if (!vendorId || !vendor) {
+      Alert.alert('Vendor not loaded', 'Please log in again.');
+      return;
+    }
     if (trackingActive) {
       setTrackingActive(false);
-      // Set vendor as inactive in Firestore
-      await firestore().collection('vendors').doc(vendorId).update({
+      await firestore().collection('users').doc(vendorId).set({
         active: false,
         updated_at: new Date().toISOString(),
-      });
+        status: 'deactivated',
+      }, { merge: true });
       if (watcherRef.current) {
         watcherRef.current.remove();
         watcherRef.current = null;
       }
+      setLocationState(prev => prev ? { ...prev, active: false, status: 'deactivated' } : null);
       Alert.alert("Location sharing deactivated.");
     } else {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -45,7 +78,7 @@ export default function VendorLocationScreen({ navigation }) {
       }
       setTrackingActive(true);
       Alert.alert("Location sharing activated.");
-      // Start watching position and update Firestore
+      let isActive = true;
       watcherRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -53,54 +86,57 @@ export default function VendorLocationScreen({ navigation }) {
           distanceInterval: 1,
         },
         async (loc) => {
+          if (!isActive) return;
           const coords = {
-            lat: loc.coords.latitude,
-            lng: loc.coords.longitude,
-            active: true,
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
             updated_at: new Date().toISOString(),
+            active: true,
+            status: 'active',
+            ...vendor,
           };
-          setLocationState({ latitude: coords.lat, longitude: coords.lng });
+          setLocationState(coords);
           setMapRegion({
-            latitude: coords.lat,
-            longitude: coords.lng,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           });
-          // Update vendor document in Firestore
-          await firestore().collection('vendors').doc(vendorId).set(coords, { merge: true });
+          await firestore().collection('users').doc(vendorId).set(coords, { merge: true });
         }
       );
+      watcherRef.current.remove = () => {
+        isActive = false;
+      };
     }
   };
 
+  // Merge vendor info into location for marker/photo display
+  const mergedVendorLoc = location && vendor ? { ...vendor, ...location } : null;
+
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Vendor Live Location</Text>
-      <MapView
-        style={styles.map}
-        region={mapRegion}
-        onRegionChangeComplete={(region) => setMapRegion(region)}
-      >
-        {location && (
-          <Marker
-            coordinate={location}
-            title="Your Location"
-            description={trackingActive ? "Sharing live location" : "Location sharing off"}
-            pinColor={trackingActive ? "blue" : "gray"}
-          />
-        )}
-      </MapView>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={toggleTracking}
-      >
-        <Text style={styles.buttonText}>
-          {trackingActive ? "Deactivate Location" : "Activate Location"}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Vendor Live Location</Text>
+          <Text style={styles.subtitle}>Share your location with customers</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.locationToggle, trackingActive && styles.locationToggleActive]}
+          onPress={toggleTracking}
+        >
+          <Text style={styles.locationToggleIcon}>📍</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.mapWrapper}>
+        <VendorMap location={mergedVendorLoc} mapRegion={mapRegion} onRegionChange={setMapRegion} />
+      </View>
+      {trackingActive && (
+        <View style={styles.statusBar}>
+          <View style={styles.statusIndicator} />
+          <Text style={styles.statusText}>Location sharing active</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -108,47 +144,79 @@ export default function VendorLocationScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
+    backgroundColor: '#f8f9fa',
   },
-  backButton: {
-    position: "absolute",
-    top: 40,
-    left: 20,
-    backgroundColor: "#2563eb",
-    paddingVertical: 10,
+  header: {
+    width: '100%',
+    paddingVertical: 16,
     paddingHorizontal: 20,
-    borderRadius: 8,
-    zIndex: 1,
-  },
-  backButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e3e8ef',
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    marginTop: 80, // Adjusted to avoid overlap with back button
+    fontWeight: '700',
+    color: '#1e40af',
+    marginBottom: 4,
   },
-  map: {
-    width: "90%",
-    height: "50%",
-    borderRadius: 10,
-    marginBottom: 20,
+  subtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
-  button: {
-    backgroundColor: "#2563eb",
-    paddingVertical: 15,
-    paddingHorizontal: 30,
-    borderRadius: 8,
+  locationToggle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#e3e8ef',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
   },
-  buttonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  locationToggleActive: {
+    backgroundColor: '#10b981',
+    borderColor: '#059669',
+  },
+  locationToggleIcon: {
+    fontSize: 24,
+  },
+  mapWrapper: {
+    flex: 1,
+    width: '100%',
+    position: 'relative',
+  },
+  statusBar: {
+    width: '100%',
+    backgroundColor: '#d1fae5',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#10b981',
+  },
+  statusIndicator: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#10b981',
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#047857',
+    fontWeight: '600',
   },
 });
 
