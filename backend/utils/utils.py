@@ -89,7 +89,7 @@ def get_otp_expiry() -> datetime:
     """Get OTP expiry time (10 minutes)"""
     return datetime.utcnow() + timedelta(minutes=10)
 
-def verify_otp(stored_otp: str, stored_expiry: datetime, entered_otp: str) -> bool:
+def verify_otp_code(stored_otp: str, stored_expiry: datetime, entered_otp: str) -> bool:
     """Verify OTP"""
     if datetime.utcnow() > stored_expiry:
         return False

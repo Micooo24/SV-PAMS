@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.auth import register, login, google_login, verify_otp_endpoint, resend_otp
+from controllers.auth import register, login, google_login, verify_otp, resend_otp
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional
@@ -55,10 +55,10 @@ async def verify_otp_endpoint(
     otp_code: str = Form(...)
     
 ):
-    return await verify_otp_endpoint(email, otp_code)
+    return await verify_otp(email, otp_code)
 
 @router.post("/resend-otp")
-async def resend_otp(
+async def resend_otp_endpoint(
   email: str = Form(...)  
 ):
     return await resend_otp(email)

@@ -6,7 +6,7 @@ import useAuth from '../hooks/useAuth';
 
 const OTPVerification = ({ navigation, route }) => {
   const fontsLoaded = useGlobalFonts();
-  const { verifyOtp, resendOtp, loading, error } = useAuth();
+  const { verify_otp, resend_otp, loading, error } = useAuth();
   
   // Get email and password from navigation params
   const { email, password } = route.params;
@@ -15,15 +15,15 @@ const OTPVerification = ({ navigation, route }) => {
     return null;
   }
 
-  const handleVerifyOTP = async (otpCode) => {
-    if (otpCode.length !== 6) {
+  const handleVerifyOTP = async (otp_code) => {
+    if (otp_code.length !== 6) {
       Alert.alert('Invalid Code', 'Please enter a 6-digit verification code');
       return;
     }
 
-    console.log('Verifying OTP:', { email, otpCode });
+    console.log('Verifying OTP:', { email, otp_code });
     
-    const result = await verifyOtp(email, otpCode, password);
+    const result = await verify_otp(email, otp_code, password);
 
     if (result.success) {
       Alert.alert(
@@ -47,7 +47,7 @@ const OTPVerification = ({ navigation, route }) => {
   const handleResendOTP = async () => {
     console.log('Resending OTP to:', email);
     
-    const result = await resendOtp(email);
+    const result = await resend_otp(email);
 
     if (result.success) {
       Alert.alert('Success', 'A new verification code has been sent to your email');

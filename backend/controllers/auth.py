@@ -24,7 +24,7 @@ from utils.utils import (
     generate_otp, 
     get_otp_expiry, 
     send_verification_email, 
-    verify_otp,
+    verify_otp_code,
     store_otp,  
     get_otp,    
     delete_otp  
@@ -193,7 +193,7 @@ async def register(
         raise HTTPException(status_code=500, detail=str(e))
 
 #  Verify OTP Endpoint
-async def verify_otp_endpoint(
+async def verify_otp(
     email: str = Form(...),
     otp_code: str = Form(...)
 ):
@@ -217,7 +217,7 @@ async def verify_otp_endpoint(
         stored_otp = otp_data["otp"]
         stored_expiry = otp_data["expires_at"]
         
-        if not verify_otp(stored_otp, stored_expiry, otp_code):
+        if not verify_otp_code(stored_otp, stored_expiry, otp_code):
             raise HTTPException(status_code=400, detail="Invalid or expired OTP")
         
         #  Delete OTP from memory after successful verification
