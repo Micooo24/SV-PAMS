@@ -5,12 +5,11 @@ import uvicorn
 from secrets_backend.controllers.firestore_monitor import start_monitor as start_firestore_monitor
 
 # General Routes 
-from routes import auth, document_submissions, vendor_carts
+from routes import auth, document_submissions, vendor_carts, user_interactions
 
 # Admin Routes
 from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions
 
-start_firestore_monitor()  # This will listen for Firestore changes and log events to MongoDB
 # Declaration
 app = FastAPI()
 
@@ -28,6 +27,7 @@ origins = [
     "http://192.168.27.70:8000",
     "http://192.168.100.78:8000",
     "http://172.20.10.2:8000",
+    "http://10.103.240.41:8000",
     
     # janna_url
     "",
@@ -57,9 +57,11 @@ api_app = FastAPI()
 # Mount all `/api` routes
 app.mount("/api", api_app)
 
+
 # users api
 api_app.include_router(auth.router, prefix="/users/auth", tags=["Users"])
 api_app.include_router(document_submissions.router, prefix="/users/document-submissions", tags=["User Document Submissions"])
+api_app.include_router(user_interactions.router, prefix="/user-interactions", tags=["User Interactions"])
 
 # admin api
 api_app.include_router(admin_base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
@@ -92,6 +94,8 @@ api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendo
 # For Localhost Web Development
 # if __name__ == "__main__":
 #     uvicorn.run("server:app", reload=True)
+
+start_firestore_monitor()  # This will listen for Firestore changes and log events to MongoDB
 
 # For Mobile Device Ip Testing / Deployment
 if __name__ == "__main__":
