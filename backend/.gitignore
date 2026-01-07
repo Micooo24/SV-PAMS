@@ -13,6 +13,7 @@ admin/__pycache__/
 
 # Ignore secret files and credentials
 secrets_backend/
+firebase_backend/sv-pams-477706-firebase-adminsdk-fbsvc-13b4d78761.json
 
 # Ignore test code
 test_code/
