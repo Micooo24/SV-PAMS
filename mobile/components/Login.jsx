@@ -1,18 +1,25 @@
-import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Text, TextInput, Button } from 'react-native-paper';
-import { styles, customInputTheme } from '../styles/login';
+import React, { useState } from "react";
+import {
+  View,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
+import { Text, TextInput, Button } from "react-native-paper";
+import { styles, customInputTheme } from "../styles/login";
 
-const LoginComponent = ({ 
+const LoginComponent = ({
   onLogin,
   onGoogleLogin,
+  onFacebookLogin,
   onNavigateToRegister,
   onNavigateToForgotPassword,
   loading,
-  error 
+  error,
 }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
@@ -22,15 +29,19 @@ const LoginComponent = ({
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text variant="headlineLarge" style={styles.logoText}>SV: PAMS</Text>
-          <Text variant="headlineSmall" style={styles.welcomeText}>Welcome Back</Text>
+          <Text variant="headlineLarge" style={styles.logoText}>
+            SV: PAMS
+          </Text>
+          <Text variant="headlineSmall" style={styles.welcomeText}>
+            Welcome Back
+          </Text>
           <Text variant="bodyMedium" style={styles.subtitleText}>
             Sign in to your account to continue
           </Text>
@@ -75,8 +86,8 @@ const LoginComponent = ({
             theme={customInputTheme}
             textColor="black"
             right={
-              <TextInput.Icon 
-                icon={showPassword ? "eye-off" : "eye"} 
+              <TextInput.Icon
+                icon={showPassword ? "eye-off" : "eye"}
                 iconColor="black"
                 onPress={() => setShowPassword(!showPassword)}
               />
@@ -85,7 +96,7 @@ const LoginComponent = ({
 
           {/* Forgot Password */}
           <View style={styles.forgotContainer}>
-            <Text 
+            <Text
               style={styles.forgotText}
               onPress={onNavigateToForgotPassword}
             >
@@ -102,7 +113,7 @@ const LoginComponent = ({
             loading={loading}
             disabled={loading}
           >
-            {loading ? 'Signing In...' : 'Sign In'}
+            {loading ? "Signing In..." : "Sign In"}
           </Button>
 
           {/* Divider */}
@@ -130,7 +141,7 @@ const LoginComponent = ({
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="facebook"
-            onPress={() => Alert.alert('Coming Soon', 'Facebook login will be available soon')}
+            onPress={onFacebookLogin}
             disabled={loading}
             textColor="black"
           >
@@ -140,10 +151,7 @@ const LoginComponent = ({
           {/* Sign Up Link */}
           <View style={styles.signupContainer}>
             <Text style={styles.signupText}>Don't have an account? </Text>
-            <Text
-              style={styles.signupLink}
-              onPress={onNavigateToRegister}
-            >
+            <Text style={styles.signupLink} onPress={onNavigateToRegister}>
               Sign up here
             </Text>
           </View>

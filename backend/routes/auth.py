@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.auth import register, login, google_login
+from controllers.auth import register, login, google_login, facebook_login
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional
@@ -47,3 +47,15 @@ async def google_login_user(
     name: str = Form(...)
 ):
     return await google_login(email, givenName, familyName, photo, name)
+
+
+@router.post("/facebook-login")
+async def facebook_login_user(
+    email: str = Form(...),
+    firstName: Optional[str] = Form(None),
+    lastName: Optional[str] = Form(None),
+    photo: Optional[str] = Form(None),
+    name: str = Form(...),
+    facebookId: Optional[str] = Form(None)
+):
+    return await facebook_login(email, firstName, lastName, photo, name, facebookId)
