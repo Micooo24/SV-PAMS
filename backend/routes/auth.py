@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.auth import register, login, google_login, verify_otp, resend_otp
+from controllers.auth import register, login, google_login, verify_otp, resend_otp, facebook_login
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional
@@ -62,3 +62,15 @@ async def resend_otp_endpoint(
   email: str = Form(...)  
 ):
     return await resend_otp(email)
+
+
+@router.post("/facebook-login")
+async def facebook_login_user(
+    email: str = Form(...),
+    firstName: Optional[str] = Form(None),
+    lastName: Optional[str] = Form(None),
+    photo: Optional[str] = Form(None),
+    name: str = Form(...),
+    facebookId: Optional[str] = Form(None)
+):
+    return await facebook_login(email, firstName, lastName, photo, name, facebookId)

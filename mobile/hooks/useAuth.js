@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth, GoogleAuthProvider, signInWithCredential } from '../secrets_mobile/firebase_config';
+import { auth, GoogleAuthProvider,  FacebookAuthProvider, signInWithCredential } from '../secrets_mobile/firebase_config';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import authService from '../services/authService';
@@ -200,6 +200,83 @@ export default function useAuth() {
     }
   };
 
+  const facebookLogin = async (accessToken) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (!accessToken) {
+        throw new Error("No access token provided for Facebook login");
+      }
+
+      console.log("Step 1: Firebase Auth with Facebook...");
+      // Firebase Auth with Facebook
+      const facebookCredential = FacebookAuthProvider.credential(accessToken);
+      const firebaseUserCredential = await signInWithCredential(
+        auth,
+        facebookCredential
+      );
+
+      // Get user info from Firebase
+      const firebaseUser = firebaseUserCredential.user;
+      const userInfo = {
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || "",
+        firstName: firebaseUser.displayName?.split(" ")[0] || "",
+        lastName: firebaseUser.displayName?.split(" ").slice(1).join(" ") || "",
+        photo: firebaseUser.photoURL || "",
+        facebookId: firebaseUser.providerData[0]?.uid || "",
+      };
+
+      console.log("Step 2: Backend auth via service...");
+      // Backend auth via service
+      const formData = new FormData();
+      formData.append("email", userInfo.email);
+      formData.append("name", userInfo.name || "");
+      formData.append("firstName", userInfo.firstName || "");
+      formData.append("lastName", userInfo.lastName || "");
+      formData.append("photo", userInfo.photo || "");
+      formData.append("facebookId", userInfo.facebookId || "");
+      formData.append("provider", "facebook");
+
+      const backendResponse = await authService.facebookLogin(
+        formData,
+        firebaseUserCredential,
+        userInfo
+      );
+
+      // Update state
+      setUser(backendResponse.data.user);
+      setIsAuthenticated(true);
+
+      console.log("Facebook login successful via useAuth hook");
+      return { success: true, user: backendResponse.data.user };
+    } catch (err) {
+      console.error("Facebook login error in useAuth:", err);
+
+      let errorMessage = "Facebook login failed";
+
+      if (err.message?.includes("cancelled")) {
+        errorMessage = "Login cancelled by user";
+      } else if (err.code === "auth/account-exists-with-different-credential") {
+        errorMessage =
+          "An account already exists with this email using a different sign-in method.";
+      } else if (err.response?.data) {
+        errorMessage =
+          err.response.data.detail ||
+          err.response.data.message ||
+          "Backend authentication failed";
+      } else {
+        errorMessage = err.message || "An error occurred";
+      }
+
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 const register = async (formData) => {
   try {
     setLoading(true);

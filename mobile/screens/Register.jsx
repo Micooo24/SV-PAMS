@@ -19,7 +19,7 @@ const Register = ({ navigation }) => {
         !formData.address || !formData.barangay || !formData.zip_code || 
         !formData.password) {
       Alert.alert('Validation Error', 'Please fill in all required fields');
-      return;
+      return; 
     }
 
     if (formData.password !== formData.confirmPassword) {
@@ -41,7 +41,7 @@ const Register = ({ navigation }) => {
 
     console.log('Submitting registration:', formData.email);
 
-    // ✅ Call register (sends OTP to email)
+    //  Call register (sends OTP to email)
     const result = await register(formData);
 
     if (result.success) {
@@ -53,7 +53,7 @@ const Register = ({ navigation }) => {
             text: 'OK',
             onPress: () => navigation.navigate('OTPVerification', {
               email: formData.email,
-              password: formData.password  // ✅ Pass password to OTP screen
+              password: formData.password  // Pass password to OTP screen
             })
           }
         ]

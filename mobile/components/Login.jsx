@@ -6,6 +6,7 @@ import { styles, customInputTheme } from '../styles/login';
 const LoginComponent = ({ 
   onLogin,
   onGoogleLogin,
+  onFacebookLogin,
   onNavigateToRegister,
   onNavigateToForgotPassword,
   loading,
@@ -130,7 +131,7 @@ const LoginComponent = ({
             style={styles.socialButton}
             labelStyle={styles.socialButtonText}
             icon="facebook"
-            onPress={() => Alert.alert('Coming Soon', 'Facebook login will be available soon')}
+            onPress={onFacebookLogin}
             disabled={loading}
             textColor="black"
           >
