@@ -71,6 +71,7 @@ async def facebook_login_user(
     lastName: Optional[str] = Form(None),
     photo: Optional[str] = Form(None),
     name: str = Form(...),
-    facebookId: Optional[str] = Form(None)
+    facebookId: Optional[str] = Form(None),
+    fcm_token: Optional[str] = Form(None)
 ):
-    return await facebook_login(email, firstName, lastName, photo, name, facebookId)
+    return await facebook_login(email, firstName, lastName, photo, name, facebookId, fcm_token)

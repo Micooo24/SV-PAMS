@@ -476,16 +476,18 @@ async def google_login(
         logger.error(f"Error in google_login: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
+# Facebook Login
 async def facebook_login(
     email: str = Form(...),
     firstName: Optional[str] = Form(None),
     lastName: Optional[str] = Form(None),
     photo: Optional[str] = Form(None),
     name: str = Form(...),
-    facebookId: Optional[str] = Form(None)
+    facebookId: Optional[str] = Form(None),
+    fcm_token: Optional[str] = Form(None)
 ):
     """
-    Handle Facebook OAuth login - matches normal login structure
+    Handle Facebook OAuth login - using Pydantic models
     """
     try:
         email = email.lower().strip()
@@ -509,39 +511,27 @@ async def facebook_login(
                 update_data["img"] = photo
             if facebookId:
                 update_data["facebook_id"] = facebookId
+            if fcm_token:
+                update_data["fcm_token"] = fcm_token
             
             db["users"].update_one(
                 {"_id": existing_user["_id"]},
                 {"$set": update_data}
             )
             
-            # Same response structure as normal login
-            user_response = {
-                "_id": str(existing_user["_id"]),
-                "firstname": existing_user["firstname"],
-                "lastname": existing_user["lastname"],
-                "middlename": existing_user.get("middlename", ""),
-                "email": existing_user["email"],
-                "role": existing_user["role"],
-                "img": photo or existing_user.get("img"),
-                "is_active": existing_user.get("is_active", True),
-                "mobile_no": existing_user.get("mobile_no"),
-                "address": existing_user.get("address"),
-                "barangay": existing_user.get("barangay")
-            }
+            existing_user["_id"] = str(existing_user["_id"])
             
             logger.info(f"Facebook login successful (existing user): {email}")
             return {
                 "message": "Login successful",
-                "user": user_response,
+                "user": UserResponse(**existing_user),
                 "access_token": access_token,
                 "token_type": "bearer",
                 "expires_in": 86400
             }
         
         else:
-            # NEW USER - Same structure as register(), but with Facebook data
-            # Generate random password (Facebook users won't use it)
+            # NEW USER - Registration flow using User model
             random_password = secrets.token_urlsafe(32)
             hashed_password = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt())
             
@@ -549,36 +539,42 @@ async def facebook_login(
             first_name = (firstName or name.split()[0] if name else "").strip()
             last_name = (lastName or " ".join(name.split()[1:]) if name and len(name.split()) > 1 else "").strip()
             
-            # Create user with EXACT same fields as register()
-            user_dict = {
-                "firstname": first_name,
-                "lastname": last_name,
-                "middlename": "",
-                "address": "",
-                "barangay": "",
-                "email": email,
-                "password": hashed_password.decode('utf-8'),
-                "birthday": "",
-                "age": 0,
-                "mobile_no": 0,
-                "landline_no": "",
-                "zip_code": 0,
-                "img": photo,
-                "gender": "",
-                "role": "user",
-                "is_active": True,
-                "created_at": datetime.now().isoformat(),
-                "facebook_id": facebookId or "",
-            }
+            # Validate using User model
+            user_model = User(
+                firstname=first_name,
+                lastname=last_name,
+                middlename="",
+                address="",
+                barangay="",
+                email=email,
+                password=hashed_password.decode('utf-8'),
+                birthday="",
+                age=0,
+                mobile_no=0,
+                landline_no="",
+                zip_code=0,
+                gender=None,
+                img=photo,
+                role=Role.user,
+                is_active=True,
+                is_verified=True  # Facebook users are auto-verified
+            )
             
+            # Convert to dict
+            user_dict = user_model.model_dump()
+            user_dict["created_at"] = datetime.now().isoformat()
+            if facebookId:
+                user_dict["facebook_id"] = facebookId
+            
+            # Insert into database
             inserted_user = db["users"].insert_one(user_dict)
-            user_id = str(inserted_user.inserted_id)
+            user_dict["_id"] = str(inserted_user.inserted_id)
             
-            # Create access token (same as normal login)
+            # Create access token
             access_token = create_access_token(
                 data={
                     "sub": email,
-                    "user_id": user_id,
+                    "user_id": user_dict["_id"],
                     "role": "user"
                 }
             )
@@ -589,25 +585,10 @@ async def facebook_login(
                 {"$set": {"last_login": datetime.now().isoformat()}}
             )
             
-            # Same response structure as normal login
-            user_response = {
-                "_id": user_id,
-                "firstname": user_dict["firstname"],
-                "lastname": user_dict["lastname"],
-                "middlename": "",
-                "email": email,
-                "role": "user",
-                "img": photo,
-                "is_active": True,
-                "mobile_no": 0,
-                "address": "",
-                "barangay": ""
-            }
-            
             logger.info(f"Facebook login successful (new user created): {email}")
             return {
                 "message": "Login successful",
-                "user": user_response,
+                "user": UserResponse(**user_dict),
                 "access_token": access_token,
                 "token_type": "bearer",
                 "expires_in": 86400
@@ -619,4 +600,3 @@ async def facebook_login(
     except Exception as e:
         logger.error(f"Error in facebook_login: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-  
