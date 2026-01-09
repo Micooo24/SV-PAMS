@@ -26,14 +26,15 @@ export default {
         {
           photosPermission: "The app accesses your photos to let you share them."
         }
-      ]
+      ],
+       "expo-font",
     ],
     ios: {
       supportsTablet: true
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
+        foregroundImage: "./assets/images/logo1.png",
         backgroundColor: "#ffffff"
       },
       edgeToEdgeEnabled: true,
