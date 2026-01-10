@@ -200,83 +200,113 @@ export default function useAuth() {
     }
   };
 
-  const facebookLogin = async (accessToken) => {
-    try {
-      setLoading(true);
-      setError(null);
+ const facebookLogin = async (accessToken) => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      if (!accessToken) {
-        throw new Error("No access token provided for Facebook login");
+    const fcmToken = await getFCMToken();
+    console.log('FCM Token retrieved:', fcmToken);
+
+    console.log('Step 1: Firebase Auth with Facebook...');
+    // Step 1: Firebase Auth with Facebook credential
+    const facebookCredential = FacebookAuthProvider.credential(accessToken);
+    const firebaseUserCredential = await signInWithCredential(auth, facebookCredential);
+
+    // Step 2: Get user info from Firebase
+    const firebaseUser = firebaseUserCredential.user;
+    
+    // Get Facebook ID from provider data
+    const facebookId = firebaseUser.providerData.find(
+      provider => provider.providerId === 'facebook.com'
+    )?.uid;
+
+    console.log('Step 2: Fetching high-quality Facebook photo...');
+    // Step 3: Fetch high-quality photo from Facebook Graph API
+    let highQualityPhoto = firebaseUser.photoURL || "";
+    
+    if (facebookId && accessToken) {
+      try {
+        const graphResponse = await fetch(
+          `https://graph.facebook.com/${facebookId}/picture?type=large&width=500&height=500&redirect=false&access_token=${accessToken}`
+        );
+        const photoData = await graphResponse.json();
+        
+        if (photoData.data && !photoData.data.is_silhouette) {
+          highQualityPhoto = photoData.data.url;
+          console.log('✅ High-quality photo URL:', highQualityPhoto);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch high-quality photo, using default:', err);
       }
-
-      console.log("Step 1: Firebase Auth with Facebook...");
-      // Firebase Auth with Facebook
-      const facebookCredential = FacebookAuthProvider.credential(accessToken);
-      const firebaseUserCredential = await signInWithCredential(
-        auth,
-        facebookCredential
-      );
-
-      // Get user info from Firebase
-      const firebaseUser = firebaseUserCredential.user;
-      const userInfo = {
-        email: firebaseUser.email,
-        name: firebaseUser.displayName || "",
-        firstName: firebaseUser.displayName?.split(" ")[0] || "",
-        lastName: firebaseUser.displayName?.split(" ").slice(1).join(" ") || "",
-        photo: firebaseUser.photoURL || "",
-        facebookId: firebaseUser.providerData[0]?.uid || "",
-      };
-
-      console.log("Step 2: Backend auth via service...");
-      // Backend auth via service
-      const formData = new FormData();
-      formData.append("email", userInfo.email);
-      formData.append("name", userInfo.name || "");
-      formData.append("firstName", userInfo.firstName || "");
-      formData.append("lastName", userInfo.lastName || "");
-      formData.append("photo", userInfo.photo || "");
-      formData.append("facebookId", userInfo.facebookId || "");
-      formData.append("provider", "facebook");
-
-      const backendResponse = await authService.facebookLogin(
-        formData,
-        firebaseUserCredential,
-        userInfo
-      );
-
-      // Update state
-      setUser(backendResponse.data.user);
-      setIsAuthenticated(true);
-
-      console.log("Facebook login successful via useAuth hook");
-      return { success: true, user: backendResponse.data.user };
-    } catch (err) {
-      console.error("Facebook login error in useAuth:", err);
-
-      let errorMessage = "Facebook login failed";
-
-      if (err.message?.includes("cancelled")) {
-        errorMessage = "Login cancelled by user";
-      } else if (err.code === "auth/account-exists-with-different-credential") {
-        errorMessage =
-          "An account already exists with this email using a different sign-in method.";
-      } else if (err.response?.data) {
-        errorMessage =
-          err.response.data.detail ||
-          err.response.data.message ||
-          "Backend authentication failed";
-      } else {
-        errorMessage = err.message || "An error occurred";
-      }
-
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
-      setLoading(false);
     }
-  };
-  
+
+    // Step 4: Prepare user info
+    const userEmail = firebaseUser.email || `${firebaseUser.uid}@facebook.user`;
+    
+    const userInfo = {
+      email: userEmail,
+      name: firebaseUser.displayName || "",
+      firstName: firebaseUser.displayName?.split(" ")[0] || "",
+      lastName: firebaseUser.displayName?.split(" ").slice(1).join(" ") || "",
+      photo: highQualityPhoto,
+      facebookId: facebookId,
+    };
+
+    console.log('Step 3: Backend auth via service...');
+    
+    // Step 5: Send to backend
+    const formData = new FormData();
+    formData.append("email", userInfo.email);
+    formData.append("name", userInfo.name);
+    formData.append("firstName", userInfo.firstName);
+    formData.append("lastName", userInfo.lastName);
+    formData.append("photo", userInfo.photo);
+    formData.append("facebookId", userInfo.facebookId);
+    formData.append("provider", "facebook");
+    formData.append("access_token", accessToken);
+    if (fcmToken) {
+      formData.append('fcm_token', fcmToken);
+    }
+
+    const backendResponse = await authService.facebookLogin(
+      formData,
+      firebaseUserCredential,
+      userInfo
+    );
+
+    // Update state
+    setUser(backendResponse.data.user);
+    setIsAuthenticated(true);
+
+    console.log('Facebook login successful via useAuth hook');
+    return { success: true, user: backendResponse.data.user };
+  } catch (err) {
+    console.error("Facebook login error in useAuth:", err);
+
+    let errorMessage = "Facebook login failed";
+
+    if (err.message?.includes("cancelled")) {
+      errorMessage = "Login cancelled by user";
+    } else if (err.code === "auth/account-exists-with-different-credential") {
+      errorMessage =
+        "An account already exists with this email using a different sign-in method.";
+    } else if (err.response?.data) {
+      errorMessage =
+        err.response.data.detail ||
+        err.response.data.message ||
+        "Backend authentication failed";
+    } else {
+      errorMessage = err.message || "An error occurred";
+    }
+
+    setError(errorMessage);
+    return { success: false, error: errorMessage };
+  } finally {
+    setLoading(false);
+  }
+};
+
 const register = async (formData) => {
   try {
     setLoading(true);
@@ -493,6 +523,7 @@ const register = async (formData) => {
     // Actions
     login,
     googleLogin,
+    facebookLogin,
     register,
     logout,
     verify_otp,

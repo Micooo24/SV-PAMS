@@ -4,10 +4,11 @@ import LoginComponent from '../components/Login';
 import { useGlobalFonts } from '../hooks/font';
 import useAuth from '../hooks/useAuth'; 
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { LoginManager, AccessToken } from 'react-native-fbsdk-next';
 
 const Login = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const { login, googleLogin, loading, error } = useAuth();
+  const { login, googleLogin, facebookLogin, loading, error } = useAuth();
 
   // Configure Google Sign In on load
   useEffect(() => {
@@ -98,6 +99,65 @@ const Login = ({ navigation }) => {
     }
   };
 
+  // HANDLE FACEBOOK LOGIN LOGIC
+const handleFacebookLogin = async () => {
+  console.log('Starting Facebook login...');
+  
+  try {
+    // Request Facebook login permissions
+    const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+    
+    if (result.isCancelled) {
+      console.log('Facebook login cancelled by user');
+      Alert.alert('Login Cancelled', 'Facebook login was cancelled');
+      return;
+    }
+
+    // Get Facebook access token
+    const data = await AccessToken.getCurrentAccessToken();
+    
+    if (!data) {
+      throw new Error('Failed to get Facebook access token');
+    }
+
+    console.log('Facebook access token obtained:', data.accessToken);
+
+    //  Pass the Facebook access token to useAuth
+    const loginResult = await facebookLogin(data.accessToken);
+    console.log('Facebook login result:', loginResult);
+    
+    if (loginResult.success) {
+      const userData = loginResult.user;
+      console.log('Facebook login successful, user role:', userData.role);
+      
+      // Navigate immediately without alert for better UX
+      if (userData.role === 'user' || userData.role === 'customer') {
+        navigation.navigate('MainApp');
+      } else if (userData.role === 'vendor') {
+        navigation.navigate('Home');
+      } else if (userData.role === 'admin') {
+        navigation.navigate('AdminDashboard');
+      } else {
+        navigation.navigate('Home');
+      }
+      
+      // Show success message after navigation
+      setTimeout(() => {
+        Alert.alert('Login Successful', `Welcome, ${userData.firstname}!`);
+      }, 500);
+      
+    } else {
+      console.error('Facebook login failed:', loginResult.error);
+      Alert.alert('Login Failed', loginResult.error || 'Facebook login failed. Please try again.');
+    }
+    
+  } catch (err) {
+    console.error('Facebook login error:', err);
+    Alert.alert('Login Error', err.message || 'An error occurred during Facebook login');
+  }
+};
+
+
   // NAVIGATION HANDLERS
   const handleNavigateToRegister = () => {
     navigation.navigate('Register');
@@ -111,6 +171,7 @@ const Login = ({ navigation }) => {
     <LoginComponent
       onLogin={handleLogin}
       onGoogleLogin={handleGoogleLogin}
+      onFacebookLogin={handleFacebookLogin}
       onNavigateToRegister={handleNavigateToRegister}
       onNavigateToForgotPassword={handleNavigateToForgotPassword}
       loading={loading}

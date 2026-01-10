@@ -76,21 +76,17 @@ const authService = {
   },
 
   register: async (formData) => {
-
-      const response = await axios.post(`${BASE_URL}/api/users/auth/register`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-
-      }
-    );
+    const response = await axios.post(`${BASE_URL}/api/users/auth/register`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
 
     if (response.data.success && response.data.user) {
       console.log('Registration successful:', response.data.user);
     }
     
     return response;
-
   },
 
   verify_otp: async (email, otp_code) => {
@@ -124,7 +120,6 @@ const authService = {
     }
     console.log('OTP Verification', response.data);
     return response;
-    
   },
 
   resend_otp: async (email) => {
@@ -141,6 +136,42 @@ const authService = {
     return response;
   },
   
+  facebookLogin: async (formData, firebaseUserCredential, userInfo) => {
+  const response = await axios.post(
+    `${BASE_URL}/api/users/auth/facebook-login`, 
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+  
+  // Store the token after successful login
+  if (response.data.access_token) {
+    const serverUser = response.data.user;
+    await AsyncStorage.multiSet([
+      ['access_token', response.data.access_token],
+      ['token_type', response.data.token_type || 'Bearer'],
+      ['expires_in', response.data.expires_in?.toString() || ''],
+      ['user_data', JSON.stringify(serverUser)],
+      ['user_id', serverUser._id],
+      ['user_email', serverUser.email],
+      ['user_firstname', serverUser.firstname],
+      ['user_lastname', serverUser.lastname],
+      ['user_role', serverUser.role],
+      ['user_mobile', serverUser.mobile_no?.toString() || ''],
+      ['user_address', serverUser.address || ''],
+      ['user_barangay', serverUser.barangay || ''],
+      ['user_img', serverUser.img || userInfo?.photo || ''],
+      ['user_is_active', JSON.stringify(serverUser.is_active)],
+      ['firebase_uid', firebaseUserCredential.user.uid],
+      ['facebook_id', serverUser.facebook_id || ''],
+    ]);
+  }
+  
+  return response;
+},
 
   // Helper functions
   getCurrentUser: async () => {
@@ -162,7 +193,6 @@ const authService = {
       return false;
     }
   }
-
 };
 
 export default authService;

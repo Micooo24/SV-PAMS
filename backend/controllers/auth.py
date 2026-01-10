@@ -12,6 +12,8 @@ from typing import Optional
 import cloudinary.uploader
 import config.cloudinary_config 
 
+import requests
+
 # Image Requirements
 from config.cloudinary_config import upload_image, MAX_FILE_SIZE
 
@@ -475,8 +477,8 @@ async def google_login(
     except Exception as e:
         logger.error(f"Error in google_login: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-# Facebook Login
+ 
+ # Facebook Login
 async def facebook_login(
     email: str = Form(...),
     firstName: Optional[str] = Form(None),
@@ -484,7 +486,8 @@ async def facebook_login(
     photo: Optional[str] = Form(None),
     name: str = Form(...),
     facebookId: Optional[str] = Form(None),
-    fcm_token: Optional[str] = Form(None)
+    fcm_token: Optional[str] = Form(None),
+    access_token: Optional[str] = Form(None)
 ):
     """
     Handle Facebook OAuth login - using Pydantic models
@@ -492,12 +495,43 @@ async def facebook_login(
     try:
         email = email.lower().strip()
         
+        # Fetch high-quality profile picture using Facebook Graph API
+        profile_picture_url = photo
+        if facebookId and access_token:
+            try:
+                # Use Graph API with redirect=false to get JSON response
+                graph_url = f"https://graph.facebook.com/v18.0/{facebookId}/picture?type=large&width=500&height=500&redirect=false&access_token={access_token}"
+                response = requests.get(graph_url, timeout=10)
+                
+                if response.status_code == 200:
+                    photo_data = response.json()
+                    
+                    # Check if photo is not a silhouette
+                    if photo_data.get("data") and not photo_data["data"].get("is_silhouette", True):
+                        image_url = photo_data["data"]["url"]
+                        
+                        # Download the actual image
+                        image_response = requests.get(image_url, timeout=10)
+                        
+                        if image_response.status_code == 200:
+                            # Upload to Cloudinary
+                            cloudinary_result = cloudinary.uploader.upload(
+                                image_response.content,
+                                folder="users/facebook",
+                                public_id=f"facebook_{facebookId}",
+                                overwrite=True
+                            )
+                            profile_picture_url = cloudinary_result.get("secure_url")
+                            logger.info(f"Uploaded Facebook profile picture to Cloudinary for user: {email}")
+            except Exception as e:
+                logger.warning(f"Failed to fetch/upload Facebook profile picture for {email}: {str(e)}")
+        
         # Check if user already exists
         existing_user = db["users"].find_one({"email": email})
         
         if existing_user:
-            # EXISTING USER - Same flow as normal login
-            access_token = create_access_token(
+            # EXISTING USER - Update and login
+            access_token_jwt = create_access_token(
                 data={
                     "sub": existing_user["email"],
                     "user_id": str(existing_user["_id"]),
@@ -505,10 +539,10 @@ async def facebook_login(
                 }
             )
             
-            # Update last login and photo if provided
+            # Update last login and photo
             update_data = {"last_login": datetime.now().isoformat()}
-            if photo:
-                update_data["img"] = photo
+            if profile_picture_url:
+                update_data["img"] = profile_picture_url
             if facebookId:
                 update_data["facebook_id"] = facebookId
             if fcm_token:
@@ -525,21 +559,21 @@ async def facebook_login(
             return {
                 "message": "Login successful",
                 "user": UserResponse(**existing_user),
-                "access_token": access_token,
+                "access_token": access_token_jwt,
                 "token_type": "bearer",
                 "expires_in": 86400
             }
         
         else:
-            # NEW USER - Registration flow using User model
+            # NEW USER - Create account
             random_password = secrets.token_urlsafe(32)
             hashed_password = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt())
             
-            # Parse names (use 'name' as fallback)
+            # Parse names
             first_name = (firstName or name.split()[0] if name else "").strip()
             last_name = (lastName or " ".join(name.split()[1:]) if name and len(name.split()) > 1 else "").strip()
             
-            # Validate using User model
+            # Create user model
             user_model = User(
                 firstname=first_name,
                 lastname=last_name,
@@ -554,24 +588,26 @@ async def facebook_login(
                 landline_no="",
                 zip_code=0,
                 gender=None,
-                img=photo,
+                img=profile_picture_url,
                 role=Role.user,
                 is_active=True,
-                is_verified=True  # Facebook users are auto-verified
+                is_verified=True
             )
             
-            # Convert to dict
+            # Convert to dict and add metadata
             user_dict = user_model.model_dump()
             user_dict["created_at"] = datetime.now().isoformat()
             if facebookId:
                 user_dict["facebook_id"] = facebookId
+            if fcm_token:
+                user_dict["fcm_token"] = fcm_token
             
             # Insert into database
             inserted_user = db["users"].insert_one(user_dict)
             user_dict["_id"] = str(inserted_user.inserted_id)
             
             # Create access token
-            access_token = create_access_token(
+            access_token_jwt = create_access_token(
                 data={
                     "sub": email,
                     "user_id": user_dict["_id"],
@@ -589,7 +625,7 @@ async def facebook_login(
             return {
                 "message": "Login successful",
                 "user": UserResponse(**user_dict),
-                "access_token": access_token,
+                "access_token": access_token_jwt,
                 "token_type": "bearer",
                 "expires_in": 86400
             }
