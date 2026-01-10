@@ -1,60 +1,55 @@
-// PersonalInfo.jsx  (updated – matches your current Login.jsx perfectly)
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+import useAuth from '../hooks/useAuth';
 
 export default function PersonalInfo({ navigation }) {
+  const { getAuthUserProfile, user: authUser, loading } = useAuth();
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const loadUser = async () => {
     try {
-      // These are EXACTLY the keys your Login.jsx currently saves
-      const keys = [
-        'user_firstname',
-        'user_lastname',
-        'user_middlename',     // may be missing → will be undefined → we handle it
-        'user_email',
-        'user_mobile',         // this is mobile_no from backend
-        'user_address',
-        'user_barangay',
-        'user_img',
-        'user_role',
-      ];
-
-      const values = await AsyncStorage.multiGet(keys);
-      const data = {};
-      values.forEach(([key, value]) => {
-        if (value !== null) data[key.replace('user_', '')] = value;
-      });
-
-      // Build clean user object
-      setUser({
-        firstname: data.firstname || '',
-        lastname: data.lastname || '',
-        middlename: data.middlename || '',
-        email: data.email || '',
-        mobile: data.mobile || '',
-        address: data.address || '',
-        barangay: data.barangay || '',
-        img: data.img,
-        role: (data.role || 'user').charAt(0).toUpperCase() + (data.role || 'user').slice(1),
-        fullName: `${data.firstname || ''} ${data.middlename || ''} ${data.lastname || ''}`.trim() || 'User',
-      });
+      const result = await getAuthUserProfile();
+      
+      if (result.success && result.user) {
+        const userData = result.user;
+        
+        // Build clean user object
+        setUser({
+          firstname: userData.firstname || '',
+          lastname: userData.lastname || '',
+          email: userData.email || '',
+          mobile: userData.mobile_no?.toString() || '',
+          address: userData.address || '',
+          barangay: userData.barangay || '',
+          img: userData.img,
+          role: (userData.role || 'user').charAt(0).toUpperCase() + (userData.role || 'user').slice(1),
+          fullName: `${userData.firstname || ''} ${userData.lastname || ''}`.trim() || 'User',
+        });
+      } else {
+        Alert.alert('Error', result.error || 'Failed to load profile');
+      }
     } catch (err) {
-      console.error('Error loading user data:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error loading user profile:', err);
+      Alert.alert('Error', 'Failed to load user profile. Please try again.');
     }
   };
 
-  useFocusEffect(React.useCallback(() => { loadUser(); }, []));
-  useEffect(() => { loadUser(); }, []);
+  // Load user on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUser();
+    }, [])
+  );
 
-  if (loading) {
+  // Initial load
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  if (loading || !user) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 50 }} />
@@ -65,7 +60,16 @@ export default function PersonalInfo({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={{ paddingBottom: 50 }}>
-        <Text style={styles.header}>Personal Information</Text>
+        <View style={styles.headerContainer}>
+          <Text style={styles.header}>Personal Information</Text>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => navigation.navigate('UpdateProfile')}
+          >
+            <MaterialCommunityIcons name="pencil" size={20} color="#fff" />
+            <Text style={styles.editButtonText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -77,13 +81,14 @@ export default function PersonalInfo({ navigation }) {
             </View>
           )}
           <Text style={styles.fullName}>{user.fullName}</Text>
-          <Text style={styles.roleBadge}>{user.role}</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>{user.role}</Text>
+          </View>
         </View>
 
         {/* Info List */}
         <View style={styles.infoCard}>
           <InfoRow icon="account" label="First Name" value={user.firstname} />
-          {user.middlename ? <InfoRow icon="account" label="Middle Name" value={user.middlename} /> : null}
           <InfoRow icon="account" label="Last Name" value={user.lastname} />
           <InfoRow icon="email" label="Email" value={user.email} />
           <InfoRow icon="phone" label="Mobile Number" value={user.mobile || 'Not provided'} />
@@ -109,7 +114,39 @@ const InfoRow = ({ icon, label, value }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
-  header: { fontSize: 32, fontWeight: '700', marginTop: 20, marginHorizontal: 20, color: '#1e293b' },
+  
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    marginHorizontal: 20,
+    marginBottom: 10,
+  },
+  
+  header: { 
+    fontSize: 32, 
+    fontWeight: '700', 
+    color: '#1e293b',
+    flex: 1,
+  },
+
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    elevation: 2,
+  },
+
+  editButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    marginLeft: 6,
+    fontSize: 14,
+  },
 
   profileHeader: { alignItems: 'center', marginVertical: 30 },
   avatar: { width: 120, height: 120, borderRadius: 60, marginBottom: 16 },

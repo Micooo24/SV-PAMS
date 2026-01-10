@@ -10,6 +10,7 @@ import AuthNavigator from "./AuthNavigator";
 import DocSubmission from "../screens/DocSubmission";
 
 import PersonalInfo from "../screens/PersonalInfo";
+import UpdateProfile from "../screens/UpdateProfile";
 import BusinessInfo from "../screens/BusinessInfo";
 import Faqs from "../screens/Faqs";
 import About from "../screens/About";
@@ -39,6 +40,7 @@ const MainNavigator = () => {
       {/* Full-screen modals on top of tabs */}
       <Stack.Screen name="DocSubmission" component={DocSubmission} />
       <Stack.Screen name="PersonalInfo" component={PersonalInfo} />
+      <Stack.Screen name="UpdateProfile" component={UpdateProfile} />
       <Stack.Screen name="BusinessInfo" component={BusinessInfo} />
       <Stack.Screen name="Faqs" component={Faqs} />
       <Stack.Screen name="About" component={About} />
