@@ -47,20 +47,29 @@ class User(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-# Response Model (NO PASSWORD - Required for security!)
+# Response Model (ALL FIELDS - NO PASSWORD)
 class UserResponse(BaseModel):
     id: str = Field(alias="_id")
     firstname: str
     lastname: str
     middlename: str = ""
+    address: str = ""
+    barangay: str = ""
     email: str
-    role: Role
+    birthday: str = ""
+    age: int = 0
+    mobile_no: int = 0
+    landline_no: str = ""
+    zip_code: int = 0
+    gender: Optional[Gender] = None
     img: Optional[str] = None
+    role: Role
     is_active: bool = True
     is_verified: bool = False
-    mobile_no: Optional[int] = None
-    address: Optional[str] = None
-    barangay: Optional[str] = None
+    created_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+    fcm_token: Optional[str] = None
+    facebook_id: Optional[str] = None  # For Facebook login users
     
     class Config:
         populate_by_name = True
