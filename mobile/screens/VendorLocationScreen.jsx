@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import VendorMap from '../components/VendorMap';
@@ -51,7 +52,7 @@ export default function VendorLocationScreen({ navigation }) {
     return { distance: `${distance.toFixed(2)} km`, eta };
   }
 
-  // Toggle vendor live location sharing
+  // Toggle vendor live location sharing (aligned with CustomerMapScreen logic)
   const toggleTracking = async () => {
     if (!vendorId || !vendor) {
       Alert.alert('Vendor not loaded', 'Please log in again.');
@@ -59,16 +60,21 @@ export default function VendorLocationScreen({ navigation }) {
     }
     if (trackingActive) {
       setTrackingActive(false);
-      await firestore().collection('users').doc(vendorId).set({
-        active: false,
-        updated_at: new Date().toISOString(),
-        status: 'deactivated',
-      }, { merge: true });
       if (watcherRef.current) {
         watcherRef.current.remove();
         watcherRef.current = null;
       }
-      setLocationState(prev => prev ? { ...prev, active: false, status: 'deactivated' } : null);
+      // Set status to deactivated in Firestore and update local marker
+      firestore()
+        .collection('users')
+        .doc(vendorId)
+        .set({ active: false, updated_at: new Date().toISOString(), status: 'deactivated' }, { merge: true })
+        .then(() => {
+          setLocationState(prev => prev ? { ...prev, active: false, status: 'deactivated' } : null);
+        })
+        .catch((error) => {
+          console.error('Error writing vendor active:false to Firestore:', error);
+        });
       Alert.alert("Location sharing deactivated.");
     } else {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -79,6 +85,17 @@ export default function VendorLocationScreen({ navigation }) {
       setTrackingActive(true);
       Alert.alert("Location sharing activated.");
       let isActive = true;
+      // Set status to active in Firestore
+      firestore()
+        .collection('users')
+        .doc(vendorId)
+        .set({ active: true, updated_at: new Date().toISOString(), status: 'active', ...vendor }, { merge: true })
+        .then(() => {
+          // Initial activation written
+        })
+        .catch((error) => {
+          console.error('Error writing vendor active:true to Firestore:', error);
+        });
       watcherRef.current = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
@@ -102,11 +119,30 @@ export default function VendorLocationScreen({ navigation }) {
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           });
-          await firestore().collection('users').doc(vendorId).set(coords, { merge: true });
+          firestore()
+            .collection('users')
+            .doc(vendorId)
+            .set(coords, { merge: true })
+            .then(() => {
+              // Vendor location written
+            })
+            .catch((error) => {
+              console.error('Error writing vendor location to Firestore:', error);
+            });
         }
       );
       watcherRef.current.remove = () => {
         isActive = false;
+        firestore()
+          .collection('users')
+          .doc(vendorId)
+          .set({ active: false, updated_at: new Date().toISOString(), status: 'deactivated' }, { merge: true })
+          .then(() => {
+            // Vendor deactivated
+          })
+          .catch((error) => {
+            console.error('Error writing vendor active:false to Firestore:', error);
+          });
       };
     }
   };

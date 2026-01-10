@@ -15,17 +15,22 @@ export default function VendorMap({ location, mapRegion, onRegionChange }) {
             coordinate={location}
             title={location.firstname ? `${location.firstname} ${location.lastname || ''}` : 'Vendor'}
           >
-            <View style={styles.markerWrapper}>
-              <View style={styles.markerContainer}>
-                {location.img ? (
-                  <Image source={{ uri: location.img }} style={styles.markerImage} />
-                ) : (
-                  <View style={styles.markerPlaceholder}>
-                    <Text style={styles.markerPlaceholderText}>🏪</Text>
-                  </View>
-                )}
+            {location.img && location.img.length > 0 ? (
+              <View style={styles.markerWrapper}>
+                <Image 
+                  source={{ uri: location.img }} 
+                  style={styles.vendorMarkerImage}
+                />
+                {location.active && <View style={styles.markerActiveDot} />}
               </View>
-            </View>
+            ) : (
+              <View style={styles.markerWrapper}>
+                <View style={styles.vendorMarkerCircle}>
+                  <Text style={styles.vendorMarkerText}>🛒</Text>
+                </View>
+                {location.active && <View style={styles.markerActiveDot} />}
+              </View>
+            )}
             <Callout>
               <View style={styles.calloutContainer}>
                 <View style={styles.calloutHeader}>
@@ -73,32 +78,54 @@ const styles = StyleSheet.create({
   markerWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  markerContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
-    backgroundColor: '#2563eb',
+    position: 'relative',
+  },
+  vendorMarkerImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     borderWidth: 3,
-    borderColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: '#2563eb',
+    backgroundColor: '#e3e8ef',
+    resizeMode: 'cover',
     shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 4,
     elevation: 5,
   },
-  markerImage: {
+  vendorMarkerCircle: {
     width: 50,
     height: 50,
     borderRadius: 25,
+    backgroundColor: '#e3e8ef',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#2563eb',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  markerPlaceholder: {
-    fontSize: 28,
-  },
-  markerPlaceholderText: {
+  vendorMarkerText: {
     fontSize: 32,
+    textAlign: 'center',
+    lineHeight: 50,
+  },
+  markerActiveDot: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#10b981',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   calloutContainer: {
     backgroundColor: '#fff',
