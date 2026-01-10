@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from controllers.auth import register, login, google_login, verify_otp, resend_otp, facebook_login
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
+from fastapi.security import HTTPAuthorizationCredentials
+from controllers.auth import register, login, google_login, verify_otp, resend_otp, facebook_login, get_current_user_profile, update_user_profile, security
 from models.users import Role, Gender
 from datetime import date
 from typing import Optional
@@ -75,3 +76,21 @@ async def facebook_login_user(
     fcm_token: Optional[str] = Form(None)
 ):
     return await facebook_login(email, firstName, lastName, photo, name, facebookId, fcm_token)
+
+@router.get("/me")
+async def get_my_profile(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    return await get_current_user_profile(credentials)
+
+@router.put("/me/update")
+async def update_my_profile(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    firstname: Optional[str] = Form(None),
+    lastname: Optional[str] = Form(None),
+    mobile_no: Optional[int] = Form(None),
+    address: Optional[str] = Form(None),
+    barangay: Optional[str] = Form(None),
+    img: UploadFile = File(None)    
+):
+    return await update_user_profile(
+        credentials, firstname, lastname, mobile_no, address, barangay, img
+    )   

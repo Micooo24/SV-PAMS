@@ -32,6 +32,13 @@ from utils.utils import (
     delete_otp  
 )
 
+# for update profile and added security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import JWTError, jwt
+from utils.utils import SECRET_KEY, ALGORITHM
+
+security = HTTPBearer()
+
 # Logging
 import logging 
 
@@ -477,6 +484,8 @@ async def google_login(
     except Exception as e:
         logger.error(f"Error in google_login: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+
  
  # Facebook Login
 async def facebook_login(
@@ -636,3 +645,133 @@ async def facebook_login(
     except Exception as e:
         logger.error(f"Error in facebook_login: {str(e)}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+    
+# Get Current User Profile (Authenticated)
+async def get_current_user_profile(credentials: HTTPAuthorizationCredentials):
+    """
+    Get authenticated user's full profile details
+    """
+    try:
+        token = credentials.credentials
+        
+        # Decode JWT token
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("user_id")
+            
+            if user_id is None:
+                raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid token or expired token")
+        
+        # Find user by ID
+        user = db["users"].find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Convert ObjectId to string
+        user["_id"] = str(user["_id"])
+        
+        logger.info(f"Profile retrieved for user: {user['email']}")
+        return {
+            "message": "Profile retrieved successfully",
+            "user": UserResponse(**user)
+        }
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error getting user profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+ # Update User Profile (Authenticated)
+async def update_user_profile(
+    credentials: HTTPAuthorizationCredentials,
+    firstname: Optional[str] = Form(None),
+    lastname: Optional[str] = Form(None),
+    mobile_no: Optional[int] = Form(None),
+    address: Optional[str] = Form(None),
+    barangay: Optional[str] = Form(None),
+    img: UploadFile = File(None)
+):
+    """
+    Update authenticated user's profile
+    Only allows updating: firstname, lastname, mobile_no, address, barangay, img
+    """
+    try:
+        token = credentials.credentials
+        
+        # Decode JWT token
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id = payload.get("user_id")
+            
+            if user_id is None:
+                raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid token or expired token")
+        
+        # Find user by ID
+        user = db["users"].find_one({"_id": ObjectId(user_id)})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Build update data (only include fields that are provided)
+        update_data = {}
+        
+        if firstname is not None and firstname.strip():
+            update_data["firstname"] = firstname.strip()
+        
+        if lastname is not None and lastname.strip():
+            update_data["lastname"] = lastname.strip()
+        
+        if mobile_no is not None:
+            update_data["mobile_no"] = mobile_no
+          
+        if address is not None:
+            update_data["address"] = address.strip()
+        
+        if barangay is not None:
+            update_data["barangay"] = barangay.strip()
+        
+        # Upload new image if provided
+        if img and img.filename:
+            logger.info(f"Uploading new profile image: {img.filename}")
+            result = cloudinary.uploader.upload(
+                img.file, 
+                folder="users/profiles",
+                public_id=f"user_{user_id}",
+                overwrite=True
+            )
+            img_url = result.get("secure_url")
+            update_data["img"] = img_url
+            logger.info(f"Image uploaded: {img_url}")
+        
+        # Check if there's anything to update
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields provided to update")
+        
+        # Update user in database
+        db["users"].update_one(
+            {"_id": ObjectId(user_id)},
+            {"$set": update_data}
+        )
+        
+        # Get updated user
+        updated_user = db["users"].find_one({"_id": ObjectId(user_id)})
+        updated_user["_id"] = str(updated_user["_id"])
+        
+        logger.info(f"Profile updated successfully for user: {updated_user['email']}")
+        return {
+            "message": "Profile updated successfully",
+            "user": UserResponse(**updated_user)
+        }
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error updating user profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
