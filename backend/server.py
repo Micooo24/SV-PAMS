@@ -8,7 +8,7 @@ from secrets_backend.controllers.firestore_monitor import start_monitor as start
 from routes import auth, document_submissions, vendor_carts, user_interactions
 
 # Admin Routes
-from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions
+from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions, admin_users
 
 # Declaration
 app = FastAPI()
@@ -56,7 +56,7 @@ api_app = FastAPI()
 
 # Mount all `/api` routes
 app.mount("/api", api_app)
-
+    
 
 # users api
 api_app.include_router(auth.router, prefix="/users/auth", tags=["Users"])
@@ -67,6 +67,7 @@ api_app.include_router(user_interactions.router, prefix="/user-interactions", ta
 api_app.include_router(admin_base_documents.router, prefix="/admin/base-documents", tags=["Admin Base Documents"])
 api_app.include_router(admin_vendor_carts.router, prefix ="/admin/vendor-carts", tags=["Admin Vendor Carts"])
 api_app.include_router(admin_document_submissions.router, prefix="/admin/document-submissions", tags=["Admin Document Submissions"])
+api_app.include_router(admin_users.router, prefix="/admin/users", tags=["Admin Users Management"])
 
 # vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])

@@ -8,6 +8,7 @@ class Role(str, Enum):
     admin = "admin"
     vendor = "vendor"
     user = "user"
+    sanitary = "sanitary"
     
 class Gender(str, Enum):
     male = "male"
