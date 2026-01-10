@@ -14,6 +14,7 @@ class Gender(str, Enum):
     male = "male"
     female = "female"
     other = "other"
+    empty = ""
 
 # Main User Model (for validation & database)
 class User(BaseModel):
