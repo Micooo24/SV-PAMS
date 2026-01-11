@@ -67,43 +67,45 @@ export default function VendorListScreen({ navigation, route }) {
     }
   };
 
-  const renderVendorCard = ({ item }) => (
-    <TouchableOpacity
-      style={styles.vendorCard}
-      onPress={() => navigation.navigate("VendorDetail", { vendorId: item.id })}
-    >
-      <View style={styles.cardContent}>
-        {item.business_logo_url ? (
-          <Image source={{ uri: item.business_logo_url }} style={styles.vendorLogo} />
-        ) : (
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>📦</Text>
-          </View>
-        )}
-        
-        <View style={styles.vendorInfo}>
-          <Text style={styles.businessName}>{item.business_name}</Text>
-          <Text style={styles.goodsType}>{item.goods_type}</Text>
-          <Text style={styles.location}>📍 {item.vendor_barangay || "Unknown"}</Text>
-          
-          <View style={styles.badges}>
-            {item.delivery_capability && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>🚚 Delivery</Text>
-              </View>
-            )}
-            {item.years_in_operation && (
-              <View style={[styles.badge, styles.badgeSecondary]}>
-                <Text style={styles.badgeTextSecondary}>{item.years_in_operation}+ years</Text>
-              </View>
-            )}
-          </View>
+ const renderVendorCard = ({ item }) => (
+  <TouchableOpacity
+    style={styles.vendorCard}
+    onPress={() => navigation.navigate("VendorDetail", { vendorId: item.id })}
+  >
+    <View style={styles.cardContent}>
+      {item.business_logo_url ? (
+        <Image source={{ uri: item.business_logo_url }} style={styles.vendorLogo} />
+      ) : (
+        <View style={styles.logoPlaceholder}>
+          <Text style={styles.logoText}>📦</Text>
         </View>
+      )}
+      
+      <View style={styles.vendorInfo}>
+        <Text style={styles.businessName}>{item.business_name}</Text>
+        <Text style={styles.goodsType}>{item.goods_type}</Text>
+        <Text style={styles.location}>📍 {item.vendor_barangay || "Unknown"}</Text>
         
-        <Text style={styles.arrow}>›</Text>
+        <View style={styles.badges}>
+          {item.delivery_capability && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>🚚 Delivery</Text>
+            </View>
+          )}
+          {item.years_in_operation != null && (
+            <View style={[styles.badge, styles.badgeSecondary]}>
+              <Text style={styles.badgeTextSecondary}>
+                {item.years_in_operation}+ years
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
-    </TouchableOpacity>
-  );
+      
+      <Text style={styles.arrow}>›</Text>
+    </View>
+  </TouchableOpacity>
+);
 
   return (
     <SafeAreaView style={styles.container}>
