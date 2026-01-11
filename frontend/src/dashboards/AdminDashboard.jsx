@@ -5,11 +5,20 @@ export default function AdminDashboard({ onLogout }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const styles = {
+    container: {
+      display: "flex",
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      backgroundColor: "#e6eaf0",
+    },
     main: {
       flexGrow: 1,
+      width: "100%",
+      height: "100vh",
       padding: "40px",
       backgroundColor: "#e6eaf0",
-      minHeight: "100vh",
+      overflowY: "auto",
       transition: "margin-left 0.3s ease",
     },
     header: {
@@ -22,6 +31,7 @@ export default function AdminDashboard({ onLogout }) {
       fontSize: "32px",
       fontWeight: 700,
       color: "#003067",
+      margin: 0,
     },
     logoutButton: {
       padding: "10px 20px",
@@ -31,6 +41,7 @@ export default function AdminDashboard({ onLogout }) {
       borderRadius: "6px",
       cursor: "pointer",
       fontWeight: 600,
+      transition: "background-color 0.3s ease",
     },
     contentCard: {
       backgroundColor: "#ffffff",
@@ -40,24 +51,38 @@ export default function AdminDashboard({ onLogout }) {
       minHeight: "300px",
       color: "#002248",
     },
+    welcomeTitle: {
+      fontSize: "24px",
+      fontWeight: 600,
+      color: "#003067",
+      marginBottom: "16px",
+      marginTop: 0,
+    },
+    description: {
+      fontSize: "16px",
+      lineHeight: "1.6",
+      color: "#334155",
+      marginBottom: "12px",
+    },
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
+    <div style={styles.container}>
       <Sidebar role="admin" collapsed={collapsed} setCollapsed={setCollapsed} />
       <main style={styles.main}>
         <div style={styles.header}>
           <h1 style={styles.title}>Admin Dashboard</h1>
-          
         </div>
 
         <div style={styles.contentCard}>
-          <h2>Welcome, Admin!</h2>
-          <p>
+          <h2 style={styles.welcomeTitle}>Welcome, Admin!</h2>
+          <p style={styles.description}>
             This dashboard allows you to manage street vendors, approve permit applications,
             and generate reports. You can also monitor system compliance in real-time.
           </p>
-          <p>Placeholder for future widgets, analytics, and system operations.</p>
+          <p style={styles.description}>
+            Placeholder for future widgets, analytics, and system operations.
+          </p>
         </div>
       </main>
     </div>

@@ -82,13 +82,20 @@ export default function UserSubmissions({ onLogout }) {
   };
 
   const styles = {
-    container: { display: "flex", minHeight: "100vh" },
+    container: { 
+      display: "flex", 
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      backgroundColor: "#e6eaf0"
+    },
     main: {
       flex: 1,
+      width: "100%",
+      height: "100vh",
       padding: "40px",
       backgroundColor: "#e6eaf0",
-      width: "80vw",
-      minHeight: "100vh",
+      overflowY: "auto"
     },
     header: {
       display: "flex",
@@ -250,7 +257,7 @@ export default function UserSubmissions({ onLogout }) {
         </div>
       </main>
 
-      {/*  Modal for Viewing Images */}
+      {/* Modal for Viewing Images */}
       <Modal
         open={openModal}
         onClose={handleCloseModal}
@@ -308,7 +315,7 @@ export default function UserSubmissions({ onLogout }) {
                 <Grid item xs={12} md={6}>
                   <Paper sx={{ p: 2, height: '100%' }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#118df0" }}>
-                       Original Image Submitted
+                      📄 Original Image Submitted
                     </Typography>
                     {selectedSubmission.file_url_original ? (
                       <Box
@@ -341,42 +348,41 @@ export default function UserSubmissions({ onLogout }) {
                 </Grid>
 
                 {/* Processed Image */}
-            {/* ✅ Processed Image with Dark Font Labels */}
-            <Grid item xs={12} md={6}>
-              <Paper sx={{ p: 2, height: '100%' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
-                  🔍 Processed Image (Bounding Boxes)
-                </Typography>
-                {selectedSubmission.file_url_processed ? (
-                  <Box
-                    component="img"
-                    src={selectedSubmission.file_url_processed}
-                    alt="Processed"
-                    sx={{
-                      width: '100%',
-                      height: 'auto',
-                      maxHeight: '500px',
-                      objectFit: 'contain',
-                      borderRadius: '8px',
-                      border: '2px solid #10b981',
-                      backgroundColor: '#ffffff' //  White background for better contrast
-                    }}
-                  />
-                ) : (
-                  <Typography color="text.secondary">No processed image available</Typography>
-                )}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  sx={{ mt: 2 }}
-                  onClick={() => window.open(selectedSubmission.file_url_processed, '_blank')}
-                  disabled={!selectedSubmission.file_url_processed}
-                >
-                  Open in New Tab
-                </Button>
-              </Paper>
-            </Grid>
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
+                      🔍 Processed Image (Bounding Boxes)
+                    </Typography>
+                    {selectedSubmission.file_url_processed ? (
+                      <Box
+                        component="img"
+                        src={selectedSubmission.file_url_processed}
+                        alt="Processed"
+                        sx={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '500px',
+                          objectFit: 'contain',
+                          borderRadius: '8px',
+                          border: '2px solid #10b981',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                    ) : (
+                      <Typography color="text.secondary">No processed image available</Typography>
+                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => window.open(selectedSubmission.file_url_processed, '_blank')}
+                      disabled={!selectedSubmission.file_url_processed}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </Paper>
+                </Grid>
               </Grid>
 
               {/* Detected Elements Info */}
@@ -388,19 +394,19 @@ export default function UserSubmissions({ onLogout }) {
                   <Grid container spacing={2}>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">Text Blocks</Typography>
-                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
                         {selectedSubmission.spatial_analysis.user_text_blocks || 0}
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">Words</Typography>
-                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
                         {selectedSubmission.spatial_analysis.user_words || 0}
                       </Typography>
                     </Grid>
                     <Grid item xs={4}>
                       <Typography variant="caption" color="text.secondary">Objects</Typography>
-                      <Typography variant="body1" sx={{ color: "#000000" ,fontWeight: 600 }}>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
                         {selectedSubmission.spatial_analysis.user_objects || 0}
                       </Typography>
                     </Grid>

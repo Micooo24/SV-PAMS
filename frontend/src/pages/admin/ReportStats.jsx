@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Box, Typography, Paper } from "@mui/material";
 import { Bar, Pie } from "react-chartjs-2";
@@ -81,9 +80,22 @@ const ReportStats = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
+    <Box sx={{ 
+      display: "flex", 
+      width: "100vw", 
+      height: "100vh",
+      overflow: "hidden",
+      backgroundColor: "#e6eaf0"
+    }}>
       <Sidebar role="admin" />
-      <main style={{ flex: 1, padding: 40, background: "#f9f9f9" }}>
+      <Box sx={{ 
+        flex: 1, 
+        width: "100%",
+        height: "100vh",
+        padding: "40px", 
+        backgroundColor: "#e6eaf0",
+        overflowY: "auto"
+      }}>
         <Typography variant="h4" sx={{ mb: 4, fontWeight: 700, color: "#003067" }}>
           Report Statistics
         </Typography>
@@ -91,21 +103,21 @@ const ReportStats = () => {
           <Typography>Loading...</Typography>
         ) : (
           <>
-            <Paper sx={{ p: 4, mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
+            <Paper sx={{ p: 4, mb: 4, borderRadius: "12px", boxShadow: "0px 6px 12px rgba(0,0,0,0.1)" }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#003067" }}>
                 Total Reports: {stats.total}
               </Typography>
-              <Bar data={barData} />
+              <Bar data={barData} options={{ responsive: true, maintainAspectRatio: true }} />
             </Paper>
-            <Paper sx={{ p: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
+            <Paper sx={{ p: 4, borderRadius: "12px", boxShadow: "0px 6px 12px rgba(0,0,0,0.1)", maxWidth: "600px" }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#003067" }}>
                 Status Distribution
               </Typography>
-              <Pie data={pieData} />
+              <Pie data={pieData} options={{ responsive: true, maintainAspectRatio: true }} />
             </Paper>
           </>
         )}
-      </main>
+      </Box>
     </Box>
   );
 };

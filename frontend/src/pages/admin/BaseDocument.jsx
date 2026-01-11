@@ -42,13 +42,20 @@ export default function AdminDashboard({ onLogout }) {
   };
 
   const styles = {
-    container: { display: "flex", minHeight: "100vh" },
+    container: { 
+      display: "flex", 
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      backgroundColor: "#e6eaf0"
+    },
     main: {
       flex: 1,
+      width: "100%",
+      height: "100vh",
       padding: "40px",
       backgroundColor: "#e6eaf0",
-      width: "80vw",
-      minHeight: "100vh",
+      overflowY: "auto"
     }
   };
 
