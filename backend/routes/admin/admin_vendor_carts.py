@@ -1,12 +1,32 @@
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from controllers.admin.admin_vendor_carts import fetch_vendor_carts, update_vendor_cart_status
 
-# PATCH endpoint to update status
-from fastapi import Body
-
+# Initialize router ONCE at the top
 router = APIRouter()
 
+# In-memory geofencing state (default: True)
+geofencing_enabled = True
+
+# Geofencing endpoints
+@router.get("/geofencing-state")
+def get_geofencing_state():
+    return {"enabled": geofencing_enabled}
+
+@router.post("/set-geofencing-state")
+def set_geofencing_state(state: dict):
+    global geofencing_enabled
+    geofencing_enabled = bool(state.get("enabled", True))
+    return {"enabled": geofencing_enabled}
+
+# Get all vendor carts
+@router.get("/get-all")
+def get_vendor_carts():
+    try:
+        return fetch_vendor_carts()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Update status endpoint
 @router.put("/update-status/{cart_id}")
 def update_status(cart_id: str, data: dict = Body(...)):
     status = data.get("status")
@@ -20,26 +40,4 @@ def update_status(cart_id: str, data: dict = Body(...)):
         return result
     except Exception as e:
         print(f"[DEBUG] Exception in update_vendor_cart_status: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-router = APIRouter()
-
-# In-memory geofencing state (default: True)
-geofencing_enabled = True
-
-@router.get("/geofencing-state")
-def get_geofencing_state():
-    return {"enabled": geofencing_enabled}
-
-@router.post("/set-geofencing-state")
-def set_geofencing_state(state: dict):
-    global geofencing_enabled
-    geofencing_enabled = bool(state.get("enabled", True))
-    return {"enabled": geofencing_enabled}
-
-@router.get("/get-all")
-def get_vendor_carts():
-    try:
-        return fetch_vendor_carts()
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
