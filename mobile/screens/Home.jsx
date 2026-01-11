@@ -171,7 +171,7 @@ const Home = ({ navigation }) => {
                 </Text>
                 <TouchableOpacity
                   style={styles.applyButton}
-                  onPress={() => navigation.navigate('VendorApplyForm_NEW')}
+                  onPress={() => navigation.navigate('VendorApplyForm')}
                 >
                   <Text style={styles.applyButtonText}>Apply as Vendor →</Text>
                 </TouchableOpacity>
@@ -204,7 +204,7 @@ const Home = ({ navigation }) => {
               style={styles.viewApplicationButton}
               onPress={() => navigation.navigate('BusinessInfo')}
             >
-              <Text style={styles.viewApplicationText}>View Application Details →</Text>
+              <Text style={styles.viewApplicationText}>View Application Details</Text>
             </TouchableOpacity>
           </Card>
         )}
