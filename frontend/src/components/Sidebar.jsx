@@ -49,6 +49,7 @@ export default function Sidebar({ role }) {
       "Send Notifications": "/admin/notifications",
       "Manage Documents": "/admin/documents",
       "Manage User Submissions": "/admin/usersubmissions",
+      "User Management": "/admin/users",
     },
     sanitary: {
       Dashboard: "/sanitary",
@@ -98,6 +99,7 @@ export default function Sidebar({ role }) {
       // { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
       { title: "Manage Documents", icon: <FileText size={16} /> },
       { title: "Manage User Submissions", icon: <FileText size={16} /> },
+      { title: "User Management", icon: <Users size={16} /> },
     ],
     sanitary: [
       { title: "Dashboard", icon: <LayoutDashboard size={16} /> },

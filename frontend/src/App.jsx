@@ -13,6 +13,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 
 import UserSubmissions from "./pages/admin/UserSubmissions";
 import BaseDocument from "./pages/admin/BaseDocument";
+import UserManagement from "./pages/admin/UserManagement";
 import AdminVendorCartMonitoring from "./pages/admin/VendorCartMonitoring";
 import ReportStats from "./pages/admin/ReportStats";
 
@@ -97,6 +98,7 @@ function App() {
         <Route path="/admin" element={<AdminDashboard onLogout={handleLogout} />} />
         <Route path="/admin/documents" element={<BaseDocument />} />
         <Route path="/admin/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
+        <Route path="/admin/users" element={<UserManagement onLogout={handleLogout} />} />
         <Route path="/admin/vendor-cart-monitoring" element={<AdminVendorCartMonitoring onLogout={handleLogout} />} />
 
         <Route path="/admin/reports" element={<ReportStats />} />
