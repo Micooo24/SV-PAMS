@@ -22,20 +22,9 @@ const Login = ({ navigation }) => {
     return null;
   }
 
-  // HANDLE LOGIN LOGIC
+  // HANDLE LOGIN LOGIC - Validation now handled by Formik/Yup
   const handleLogin = async (email, password) => {
     console.log('Starting login process...', { email });
-
-    if (!email || !password) {
-      Alert.alert('Validation Error', 'Please enter both email and password');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert('Validation Error', 'Please enter a valid email address');
-      return;
-    }
 
     const result = await login(email, password);
     console.log('Login result:', result);
@@ -100,63 +89,62 @@ const Login = ({ navigation }) => {
   };
 
   // HANDLE FACEBOOK LOGIN LOGIC
-const handleFacebookLogin = async () => {
-  console.log('Starting Facebook login...');
-  
-  try {
-    // Request Facebook login permissions
-    const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
+  const handleFacebookLogin = async () => {
+    console.log('Starting Facebook login...');
     
-    if (result.isCancelled) {
-      console.log('Facebook login cancelled by user');
-      Alert.alert('Login Cancelled', 'Facebook login was cancelled');
-      return;
-    }
-
-    // Get Facebook access token
-    const data = await AccessToken.getCurrentAccessToken();
-    
-    if (!data) {
-      throw new Error('Failed to get Facebook access token');
-    }
-
-    console.log('Facebook access token obtained:', data.accessToken);
-
-    //  Pass the Facebook access token to useAuth
-    const loginResult = await facebookLogin(data.accessToken);
-    console.log('Facebook login result:', loginResult);
-    
-    if (loginResult.success) {
-      const userData = loginResult.user;
-      console.log('Facebook login successful, user role:', userData.role);
+    try {
+      // Request Facebook login permissions
+      const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
       
-      // Navigate immediately without alert for better UX
-      if (userData.role === 'user' || userData.role === 'customer') {
-        navigation.navigate('MainApp');
-      } else if (userData.role === 'vendor') {
-        navigation.navigate('Home');
-      } else if (userData.role === 'admin') {
-        navigation.navigate('AdminDashboard');
+      if (result.isCancelled) {
+        console.log('Facebook login cancelled by user');
+        Alert.alert('Login Cancelled', 'Facebook login was cancelled');
+        return;
+      }
+
+      // Get Facebook access token
+      const data = await AccessToken.getCurrentAccessToken();
+      
+      if (!data) {
+        throw new Error('Failed to get Facebook access token');
+      }
+
+      console.log('Facebook access token obtained:', data.accessToken);
+
+      //  Pass the Facebook access token to useAuth
+      const loginResult = await facebookLogin(data.accessToken);
+      console.log('Facebook login result:', loginResult);
+      
+      if (loginResult.success) {
+        const userData = loginResult.user;
+        console.log('Facebook login successful, user role:', userData.role);
+        
+        // Navigate immediately without alert for better UX
+        if (userData.role === 'user' || userData.role === 'customer') {
+          navigation.navigate('MainApp');
+        } else if (userData.role === 'vendor') {
+          navigation.navigate('Home');
+        } else if (userData.role === 'admin') {
+          navigation.navigate('AdminDashboard');
+        } else {
+          navigation.navigate('Home');
+        }
+        
+        // Show success message after navigation
+        setTimeout(() => {
+          Alert.alert('Login Successful', `Welcome, ${userData.firstname}!`);
+        }, 500);
+        
       } else {
-        navigation.navigate('Home');
+        console.error('Facebook login failed:', loginResult.error);
+        Alert.alert('Login Failed', loginResult.error || 'Facebook login failed. Please try again.');
       }
       
-      // Show success message after navigation
-      setTimeout(() => {
-        Alert.alert('Login Successful', `Welcome, ${userData.firstname}!`);
-      }, 500);
-      
-    } else {
-      console.error('Facebook login failed:', loginResult.error);
-      Alert.alert('Login Failed', loginResult.error || 'Facebook login failed. Please try again.');
+    } catch (err) {
+      console.error('Facebook login error:', err);
+      Alert.alert('Login Error', err.message || 'An error occurred during Facebook login');
     }
-    
-  } catch (err) {
-    console.error('Facebook login error:', err);
-    Alert.alert('Login Error', err.message || 'An error occurred during Facebook login');
-  }
-};
-
+  };
 
   // NAVIGATION HANDLERS
   const handleNavigateToRegister = () => {

@@ -187,4 +187,14 @@ export const styles = StyleSheet.create({
     fontSize: normalize(14),
     marginLeft: 4,
   },
+
+
+fieldErrorText: {
+  color: '#ef4444',
+  fontSize: normalize(11),
+  marginTop: 4,
+  marginLeft: 4,
+  fontFamily: 'Poppins-Regular',
+},
+
 });

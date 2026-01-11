@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { View, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
+import { Formik } from 'formik';
+import * as Yup from 'yup';
 import { styles, customInputTheme } from '../styles/login';
+
+// Validation Schema - Only required fields
+const loginValidationSchema = Yup.object().shape({
+  email: Yup.string()
+    .required('Email is required'),
+  password: Yup.string()
+    .required('Password is required'),
+});
 
 const LoginComponent = ({ 
   onLogin,
@@ -12,15 +22,7 @@ const LoginComponent = ({
   loading,
   error 
 }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
-  const handleLogin = () => {
-    if (onLogin) {
-      onLogin(email, password);
-    }
-  };
 
   return (
     <KeyboardAvoidingView 
@@ -44,111 +46,125 @@ const LoginComponent = ({
           </View>
         )}
 
-        {/* Form Container */}
-        <View style={styles.formContainer}>
-          {/* Email Input */}
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            contentStyle={styles.inputContent}
-            disabled={loading}
-            theme={customInputTheme}
-            textColor="black"
-          />
+        {/* Formik Form */}
+        <Formik
+          initialValues={{ email: '', password: '' }}
+          validationSchema={loginValidationSchema}
+          onSubmit={(values) => {
+            onLogin(values.email, values.password);
+          }}
+        >
+          {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+            <View style={styles.formContainer}>
+              {/* Email Input */}
+              <View>
+                <TextInput
+                  label="Email"
+                  value={values.email}
+                  onChangeText={handleChange('email')}
+                  onBlur={handleBlur('email')}
+                  mode="outlined"
+                  style={styles.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  contentStyle={styles.inputContent}
+                  disabled={loading}
+                  theme={customInputTheme}
+                  textColor="black"
+                  error={touched.email && errors.email}
+                />
+                {touched.email && errors.email && (
+                  <Text style={styles.fieldErrorText}>{errors.email}</Text>
+                )}
+              </View>
 
-          {/* Password Input */}
-          <TextInput
-            label="Password"
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            style={styles.input}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
-            contentStyle={styles.inputContent}
-            disabled={loading}
-            theme={customInputTheme}
-            textColor="black"
-            right={
-              <TextInput.Icon 
-                icon={showPassword ? "eye-off" : "eye"} 
-                iconColor="black"
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-          />
+              {/* Password Input */}
+              <View>
+                <TextInput
+                  label="Password"
+                  value={values.password}
+                  onChangeText={handleChange('password')}
+                  onBlur={handleBlur('password')}
+                  mode="outlined"
+                  style={styles.input}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  contentStyle={styles.inputContent}
+                  disabled={loading}
+                  theme={customInputTheme}
+                  textColor="black"
+                  error={touched.password && errors.password}
+                  right={
+                    <TextInput.Icon 
+                      icon={showPassword ? "eye-off" : "eye"} 
+                      iconColor="black"
+                      onPress={() => setShowPassword(!showPassword)}
+                    />
+                  }
+                />
+                {touched.password && errors.password && (
+                  <Text style={styles.fieldErrorText}>{errors.password}</Text>
+                )}
+              </View>
 
-          {/* Forgot Password */}
-          {/* <View style={styles.forgotContainer}>
-            <Text 
-              style={styles.forgotText}
-              onPress={onNavigateToForgotPassword}
-            >
-              Forgot Password?
-            </Text>
-          </View> */}
+              {/* Login Button */}
+              <Button
+                mode="contained"
+                style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                labelStyle={styles.buttonText}
+                onPress={handleSubmit}
+                loading={loading}
+                disabled={loading}
+              >
+                {loading ? 'Signing In...' : 'Sign In'}
+              </Button>
 
-          {/* Login Button */}
-          <Button
-            mode="contained"
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
-            labelStyle={styles.buttonText}
-            onPress={handleLogin}
-            loading={loading}
-            disabled={loading}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </Button>
+              {/* Divider */}
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.divider} />
+              </View>
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.divider} />
-          </View>
+              {/* Social Login Buttons */}
+              <Button
+                mode="outlined"
+                style={styles.socialButton}
+                labelStyle={styles.socialButtonText}
+                icon="google"
+                onPress={onGoogleLogin}
+                disabled={loading}
+                textColor="black"
+              >
+                Google
+              </Button>
 
-          {/* Social Login Buttons */}
-          <Button
-            mode="outlined"
-            style={styles.socialButton}
-            labelStyle={styles.socialButtonText}
-            icon="google"
-            onPress={onGoogleLogin}
-            disabled={loading}
-            textColor="black"
-          >
-            Google
-          </Button>
+              <Button
+                mode="outlined"
+                style={styles.socialButton}
+                labelStyle={styles.socialButtonText}
+                icon="facebook"
+                onPress={onFacebookLogin}
+                disabled={loading}
+                textColor="black"
+              >
+                Facebook
+              </Button>
 
-          <Button
-            mode="outlined"
-            style={styles.socialButton}
-            labelStyle={styles.socialButtonText}
-            icon="facebook"
-            onPress={onFacebookLogin}
-            disabled={loading}
-            textColor="black"
-          >
-            Facebook
-          </Button>
-
-          {/* Sign Up Link */}
-          <View style={styles.signupContainer}>
-            <Text style={styles.signupText}>Don't have an account? </Text>
-            <Text
-              style={styles.signupLink}
-              onPress={onNavigateToRegister}
-            >
-              Sign up here
-            </Text>
-          </View>
-        </View>
+              {/* Sign Up Link */}
+              <View style={styles.signupContainer}>
+                <Text style={styles.signupText}>Don't have an account? </Text>
+                <Text
+                  style={styles.signupLink}
+                  onPress={onNavigateToRegister}
+                >
+                  Sign up here
+                </Text>
+              </View>
+            </View>
+          )}
+        </Formik>
       </ScrollView>
     </KeyboardAvoidingView>
   );
