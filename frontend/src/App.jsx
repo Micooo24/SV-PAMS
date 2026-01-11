@@ -7,11 +7,14 @@ import SuperadminDashboard from "./dashboards/SuperadminDashboard";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import SanitaryDashboard from "./dashboards/SanitaryDashboard";
 
+
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 import UserSubmissions from "./pages/admin/UserSubmissions";
 import BaseDocument from "./pages/admin/BaseDocument";
 import AdminVendorCartMonitoring from "./pages/admin/VendorCartMonitoring";
+import ReportStats from "./pages/admin/ReportStats";
 
 // import Compare from "./test_code/Compare";
 
@@ -96,6 +99,7 @@ function App() {
         <Route path="/admin/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
         <Route path="/admin/vendor-cart-monitoring" element={<AdminVendorCartMonitoring onLogout={handleLogout} />} />
 
+        <Route path="/admin/reports" element={<ReportStats />} />
         {/* Sanitary */}
         <Route path="/sanitary" element={<SanitaryDashboard onLogout={handleLogout} />} />
 

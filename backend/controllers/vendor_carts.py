@@ -103,7 +103,8 @@ async def predict_vendor_cart(image_bytes: bytes, email: str):
             "classification": classification,
             "confidence": confidence,
             "is_active": True,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.utcnow().isoformat(),
+            "status": "Pending"  
         }
 
         try:

@@ -1,4 +1,4 @@
-/** FULL CART DETECTION SCREEN WITH GCASH SCANNER **/
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -19,11 +19,20 @@ import axios from "axios";
 import BASE_URL from "../common/baseurl.js";
 import BoxOverlay from "../components/BoxOverlay";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { saveImageToGallery, getGallery, isValidImage, isWithinPasig } from '../utils/inAppGallery';
+import { getAddressFromCoords } from '../utils/reverseGeocode';
+import * as Location from 'expo-location';
+
 
 const backendURL = `${BASE_URL}/api/vendor/carts/predict`;
 
 export default function CartDetectionScreen() {
   const [imageUri, setImageUri] = useState(null);
+  const [galleryModalVisible, setGalleryModalVisible] = useState(false);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryAddresses, setGalleryAddresses] = useState({});
+  const [galleryStatuses, setGalleryStatuses] = useState({});
+  const [userId, setUserId] = useState(null);
   const [predictions, setPredictions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(true);
@@ -33,25 +42,66 @@ export default function CartDetectionScreen() {
   const [permission, requestPermission] = useCameraPermissions();
 
   useEffect(() => {
-    // Fetch user role from AsyncStorage or backend
-    const fetchUserRole = async () => {
+    // Fetch user role and userId from AsyncStorage or backend
+    const fetchUserInfo = async () => {
       const role = await AsyncStorage.getItem("user_role"); 
       setUserRole(role || "user"); 
+      const uid = await AsyncStorage.getItem("user_id");
+      setUserId(uid);
     };
-    fetchUserRole();
+    fetchUserInfo();
   }, []);
 
+  // Open in-app gallery modal
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setImageUri(uri);
-      setShowScanner(false);
-      sendToBackend(uri);
+    if (!userId) {
+      alert('User not loaded.');
+      return;
     }
+    const imgs = await getGallery(userId);
+    setGalleryImages(imgs);
+    // For each image with location, fetch address if not already fetched
+    const addressMap = {};
+    await Promise.all(imgs.map(async (img) => {
+      if (img.location && img.location.latitude && img.location.longitude) {
+        const key = `${img.location.latitude},${img.location.longitude}`;
+        if (!addressMap[key]) {
+          addressMap[key] = await getAddressFromCoords(img.location.latitude, img.location.longitude);
+        }
+      }
+    }));
+    setGalleryAddresses(addressMap);
+
+    // Fetch all reports for this user from backend and map status to gallery images
+    try {
+      const res = await axios.get(`${BASE_URL}/api/admin/vendor-carts/get-all`);
+      const userReports = Array.isArray(res.data) ? res.data.filter(r => r.user_id === userId) : [];
+      const statusMap = {};
+      imgs.forEach(img => {
+        const match = userReports.find(r => 
+          (img.cloudUrl && r.original_image_url === img.cloudUrl) || 
+          (r.created_at && Math.abs(new Date(r.created_at) - new Date(img.capturedAt)) < 60000)
+        );
+        statusMap[img.id] = match && match.status ? match.status : 'Not Reported';
+      });
+      setGalleryStatuses(statusMap);
+    } catch (err) {
+      setGalleryStatuses({});
+    }
+
+    setGalleryModalVisible(true);
+  };
+
+  // When user selects an image from in-app gallery
+  const handleGalleryImageSelect = (img) => {
+    setGalleryModalVisible(false);
+    if (!isValidImage(img)) {
+      alert('Image is outdated (over 36 hours old). Please capture a new one.');
+      return;
+    }
+    setImageUri(img.uri);
+    setShowScanner(false);
+    setTimeout(() => sendToBackend(img.uri), 350); 
   };
 
   const takePhotoInsideFrame = async () => {
@@ -59,11 +109,39 @@ export default function CartDetectionScreen() {
       await requestPermission();
       return;
     }
-    if (cameraRef.current) {
+    if (cameraRef.current && userId) {
+      // Fetch geofencing state from backend
+      let geofencingEnabled = true;
+      try {
+        const res = await axios.get(`${BASE_URL}/api/admin/vendor-carts/geofencing-state`);
+        geofencingEnabled = !!res.data.enabled;
+      } catch (err) {
+        // fallback: true
+      }
+      // Get current location
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Location permission is required to save image.');
+        return;
+      }
+      let loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const coords = loc?.coords ? { latitude: loc.coords.latitude, longitude: loc.coords.longitude } : null;
+      // Only enforce Pasig geofence if enabled
+      if (geofencingEnabled && !isWithinPasig(coords)) {
+        alert('You must be within Pasig City to save or scan cart images.');
+        return;
+      }
       const photo = await cameraRef.current.takePictureAsync({ quality: 1 });
-      setImageUri(photo.uri);
-      setShowScanner(false);
-      sendToBackend(photo.uri);
+      // Save to in-app gallery with location
+      const savedImg = await saveImageToGallery(userId, photo.uri, coords);
+      // Prompt: Scan now or Save for later
+      if (window.confirm('Scan cart now? (Cancel = Save for later)')) {
+        setImageUri(photo.uri);
+        setShowScanner(false);
+        sendToBackend(photo.uri);
+      } else {
+        alert('Image saved to in-app gallery.');
+      }
     }
   };
 
@@ -93,6 +171,16 @@ export default function CartDetectionScreen() {
         console.warn("Invalid predictions format:", data);
         setPredictions([]); // Default to an empty array
       }
+
+      // Save Cloudinary URL to gallery entry for status sync
+      if (data && data.original_image_url) {
+        const key = `gallery_${userId}`;
+        const gallery = await getGallery(userId);
+        const updatedGallery = gallery.map(img =>
+          img.uri === uri ? { ...img, cloudUrl: data.original_image_url } : img
+        );
+        await AsyncStorage.setItem(key, JSON.stringify(updatedGallery));
+      }
     } catch (error) {
       console.error(error);
       alert("Failed to analyze image. Please try again.");
@@ -120,6 +208,96 @@ export default function CartDetectionScreen() {
           <Text style={styles.headerSubtitle}>AI-Powered Recognition</Text>
         </View>
       </View>
+
+      {/* In-App Gallery Modal */}
+      <Modal visible={galleryModalVisible} animationType="slide" onRequestClose={() => setGalleryModalVisible(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+            <Text style={{ fontSize: 22, fontWeight: '700', color: '#0f172a' }}>My Reports</Text>
+            <TouchableOpacity onPress={() => setGalleryModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 16 }}>
+            {galleryImages.length === 0 && (
+              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+                <Ionicons name="images-outline" size={64} color="#cbd5e1" />
+                <Text style={{ marginTop: 12, fontSize: 16, color: '#94a3b8' }}>No images found</Text>
+              </View>
+            )}
+            {galleryImages.map(img => (
+              <TouchableOpacity 
+                key={img.id} 
+                style={{
+                  backgroundColor: '#fff',
+                  borderRadius: 12,
+                  marginBottom: 16,
+                  overflow: 'hidden',
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 3
+                }} 
+                onPress={() => handleGalleryImageSelect(img)}
+              >
+                {/* Image */}
+                <View style={{ position: 'relative' }}>
+                  <Image source={{ uri: img.uri }} style={{ width: '100%', height: 200 }} />
+                  {/* Status Badge */}
+                  <View style={{
+                    position: 'absolute',
+                    top: 12,
+                    right: 12,
+                    backgroundColor: galleryStatuses[img.id] === 'Resolved' ? '#10b981' : 
+                                     galleryStatuses[img.id] === 'Pending' ? '#eab308' : 
+                                     galleryStatuses[img.id] === 'Investigating' ? '#3b82f6' :
+                                     galleryStatuses[img.id] === 'Located' ? '#8b5cf6' :
+                                     '#94a3b8',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 3,
+                    elevation: 4
+                  }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                      {galleryStatuses[img.id] || 'Not Reported'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Details */}
+                <View style={{ padding: 12 }}>
+                  {/* Date */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <Ionicons name="time-outline" size={16} color="#64748b" />
+                    <Text style={{ marginLeft: 6, fontSize: 13, color: '#475569' }}>
+                      {new Date(img.capturedAt).toLocaleString()}
+                    </Text>
+                  </View>
+                  
+                  {/* Location */}
+                  {img.location && (
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                      <Ionicons name="location-outline" size={16} color="#64748b" style={{ marginTop: 2 }} />
+                      <Text style={{ marginLeft: 6, fontSize: 13, color: '#475569', flex: 1 }}>
+                        {galleryAddresses[`${img.location.latitude},${img.location.longitude}`] || 'Loading address...'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ---------------- GCash Scanner Section ---------------- */}
