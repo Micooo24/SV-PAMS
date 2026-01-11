@@ -243,6 +243,7 @@ const VendorApplyForm = ({ navigation, route }) => {
           
           <TextInput
             style={styles.input}
+            placeholderTextColor="#94a3b8"
             placeholder="Business Name *"
             value={businessName}
             onChangeText={setBusinessName}
@@ -281,6 +282,7 @@ const VendorApplyForm = ({ navigation, route }) => {
           <TextInput
             style={styles.input}
             placeholder="Operating Hours (e.g. 7AM–5PM)"
+            placeholderTextColor="#94a3b8"
             value={operatingHours}
             onChangeText={setOperatingHours}
           />
@@ -342,6 +344,7 @@ const VendorApplyForm = ({ navigation, route }) => {
               <TextInput
                 style={[styles.input, styles.productInput]}
                 placeholder="Product Name"
+                placeholderTextColor="#94a3b8"
                 value={p.name}
                 onChangeText={t => {
                   const arr = [...products];
@@ -352,6 +355,7 @@ const VendorApplyForm = ({ navigation, route }) => {
               <TextInput
                 style={[styles.input, styles.productInput]}
                 placeholder="Category"
+                placeholderTextColor="#94a3b8"
                 value={p.category}
                 onChangeText={t => {
                   const arr = [...products];
@@ -362,6 +366,7 @@ const VendorApplyForm = ({ navigation, route }) => {
               <TextInput
                 style={[styles.input, styles.priceInput]}
                 placeholder="Price"
+                placeholderTextColor="#94a3b8"
                 keyboardType="numeric"
                 value={p.price}
                 onChangeText={t => {
@@ -400,6 +405,7 @@ const VendorApplyForm = ({ navigation, route }) => {
           <Text style={styles.sectionTitle}>📱 Social Media (Optional)</Text>
           <TextInput
             style={styles.input}
+            placeholderTextColor="#94a3b8"
             placeholder="Facebook Page URL"
             value={facebook}
             onChangeText={setFacebook}
@@ -407,6 +413,7 @@ const VendorApplyForm = ({ navigation, route }) => {
           />
           <TextInput
             style={styles.input}
+            placeholderTextColor="#94a3b8"
             placeholder="Instagram Handle"
             value={instagram}
             onChangeText={setInstagram}
@@ -414,6 +421,7 @@ const VendorApplyForm = ({ navigation, route }) => {
           />
           <TextInput
             style={styles.input}
+            placeholderTextColor="#94a3b8"
             placeholder="TikTok Handle"
             value={tiktok}
             onChangeText={setTiktok}
@@ -495,7 +503,18 @@ export default VendorApplyForm;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc", padding: 16 },
-  mainTitle: { fontSize: 24, fontWeight: "bold", marginBottom: 16 },
+  mainTitle: { 
+    fontSize: 24, 
+    fontWeight: "bold", 
+    marginBottom: 8,
+    color: "#000000"
+  },
+  updateHint: {
+    fontSize: 14,
+    color: "#000000",
+    marginBottom: 16,
+    fontStyle: "italic"
+  },
   sectionCard: {
     backgroundColor: "#fff",
     padding: 16,
@@ -507,8 +526,19 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "600", marginBottom: 12 },
-  subLabel: { fontSize: 14, fontWeight: "500", color: "#475569", marginTop: 12, marginBottom: 6 },
+  sectionTitle: { 
+    fontSize: 18, 
+    fontWeight: "600", 
+    marginBottom: 12,
+    color: "#000000"
+  },
+  subLabel: { 
+    fontSize: 14, 
+    fontWeight: "500", 
+    color: "#000000", 
+    marginTop: 12, 
+    marginBottom: 6 
+  },
   input: {
     borderWidth: 1,
     borderColor: "#cbd5e1",
@@ -516,6 +546,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     fontSize: 15,
+    backgroundColor: "#ffffff",
+    color: "#000000",
+    fontColor: "#000000",
   },
   optionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 8 },
   optionButton: {
@@ -530,8 +563,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563eb",
     borderColor: "#2563eb",
   },
-  optionText: { fontSize: 13, color: "#64748b" },
-  optionTextSelected: { color: "#fff", fontWeight: "600" },
+  optionText: { 
+    fontSize: 13, 
+    color: "#000000",
+    fontWeight: "500"
+  },
+  optionTextSelected: { 
+    color: "#ffffff", 
+    fontWeight: "600" 
+  },
   
   productRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
   productInput: { flex: 2 },
@@ -544,8 +584,12 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: "center",
     marginTop: 8,
+    backgroundColor: "#eff6ff",
   },
-  addButtonText: { color: "#2563eb", fontWeight: "600" },
+  addButtonText: { 
+    color: "#2563eb", 
+    fontWeight: "600" 
+  },
   
   imageButton: {
     borderWidth: 1,
@@ -556,9 +600,19 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     minHeight: 100,
     justifyContent: "center",
+    backgroundColor: "#f8fafc",
   },
-  imageButtonText: { color: "#64748b", fontSize: 14 },
-  imagePreview: { width: "100%", height: 100, borderRadius: 8 },
+  imageButtonText: { 
+    color: "#000000", 
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  imagePreview: { 
+    width: "100%", 
+    height: 100, 
+    borderRadius: 8,
+    resizeMode: "cover"
+  },
   
   submitButton: {
     backgroundColor: "#2563eb",
@@ -566,7 +620,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginTop: 16,
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  submitButtonDisabled: { opacity: 0.6 },
-  submitButtonText: { color: "#fff", fontSize: 16, fontWeight: "600" },
+  submitButtonDisabled: { 
+    opacity: 0.6 
+  },
+  submitButtonText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "600" 
+  },
 });
