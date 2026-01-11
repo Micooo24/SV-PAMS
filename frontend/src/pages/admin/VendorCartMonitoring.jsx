@@ -18,7 +18,8 @@ import {
   IconButton,
   Select,
   MenuItem,
-  Chip
+  Chip,
+  TablePagination
 } from "@mui/material";
 
 const statusOptions = [
@@ -44,6 +45,10 @@ const VendorCartMonitoring = () => {
   const [openModal, setOpenModal] = useState(false);
   const [modalImage, setModalImage] = useState("");
   const [geofencingEnabled, setGeofencingEnabled] = useState(true);
+  
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     async function fetchGeofencingState() {
@@ -118,6 +123,22 @@ const VendorCartMonitoring = () => {
     setOpenModal(false);
     setModalImage("");
   };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Get paginated records
+  const paginatedRecords = scanRecords.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   const styles = {
     container: { 
@@ -215,101 +236,122 @@ const VendorCartMonitoring = () => {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Report ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>User Info</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Scan Timestamp</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Original Image</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Postprocessed Image</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Classification</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Confidence (%)</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {scanRecords.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">
-                          No scan records found
-                        </Typography>
-                      </TableCell>
+            <>
+              <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                      <TableCell sx={{ fontWeight: 600 }}>Report ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>User Info</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Scan Timestamp</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Original Image</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Postprocessed Image</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Classification</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Confidence (%)</TableCell>
                     </TableRow>
-                  ) : (
-                    scanRecords.map((record) => (
-                      <TableRow key={record._id} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>{record._id}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          {userMap[record.user_id] ? (
-                            <>
-                              <Typography variant="body2">{userMap[record.user_id].firstname} {userMap[record.user_id].lastname}</Typography>
-                              <Typography variant="caption">{userMap[record.user_id].email}</Typography>
-                            </>
-                          ) : (
-                            <Typography variant="caption">{record.user_id}</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{new Date(record.created_at).toLocaleString()}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          {(() => {
-                            const key = record.location && record.location.latitude && record.location.longitude
-                              ? `${record.location.latitude},${record.location.longitude}`
-                              : null;
-                            if (key && addressMap[key]) {
-                              return <Typography variant="body2">{addressMap[key]}</Typography>;
-                            } else if (key) {
-                              return <Typography variant="body2">Loading address...</Typography>;
-                            } else {
-                              return <Typography variant="caption">N/A</Typography>;
-                            }
-                          })()}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={record.status || 'Pending'}
-                            size="small"
-                            onChange={async (e) => {
-                              const newStatus = e.target.value;
-                              try {
-                                await axios.put(`${BASE_URL}/api/admin/vendor-carts/update-status/${record._id}`, { status: newStatus });
-                                setScanRecords(prev => prev.map(r => r._id === record._id ? { ...r, status: newStatus } : r));
-                              } catch {
-                                alert('Failed to update status. Please check backend connectivity and try again.');
-                              }
-                            }}
-                            sx={{ minWidth: 140 }}
-                          >
-                            {statusOptions.map(opt => (
-                              <MenuItem key={opt} value={opt}>{opt}</MenuItem>
-                            ))}
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outlined" size="small" onClick={() => handleOpenModal(record.original_image_url)}>View Image</Button>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="outlined" size="small" onClick={() => handleOpenModal(record.postprocessed_image_url)}>View Image</Button>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{record.classification || "N/A"}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{record.confidence ? `${parseFloat(record.confidence).toFixed(1)}%` : "N/A"}</Typography>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
+                          <Typography color="text.secondary">
+                            No scan records found
+                          </Typography>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    ) : (
+                      paginatedRecords.map((record) => (
+                        <TableRow key={record._id} hover>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>{record._id}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            {userMap[record.user_id] ? (
+                              <>
+                                <Typography variant="body2">{userMap[record.user_id].firstname} {userMap[record.user_id].lastname}</Typography>
+                                <Typography variant="caption">{userMap[record.user_id].email}</Typography>
+                              </>
+                            ) : (
+                              <Typography variant="caption">{record.user_id}</Typography>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{new Date(record.created_at).toLocaleString()}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const key = record.location && record.location.latitude && record.location.longitude
+                                ? `${record.location.latitude},${record.location.longitude}`
+                                : null;
+                              if (key && addressMap[key]) {
+                                return <Typography variant="body2">{addressMap[key]}</Typography>;
+                              } else if (key) {
+                                return <Typography variant="body2">Loading address...</Typography>;
+                              } else {
+                                return <Typography variant="caption">N/A</Typography>;
+                              }
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={record.status || 'Pending'}
+                              size="small"
+                              onChange={async (e) => {
+                                const newStatus = e.target.value;
+                                try {
+                                  await axios.put(`${BASE_URL}/api/admin/vendor-carts/update-status/${record._id}`, { status: newStatus });
+                                  setScanRecords(prev => prev.map(r => r._id === record._id ? { ...r, status: newStatus } : r));
+                                } catch {
+                                  alert('Failed to update status. Please check backend connectivity and try again.');
+                                }
+                              }}
+                              sx={{ minWidth: 140 }}
+                            >
+                              {statusOptions.map(opt => (
+                                <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                              ))}
+                            </Select>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outlined" size="small" onClick={() => handleOpenModal(record.original_image_url)}>View Image</Button>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outlined" size="small" onClick={() => handleOpenModal(record.postprocessed_image_url)}>View Image</Button>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.classification || "N/A"}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{record.confidence ? `${parseFloat(record.confidence).toFixed(1)}%` : "N/A"}</Typography>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {/* Pagination */}
+              <TablePagination
+                component="div"
+                count={scanRecords.length}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                sx={{
+                  mt: 2,
+                  '.MuiTablePagination-toolbar': {
+                    backgroundColor: '#f5f5f5',
+                    borderRadius: '8px',
+                    padding: '8px 16px'
+                  }
+                }}
+              />
+            </>
           )}
         </div>
 

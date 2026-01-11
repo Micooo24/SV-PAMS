@@ -16,7 +16,8 @@ import {
   Tooltip,
   Modal,
   Grid,
-  Button
+  Button,
+  TablePagination
 } from "@mui/material";
 import { Visibility, Close } from "@mui/icons-material";
 import axios from "axios";
@@ -29,6 +30,10 @@ export default function UserSubmissions({ onLogout }) {
   const [error, setError] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     fetchSubmissions();
@@ -57,6 +62,22 @@ export default function UserSubmissions({ onLogout }) {
     setOpenModal(false);
     setSelectedSubmission(null);
   };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Get paginated submissions
+  const paginatedSubmissions = submissions.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -167,92 +188,113 @@ export default function UserSubmissions({ onLogout }) {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                    <TableCell sx={{ fontWeight: 600 }}>User ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Document</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Similarity</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Submitted</TableCell>
-                    <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {submissions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">No submissions found</Typography>
-                      </TableCell>
+            <>
+              <TableContainer component={Paper} sx={{ boxShadow: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
+                      <TableCell sx={{ fontWeight: 600 }}>User ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Document</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Similarity</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Submitted</TableCell>
+                      <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
                     </TableRow>
-                  ) : (
-                    submissions.map((sub) => (
-                      <TableRow key={sub._id} hover>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {sub.user_id.substring(0, 8)}...
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{sub.base_document_title}</Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={sub.base_document_category || "general"}
-                            size="small"
-                            color="primary"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {sub.filename}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontWeight: 600,
-                              color:
-                                sub.similarity_percentage >= 90
-                                  ? "#10b981"
-                                  : sub.similarity_percentage >= 70
-                                  ? "#f59e0b"
-                                  : "#ef4444"
-                            }}
-                          >
-                            {sub.similarity_percentage}%
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Text: {sub.comparison_details?.text_similarity || 0}%
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={sub.status} size="small" color={getStatusColor(sub.status)} />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="caption">{formatDate(sub.submitted_at)}</Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="View Images">
-                            <IconButton
-                              color="primary"
-                              onClick={() => handleViewImages(sub)}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedSubmissions.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
+                          <Typography color="text.secondary">No submissions found</Typography>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                    ) : (
+                      paginatedSubmissions.map((sub) => (
+                        <TableRow key={sub._id} hover>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {sub.user_id.substring(0, 8)}...
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2">{sub.base_document_title}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={sub.base_document_category || "general"}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {sub.filename}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color:
+                                  sub.similarity_percentage >= 90
+                                    ? "#10b981"
+                                    : sub.similarity_percentage >= 70
+                                    ? "#f59e0b"
+                                    : "#ef4444"
+                              }}
+                            >
+                              {sub.similarity_percentage}%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Text: {sub.comparison_details?.text_similarity || 0}%
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={sub.status} size="small" color={getStatusColor(sub.status)} />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption">{formatDate(sub.submitted_at)}</Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title="View Images">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleViewImages(sub)}
+                              >
+                                <Visibility />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Pagination */}
+              <TablePagination
+                component="div"
+                count={submissions.length}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50, 100]}
+                sx={{
+                  mt: 2,
+                  '.MuiTablePagination-toolbar': {
+                    backgroundColor: '#f5f5f5',
+                    borderRadius: '8px',
+                    padding: '8px 16px'
+                  }
+                }}
+              />
+            </>
           )}
         </div>
       </main>

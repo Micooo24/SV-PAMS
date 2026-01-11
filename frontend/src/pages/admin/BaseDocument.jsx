@@ -22,6 +22,10 @@ export default function AdminDashboard({ onLogout }) {
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
+  
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const handleEdit = (doc) => {
     setEditingDoc(doc);
@@ -39,6 +43,16 @@ export default function AdminDashboard({ onLogout }) {
     if (window.confirm(`Are you sure you want to ${statusText} this document?`)) {
       await updateDocumentStatus(documentId, newStatus);
     }
+  };
+
+  // Pagination handlers
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
   };
 
   const styles = {
@@ -72,6 +86,10 @@ export default function AdminDashboard({ onLogout }) {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onStatusToggle={handleStatusToggle}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
         />
 
         <DocumentUploadModal
