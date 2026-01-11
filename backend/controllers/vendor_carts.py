@@ -30,40 +30,70 @@ def extract_cart_registry_and_email(full_text: str, detected_texts: list):
     cart_registry_no = None
     sanitary_email = None
     
-    # Pattern for Cart Registry No (e.g., "0399", "CART REGISTRY NO: 0399")
-    cart_registry_pattern = r'(?:CART\s*REGISTRY\s*NO\.?\s*:?\s*)?(\d{4})'
+    # More specific pattern for Cart Registry No - looks for 4-digit numbers near "CART REGISTRY"
+    cart_registry_pattern = r'CART\s*REGISTRY\s*(?:NO|NUMBER)\.?\s*:?\s*(\d{4})'
+    
+    # Alternative: look for 4-digit number standalone
+    standalone_number_pattern = r'\b(\d{4})\b'
     
     # Pattern for email
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     
-    # Search in full text
+    # Pattern for PASIG text
+    pasig_pattern = r'PASIG'
+    
+    # First, try to find cart number with context
     cart_match = re.search(cart_registry_pattern, full_text, re.IGNORECASE)
     if cart_match:
         cart_registry_no = cart_match.group(1)
     
+    # If not found, search in individual detected texts with bounding box analysis
+    if not cart_registry_no:
+        # Sort detected texts by position (top to bottom, left to right)
+        sorted_texts = sorted(detected_texts, key=lambda x: (x.get('box', [0,0,0,0])[1], x.get('box', [0,0,0,0])[0]))
+        
+        found_cart_label = False
+        for i, text_obj in enumerate(sorted_texts):
+            text = text_obj.get("text", "")
+            
+            # Look for "CART REGISTRY" label
+            if re.search(r'CART\s*REGISTRY', text, re.IGNORECASE):
+                found_cart_label = True
+                # Check next 3 text blocks for 4-digit number
+                for j in range(i+1, min(i+4, len(sorted_texts))):
+                    next_text = sorted_texts[j].get("text", "")
+                    number_match = re.search(standalone_number_pattern, next_text)
+                    if number_match:
+                        cart_registry_no = number_match.group(1)
+                        break
+                if cart_registry_no:
+                    break
+    
+    # Fallback: find any 4-digit number (last resort)
+    if not cart_registry_no:
+        all_numbers = re.findall(standalone_number_pattern, full_text)
+        # Filter out phone numbers and find most likely cart number
+        for num in all_numbers:
+            if num != '8643' and num != '1111' and num != '1531':  # Exclude known phone numbers
+                cart_registry_no = num
+                break
+    
+    # Email detection
     email_match = re.search(email_pattern, full_text)
     if email_match:
-        sanitary_email = email_match.group(0)
+        sanitary_email = email_match.group(0).lower()
     
-    # Also search in individual detected texts for more accuracy
-    for text_obj in detected_texts:
-        text = text_obj.get("text", "")
-        
-        # Check for cart registry number
-        if not cart_registry_no:
-            cart_match = re.search(cart_registry_pattern, text, re.IGNORECASE)
-            if cart_match:
-                cart_registry_no = cart_match.group(1)
-        
-        # Check for email
-        if not sanitary_email:
-            email_match = re.search(email_pattern, text)
-            if email_match:
-                sanitary_email = email_match.group(0)
+    pasig_match = re.search(pasig_pattern, full_text, re.IGNORECASE)
+    is_pasig_cart = bool(pasig_match)
+    
+    logger.info(f"Full detected text: {full_text}")
+    logger.info(f"All detected numbers: {re.findall(standalone_number_pattern, full_text)}")
     
     return {
         "cart_registry_no": cart_registry_no,
-        "sanitary_email": sanitary_email
+        "sanitary_email": sanitary_email,
+        "is_pasig_cart": is_pasig_cart,
+        "has_required_info": bool(cart_registry_no and sanitary_email)
     }
 
 def extract_text_with_google_vision(image_bytes: bytes):
