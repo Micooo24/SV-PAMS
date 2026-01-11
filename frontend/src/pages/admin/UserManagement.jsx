@@ -1,113 +1,81 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  CircularProgress,
-  Alert,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
+import { 
+  Box, 
+  Typography, 
+  CircularProgress, 
+  Alert, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow, 
+  Paper, 
   Chip,
   IconButton,
   Tooltip,
-  Switch,
-  Select,
-  MenuItem,
-  TablePagination,
-  Avatar,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Modal,
+  Grid,
   Button,
-  TextField,
-  Grid
+  TablePagination
 } from "@mui/material";
-import { Edit, Delete, Visibility } from "@mui/icons-material";
+import { Visibility, Close } from "@mui/icons-material";
 import axios from "axios";
+import toast from "react-hot-toast"; // ✅ ADD THIS IMPORT
 import Sidebar from "../../components/Sidebar";
 import BASE_URL from "../../common/baseurl";
 
-export default function UserManagement({ onLogout }) {
-  const [users, setUsers] = useState([]);
+export default function UserSubmissions({ onLogout }) {
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  
+  // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [total, setTotal] = useState(0);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
-    fetchUsers();
-  }, [page, rowsPerPage, searchTerm, roleFilter]);
+    fetchSubmissions();
+  }, []);
 
-  const fetchUsers = async () => {
+  //  Add toast notifications for fetch
+  const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const params = {
-        skip: page * rowsPerPage,
-        limit: rowsPerPage,
-        ...(searchTerm && { search: searchTerm }),
-        ...(roleFilter && { role: roleFilter })
-      };
-
-      const response = await axios.get(`${BASE_URL}/api/admin/users/get-all`, { params });
-      setUsers(response.data.users);
-      setTotal(response.data.total);
+      const response = await axios.get(`${BASE_URL}/api/admin/document-submissions/get-all`);
+      setSubmissions(response.data.submissions);
       setError(null);
+      
+      //  Show success toast when data is loaded
+      if (response.data.submissions.length > 0) {
+        toast.success(`Loaded ${response.data.submissions.length} submissions 📊`);
+      }
     } catch (err) {
-      setError("Failed to fetch users");
+      setError("Failed to fetch submissions");
+      toast.error("Failed to load submissions ❌"); // Show error toast
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRoleChange = async (userId, newRole) => {
-    try {
-      await axios.put(`${BASE_URL}/api/admin/users/${userId}/role`, { role: newRole });
-      fetchUsers();
-    } catch (err) {
-      alert("Failed to update role");
-    }
+  // ✅ UPDATED: Add toast notification when viewing images
+  const handleViewImages = (submission) => {
+    setSelectedSubmission(submission);
+    setOpenModal(true);
+    toast.success(`Viewing comparison for ${submission.filename} 🔍`, {
+      duration: 2000
+    });
   };
 
-  const handleStatusToggle = async (userId, currentStatus) => {
-    try {
-      await axios.put(`${BASE_URL}/api/admin/users/${userId}/status`, { is_active: !currentStatus });
-      fetchUsers();
-    } catch (err) {
-      alert("Failed to update status");
-    }
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedSubmission(null);
   };
 
-  const handleVerificationToggle = async (userId, currentStatus) => {
-    try {
-      await axios.put(`${BASE_URL}/api/admin/users/${userId}/verification`, { is_verified: !currentStatus });
-      fetchUsers();
-    } catch (err) {
-      alert("Failed to update verification");
-    }
-  };
-
-  const handleDelete = async (userId) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      try {
-        await axios.delete(`${BASE_URL}/api/admin/users/${userId}`);
-        fetchUsers();
-      } catch (err) {
-        alert("Failed to delete user");
-      }
-    }
-  };
-
+  // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -117,28 +85,50 @@ export default function UserManagement({ onLogout }) {
     setPage(0);
   };
 
+  // Get paginated submissions
+  const paginatedSubmissions = submissions.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "approved":
+        return "success";
+      case "rejected":
+        return "error";
+      case "needs_review":
+        return "warning";
+      default:
+        return "default";
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
-      day: "numeric"
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
     });
   };
 
-  const getRoleColor = (role) => {
-    switch (role) {
-      case "admin":
-        return "error";
-      case "vendor":
-        return "warning";
-      default:
-        return "primary";
+  // ✅ NEW: Handle image opening in new tab with toast
+  const handleOpenImage = (url, type) => {
+    if (url) {
+      window.open(url, '_blank');
+      toast.success(`Opening ${type} image in new tab 🖼️`, {
+        duration: 2000
+      });
+    } else {
+      toast.error(`No ${type} image available ❌`);
     }
   };
 
   const styles = {
-    container: {
-      display: "flex",
+    container: { 
+      display: "flex", 
       width: "100vw",
       height: "100vh",
       overflow: "hidden",
@@ -163,16 +153,34 @@ export default function UserManagement({ onLogout }) {
       fontWeight: 700,
       color: "#003067",
     },
+    logoutButton: {
+      padding: "10px 20px",
+      backgroundColor: "#118df0",
+      color: "#ffffff",
+      border: "none",
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontWeight: 600,
+    },
     contentCard: {
       backgroundColor: "#ffffff",
       borderRadius: "12px",
       padding: "30px",
       boxShadow: "0px 6px 12px rgba(0,0,0,0.1)",
     },
-    filterBar: {
-      display: "flex",
-      gap: 16,
-      marginBottom: 24
+    modalBox: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '90%',
+      maxWidth: '1200px',
+      maxHeight: '90vh',
+      bgcolor: 'background.paper',
+      borderRadius: '12px',
+      boxShadow: 24,
+      p: 4,
+      overflow: 'auto'
     }
   };
 
@@ -182,38 +190,17 @@ export default function UserManagement({ onLogout }) {
       <main style={styles.main}>
         <div style={styles.header}>
           <div>
-            <h1 style={styles.title}>User Management</h1>
+            <h1 style={styles.title}>User Submissions</h1>
             <Typography variant="body2" color="text.secondary">
-              Manage all users ({total} total)
+              All document submissions from users ({submissions.length} total)
             </Typography>
           </div>
+          <button style={styles.logoutButton} onClick={onLogout}>
+            Logout
+          </button>
         </div>
 
         <div style={styles.contentCard}>
-          {/* Filters */}
-          <div style={styles.filterBar}>
-            <TextField
-              label="Search by name or email"
-              variant="outlined"
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ flex: 1 }}
-            />
-            <Select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              displayEmpty
-              size="small"
-              sx={{ minWidth: 150 }}
-            >
-              <MenuItem value="">All Roles</MenuItem>
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="vendor">Vendor</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-            </Select>
-          </div>
-
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -230,86 +217,79 @@ export default function UserManagement({ onLogout }) {
                 <Table>
                   <TableHead>
                     <TableRow sx={{ backgroundColor: "#f5f5f5" }}>
-                      <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Contact</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Active</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Verified</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Joined</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>User ID</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Document</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Similarity</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Submitted</TableCell>
                       <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {users.length === 0 ? (
+                    {paginatedSubmissions.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
-                          <Typography color="text.secondary">No users found</Typography>
+                          <Typography color="text.secondary">No submissions found</Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      users.map((user) => (
-                        <TableRow key={user._id} hover>
+                      paginatedSubmissions.map((sub) => (
+                        <TableRow key={sub._id} hover>
                           <TableCell>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                              <Avatar src={user.img} alt={user.firstname} />
-                              <Box>
-                                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                  {user.firstname} {user.lastname}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {user.email}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{user.mobile_no}</Typography>
-                            {user.landline_no && (
-                              <Typography variant="caption" color="text.secondary">
-                                {user.landline_no}
-                              </Typography>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">{user.barangay}</Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {user.address}
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {sub.user_id.substring(0, 8)}...
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Select
-                              value={user.role}
+                            <Typography variant="body2">{sub.base_document_title}</Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={sub.base_document_category || "general"}
                               size="small"
-                              onChange={(e) => handleRoleChange(user._id, e.target.value)}
-                              sx={{ minWidth: 100 }}
-                            >
-                              <MenuItem value="user">User</MenuItem>
-                              <MenuItem value="vendor">Vendor</MenuItem>
-                              <MenuItem value="admin">Admin</MenuItem>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.is_active}
-                              onChange={() => handleStatusToggle(user._id, user.is_active)}
-                              color="success"
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={user.is_verified}
-                              onChange={() => handleVerificationToggle(user._id, user.is_verified)}
                               color="primary"
+                              variant="outlined"
                             />
                           </TableCell>
                           <TableCell>
-                            <Typography variant="caption">{formatDate(user.created_at)}</Typography>
+                            <Typography variant="body2" sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {sub.filename}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                color:
+                                  sub.similarity_percentage >= 90
+                                    ? "#10b981"
+                                    : sub.similarity_percentage >= 70
+                                    ? "#f59e0b"
+                                    : "#ef4444"
+                              }}
+                            >
+                              {sub.similarity_percentage}%
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Text: {sub.comparison_details?.text_similarity || 0}%
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Chip label={sub.status} size="small" color={getStatusColor(sub.status)} />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="caption">{formatDate(sub.submitted_at)}</Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Tooltip title="Delete">
-                              <IconButton color="error" onClick={() => handleDelete(user._id)} size="small">
-                                <Delete />
+                            <Tooltip title="View Images">
+                              <IconButton
+                                color="primary"
+                                onClick={() => handleViewImages(sub)}
+                              >
+                                <Visibility />
                               </IconButton>
                             </Tooltip>
                           </TableCell>
@@ -320,9 +300,10 @@ export default function UserManagement({ onLogout }) {
                 </Table>
               </TableContainer>
 
+              {/* Pagination */}
               <TablePagination
                 component="div"
-                count={total}
+                count={submissions.length}
                 page={page}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
@@ -341,6 +322,169 @@ export default function UserManagement({ onLogout }) {
           )}
         </div>
       </main>
+
+      {/* Modal for Viewing Images */}
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        aria-labelledby="image-modal-title"
+      >
+        <Box sx={styles.modalBox}>
+          {selectedSubmission && (
+            <>
+              {/* Header */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Box>
+                  <Typography id="image-modal-title" variant="h5" sx={{ fontWeight: 600, color: "#003067" }}>
+                    Document Comparison
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {selectedSubmission.filename} - {selectedSubmission.base_document_title}
+                  </Typography>
+                </Box>
+                <IconButton onClick={handleCloseModal}>
+                  <Close />
+                </IconButton>
+              </Box>
+
+              {/* Similarity Stats */}
+              <Box sx={{ mb: 3, p: 2, backgroundColor: "#f5f5f5", borderRadius: "8px" }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Overall</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#003067" }}>
+                      {selectedSubmission.similarity_percentage}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Text</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#10b981" }}>
+                      {selectedSubmission.comparison_details?.text_similarity || 0}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Layout</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600, color: "#f59e0b" }}>
+                      {selectedSubmission.comparison_details?.layout_similarity || 0}%
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={3}>
+                    <Typography variant="caption" color="text.secondary">Status</Typography>
+                    <Chip label={selectedSubmission.status} color={getStatusColor(selectedSubmission.status)} size="small" />
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* Images Side by Side */}
+              <Grid container spacing={3}>
+                {/* Original Image */}
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#118df0" }}>
+                      📄 Original Image Submitted
+                    </Typography>
+                    {selectedSubmission.file_url_original ? (
+                      <Box
+                        component="img"
+                        src={selectedSubmission.file_url_original}
+                        alt="Original"
+                        sx={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '500px',
+                          objectFit: 'contain',
+                          borderRadius: '8px',
+                          border: '2px solid #118df0'
+                        }}
+                      />
+                    ) : (
+                      <Typography color="text.secondary">No original image available</Typography>
+                    )}
+                    {/* ✅ UPDATED: Use handleOpenImage */}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => handleOpenImage(selectedSubmission.file_url_original, 'original')}
+                      disabled={!selectedSubmission.file_url_original}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                {/* Processed Image */}
+                <Grid item xs={12} md={6}>
+                  <Paper sx={{ p: 2, height: '100%' }}>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
+                      🔍 Processed Image (Bounding Boxes)
+                    </Typography>
+                    {selectedSubmission.file_url_processed ? (
+                      <Box
+                        component="img"
+                        src={selectedSubmission.file_url_processed}
+                        alt="Processed"
+                        sx={{
+                          width: '100%',
+                          height: 'auto',
+                          maxHeight: '500px',
+                          objectFit: 'contain',
+                          borderRadius: '8px',
+                          border: '2px solid #10b981',
+                          backgroundColor: '#ffffff'
+                        }}
+                      />
+                    ) : (
+                      <Typography color="text.secondary">No processed image available</Typography>
+                    )}
+                    {/* ✅ UPDATED: Use handleOpenImage */}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => handleOpenImage(selectedSubmission.file_url_processed, 'processed')}
+                      disabled={!selectedSubmission.file_url_processed}
+                    >
+                      Open in New Tab
+                    </Button>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Detected Elements Info */}
+              {selectedSubmission.spatial_analysis && (
+                <Box sx={{ mt: 3, p: 2, backgroundColor: "#f9fafb", borderRadius: "8px" }}>
+                  <Typography variant="subtitle2" sx={{ mb: 2, color: "#000000", fontWeight: 600 }}>
+                    🔎 Detected Elements
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Text Blocks</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_text_blocks || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Words</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_words || 0}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Typography variant="caption" color="text.secondary">Objects</Typography>
+                      <Typography variant="body1" sx={{ color: "#000000", fontWeight: 600 }}>
+                        {selectedSubmission.spatial_analysis.user_objects || 0}
+                      </Typography>
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
 }

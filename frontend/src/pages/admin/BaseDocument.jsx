@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Box } from "@mui/material";
+import toast from "react-hot-toast"; 
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/admin/DashboardHeader";
 import DocumentTable from "../../components/admin/DocumentTable";
@@ -32,16 +33,67 @@ export default function AdminDashboard({ onLogout }) {
     setOpenEditModal(true);
   };
 
+  // Add toast notifications for delete
   const handleDelete = async (documentId) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
-      await deleteDocument(documentId);
+      const deletePromise = deleteDocument(documentId);
+      
+      toast.promise(deletePromise, {
+        loading: 'Deleting document...',
+        success: 'Document deleted successfully! 🗑️',
+        error: 'Failed to delete document ❌'
+      });
     }
   };
 
+  //  Add toast notifications for status toggle
   const handleStatusToggle = async (documentId, newStatus) => {
     const statusText = newStatus ? 'activate' : 'deactivate';
     if (window.confirm(`Are you sure you want to ${statusText} this document?`)) {
-      await updateDocumentStatus(documentId, newStatus);
+      const statusPromise = updateDocumentStatus(documentId, newStatus);
+      
+      toast.promise(statusPromise, {
+        loading: `${statusText === 'activate' ? 'Activating' : 'Deactivating'} document...`,
+        success: `Document ${statusText}d successfully! ✅`,
+        error: `Failed to ${statusText} document ❌`
+      });
+    }
+  };
+
+  //  Handle upload with toast
+  const handleUpload = async (formData) => {
+    const uploadPromise = uploadDocument(formData);
+    
+    toast.promise(uploadPromise, {
+      loading: 'Uploading document...',
+      success: 'Document uploaded successfully! 📄',
+      error: 'Failed to upload document ❌'
+    });
+
+    try {
+      await uploadPromise;
+      setOpenUploadModal(false);
+    } catch (error) {
+      // Error already handled by toast.promise
+    }
+  };
+
+  // ✅ NEW: Handle update with toast
+  const handleUpdate = async (documentId, formData) => {
+    const updatePromise = updateDocument(documentId, formData);
+    
+    toast.promise(updatePromise, {
+      loading: 'Updating document...',
+      success: 'Document updated successfully! ✏️',
+      error: 'Failed to update document ❌'
+    });
+
+    try {
+      await updatePromise;
+      setOpenEditModal(false);
+      setEditingDoc(null);
+    } catch (error) {
+      // Error already handled by toast.promise
     }
   };
 
@@ -95,7 +147,7 @@ export default function AdminDashboard({ onLogout }) {
         <DocumentUploadModal
           open={openUploadModal}
           onClose={() => setOpenUploadModal(false)}
-          onUpload={uploadDocument}
+          onUpload={handleUpload} // Use handleUpload instead of uploadDocument
         />
 
         <DocumentEditModal
@@ -105,7 +157,7 @@ export default function AdminDashboard({ onLogout }) {
             setOpenEditModal(false);
             setEditingDoc(null);
           }}
-          onUpdate={updateDocument}
+          onUpdate={handleUpdate} //  Use handleUpdate instead of updateDocument
         />
       </main>
     </Box>

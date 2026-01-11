@@ -1,13 +1,12 @@
 // App.jsx
 import React, { useState } from "react";
+import { Toaster } from "react-hot-toast";
 
 import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import SuperadminDashboard from "./dashboards/SuperadminDashboard";
 import AdminDashboard from "./dashboards/AdminDashboard";
 import SanitaryDashboard from "./dashboards/SanitaryDashboard";
-
-
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
@@ -56,36 +55,59 @@ function App() {
     setCurrentPage("welcome");
   };
 
-  // ————————————————
-  // 🔵 OLD CODE (your previous page switching logic)
-  // ————————————————
-  // const renderCurrentPage = () => {
-  //   switch(currentPage) {
-  //     case "login":
-  //       return <Login onBack={() => handleNavigation("welcome")} onLogin={handleLogin} />;
-  //     case "superadminDashboard":
-  //       return <SuperadminDashboard onLogout={handleLogout} />;
-  //     case "adminDashboard":
-  //       return <AdminDashboard onLogout={handleLogout} />;
-  //     case "sanitaryDashboard":
-  //       return <SanitaryDashboard onLogout={handleLogout} />;
-  //     case "welcome":
-  //     default:
-  //       return <LandingPage onLogin={() => handleNavigation("login")} onRegister={() => handleNavigation("register")} />;
-  //   }
-  // };
-
-  // return (
-  //   <div className="App">
-  //     {renderCurrentPage()}
-  //   </div>
-  // );
-  // ————————————————
-  // END OF OLD CODE (still preserved)
-  // ————————————————
-
   return (
     <Router>
+      {/*  ADD TOASTER COMPONENT AT TOP LEVEL */}
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={8}
+        containerStyle={{
+          top: 20,
+          right: 20,
+        }}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 500,
+            padding: '16px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+            style: {
+              background: '#10b981',
+              color: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+            style: {
+              background: '#ef4444',
+              color: '#fff',
+            },
+          },
+          loading: {
+            iconTheme: {
+              primary: '#3b82f6',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
@@ -100,8 +122,8 @@ function App() {
         <Route path="/admin/usersubmissions" element={<UserSubmissions onLogout={handleLogout} />} />
         <Route path="/admin/users" element={<UserManagement onLogout={handleLogout} />} />
         <Route path="/admin/vendor-cart-monitoring" element={<AdminVendorCartMonitoring onLogout={handleLogout} />} />
-
         <Route path="/admin/reports" element={<ReportStats />} />
+
         {/* Sanitary */}
         <Route path="/sanitary" element={<SanitaryDashboard onLogout={handleLogout} />} />
 
@@ -110,7 +132,6 @@ function App() {
 
         {/* <Route path="/compare" element={<Compare />} /> */}
       </Routes>
-
     </Router>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Visibility, Close } from "@mui/icons-material";
 import axios from "axios";
+import toast from "react-hot-toast"; // ✅ ADD THIS IMPORT
 import Sidebar from "../../components/Sidebar";
 import BASE_URL from "../../common/baseurl";
 
@@ -39,23 +40,34 @@ export default function UserSubmissions({ onLogout }) {
     fetchSubmissions();
   }, []);
 
+  // ✅ UPDATED: Add toast notifications for fetch
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${BASE_URL}/api/admin/document-submissions/get-all`);
       setSubmissions(response.data.submissions);
       setError(null);
+      
+      // ✅ Show success toast when data is loaded
+      if (response.data.submissions.length > 0) {
+        toast.success(`Loaded ${response.data.submissions.length} submissions`);
+      }
     } catch (err) {
       setError("Failed to fetch submissions");
+      toast.error("Failed to load submissions"); // ✅ Show error toast
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ UPDATED: Add toast notification when viewing images
   const handleViewImages = (submission) => {
     setSelectedSubmission(submission);
     setOpenModal(true);
+    toast.success(`Viewing comparison for ${submission.filename}`, {
+      duration: 2000
+    });
   };
 
   const handleCloseModal = () => {
@@ -100,6 +112,18 @@ export default function UserSubmissions({ onLogout }) {
       hour: "2-digit",
       minute: "2-digit"
     });
+  };
+
+  // ✅ NEW: Handle image opening in new tab with toast
+  const handleOpenImage = (url, type) => {
+    if (url) {
+      window.open(url, '_blank');
+      toast.success(`Opening ${type} image in new tab`, {
+        duration: 2000
+      });
+    } else {
+      toast.error(`No ${type} image available`);
+    }
   };
 
   const styles = {
@@ -357,7 +381,7 @@ export default function UserSubmissions({ onLogout }) {
                 <Grid item xs={12} md={6}>
                   <Paper sx={{ p: 2, height: '100%' }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#118df0" }}>
-                      📄 Original Image Submitted
+                      Original Image Submitted
                     </Typography>
                     {selectedSubmission.file_url_original ? (
                       <Box
@@ -376,12 +400,13 @@ export default function UserSubmissions({ onLogout }) {
                     ) : (
                       <Typography color="text.secondary">No original image available</Typography>
                     )}
+                    {/* ✅ UPDATED: Use handleOpenImage */}
                     <Button
                       variant="outlined"
                       size="small"
                       fullWidth
                       sx={{ mt: 2 }}
-                      onClick={() => window.open(selectedSubmission.file_url_original, '_blank')}
+                      onClick={() => handleOpenImage(selectedSubmission.file_url_original, 'original')}
                       disabled={!selectedSubmission.file_url_original}
                     >
                       Open in New Tab
@@ -393,7 +418,7 @@ export default function UserSubmissions({ onLogout }) {
                 <Grid item xs={12} md={6}>
                   <Paper sx={{ p: 2, height: '100%' }}>
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
-                      🔍 Processed Image (Bounding Boxes)
+                      Processed Image (Bounding Boxes)
                     </Typography>
                     {selectedSubmission.file_url_processed ? (
                       <Box
@@ -413,12 +438,13 @@ export default function UserSubmissions({ onLogout }) {
                     ) : (
                       <Typography color="text.secondary">No processed image available</Typography>
                     )}
+                    {/* ✅ UPDATED: Use handleOpenImage */}
                     <Button
                       variant="outlined"
                       size="small"
                       fullWidth
                       sx={{ mt: 2 }}
-                      onClick={() => window.open(selectedSubmission.file_url_processed, '_blank')}
+                      onClick={() => handleOpenImage(selectedSubmission.file_url_processed, 'processed')}
                       disabled={!selectedSubmission.file_url_processed}
                     >
                       Open in New Tab
@@ -431,7 +457,7 @@ export default function UserSubmissions({ onLogout }) {
               {selectedSubmission.spatial_analysis && (
                 <Box sx={{ mt: 3, p: 2, backgroundColor: "#f9fafb", borderRadius: "8px" }}>
                   <Typography variant="subtitle2" sx={{ mb: 2, color: "#000000", fontWeight: 600 }}>
-                    🔎 Detected Elements
+                    Detected Elements
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid item xs={4}>

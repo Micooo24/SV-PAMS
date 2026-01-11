@@ -21,6 +21,11 @@ import {
   Chip,
   TablePagination
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
+import axios from "axios";
+import toast from "react-hot-toast"; // ✅ ADD THIS IMPORT
+import BASE_URL from "../../common/baseurl";
+import Sidebar from "../../components/Sidebar";
 
 const statusOptions = [
   "Pending",
@@ -30,11 +35,6 @@ const statusOptions = [
   "Resolved",
   "Ignored"
 ];
-
-import CloseIcon from "@mui/icons-material/Close";
-import axios from "axios";
-import BASE_URL from "../../common/baseurl";
-import Sidebar from "../../components/Sidebar";
 
 const VendorCartMonitoring = () => {
   const [scanRecords, setScanRecords] = useState([]);
@@ -62,22 +62,37 @@ const VendorCartMonitoring = () => {
     fetchGeofencingState();
   }, []);
 
+  // ✅ UPDATED: Add toast notifications for geofencing toggle
   const handleToggleGeofencing = async () => {
+    const newState = !geofencingEnabled;
+    const togglePromise = axios.post(`${BASE_URL}/api/admin/vendor-carts/set-geofencing-state`, { enabled: newState });
+    
+    toast.promise(togglePromise, {
+      loading: `${newState ? 'Enabling' : 'Disabling'} geofencing...`,
+      success: `Geofencing ${newState ? 'enabled' : 'disabled'} successfully`,
+      error: 'Failed to update geofencing state'
+    });
+
     try {
-      const newState = !geofencingEnabled;
-      await axios.post(`${BASE_URL}/api/admin/vendor-carts/set-geofencing-state`, { enabled: newState });
+      await togglePromise;
       setGeofencingEnabled(newState);
     } catch (err) {
-      alert('Failed to update geofencing state.');
+      console.error(err);
     }
   };
 
   useEffect(() => {
     const fetchScanRecords = async () => {
       try {
+        setLoading(true);
         const response = await axios.get(`${BASE_URL}/api/admin/vendor-carts/get-all`);
         const records = Array.isArray(response.data) ? response.data : [];
         setScanRecords(records);
+        
+        // ✅ Show success toast
+        if (records.length > 0) {
+          toast.success(`Loaded ${records.length} scan records`);
+        }
         
         const userIds = [...new Set(records.map(r => r.user_id))];
         const userMapTemp = {};
@@ -106,6 +121,7 @@ const VendorCartMonitoring = () => {
         setAddressMap(addressMapTemp);
       } catch (err) {
         setError("Failed to fetch scan records.");
+        toast.error("Failed to load scan records"); // ✅ Show error toast
         console.error(err);
       } finally {
         setLoading(false);
@@ -114,14 +130,34 @@ const VendorCartMonitoring = () => {
     fetchScanRecords();
   }, []);
 
+  // ✅ UPDATED: Add toast notification when opening image
   const handleOpenModal = (imageUrl) => {
     setModalImage(imageUrl);
     setOpenModal(true);
+    toast.success("Opening image preview", { duration: 2000 });
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
     setModalImage("");
+  };
+
+  // ✅ NEW: Handle status update with toast
+  const handleStatusUpdate = async (recordId, newStatus) => {
+    const updatePromise = axios.put(`${BASE_URL}/api/admin/vendor-carts/update-status/${recordId}`, { status: newStatus });
+    
+    toast.promise(updatePromise, {
+      loading: 'Updating status...',
+      success: `Status updated to ${newStatus}`,
+      error: 'Failed to update status'
+    });
+
+    try {
+      await updatePromise;
+      setScanRecords(prev => prev.map(r => r._id === recordId ? { ...r, status: newStatus } : r));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Pagination handlers
@@ -295,18 +331,11 @@ const VendorCartMonitoring = () => {
                             })()}
                           </TableCell>
                           <TableCell>
+                            {/* ✅ UPDATED: Use handleStatusUpdate */}
                             <Select
                               value={record.status || 'Pending'}
                               size="small"
-                              onChange={async (e) => {
-                                const newStatus = e.target.value;
-                                try {
-                                  await axios.put(`${BASE_URL}/api/admin/vendor-carts/update-status/${record._id}`, { status: newStatus });
-                                  setScanRecords(prev => prev.map(r => r._id === record._id ? { ...r, status: newStatus } : r));
-                                } catch {
-                                  alert('Failed to update status. Please check backend connectivity and try again.');
-                                }
-                              }}
+                              onChange={(e) => handleStatusUpdate(record._id, e.target.value)}
                               sx={{ minWidth: 140 }}
                             >
                               {statusOptions.map(opt => (
