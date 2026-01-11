@@ -454,23 +454,6 @@ export default function CartDetectionScreen() {
                     </View>
                   </View>
                 )}
-
-                {/* Validation Status */}
-                <View style={styles.validationRow}>
-                  <Ionicons 
-                    name={textDetection.has_required_info ? "checkmark-circle" : "alert-circle"} 
-                    size={20} 
-                    color={textDetection.has_required_info ? "#10b981" : "#f59e0b"} 
-                  />
-                  <Text style={[
-                    styles.validationText,
-                    textDetection.has_required_info ? styles.validText : styles.incompleteText
-                  ]}>
-                    {textDetection.has_required_info 
-                      ? "Complete cart information" 
-                      : "Incomplete information - some details missing"}
-                  </Text>
-                </View>
               </View>
             )}
 
@@ -788,31 +771,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#047857",
-  },
-
-  validationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 8,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "#e2e8f0",
-  },
-
-  validationText: {
-    fontSize: 13,
-    flex: 1,
-  },
-
-  validText: {
-    color: "#10b981",
-    fontWeight: "600",
-  },
-
-  incompleteText: {
-    color: "#f59e0b",
-    fontWeight: "600",
   },
 
   /* ---------------- Results ---------------- */
