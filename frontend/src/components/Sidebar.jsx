@@ -82,20 +82,20 @@ export default function Sidebar({ role }) {
     ],
     admin: [
       { title: "Dashboard", icon: <LayoutDashboard size={16} /> },
-      {
-        title: "Manage Vendor Permits",
-        icon: <FileText size={16} />,
-        subItems: [
-          "Approve / Deny Applications",
-          "Renew Permits",
-          "Suspend / Revoke Vendors",
-        ],
-      },
+      // {
+      //   title: "Manage Vendor Permits",
+      //   icon: <FileText size={16} />,
+      //   subItems: [
+      //     "Approve / Deny Applications",
+      //     "Renew Permits",
+      //     "Suspend / Revoke Vendors",
+      //   ],
+      // },
       { title: "Manage Images & AI Monitoring", icon: <FileText size={16} /> },
-      { title: "Vendor Records", icon: <Users size={16} /> },
-      { title: "AI Monitoring", icon: <Settings size={16} /> },
-      { title: "Reports", icon: <FileText size={16} /> },
-      { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
+      // { title: "Vendor Records", icon: <Users size={16} /> },
+      // { title: "AI Monitoring", icon: <Settings size={16} /> },    
+      { title: "Reports", icon: <FileText size={16} /> },   
+      // { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
       { title: "Manage Documents", icon: <FileText size={16} /> },
       { title: "Manage User Submissions", icon: <FileText size={16} /> },
     ],
