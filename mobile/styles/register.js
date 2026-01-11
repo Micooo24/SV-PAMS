@@ -301,4 +301,15 @@ export const styles = StyleSheet.create({
     color: '#2563eb',
     marginLeft: 4,
   },
+
+  
+  errorText: {
+    fontFamily: 'Poppins-Regular',
+    fontSize: normalize(12),
+    color: '#ef4444',
+    marginTop: -hp(1.5),
+    marginBottom: hp(1),
+    marginLeft: wp(2),
+  },
+
 });

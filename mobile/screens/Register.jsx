@@ -13,35 +13,9 @@ const Register = ({ navigation }) => {
   }
 
   const handleRegister = async (formData) => {
-    // Validation
-    if (!formData.firstname || !formData.lastname || !formData.birthday || 
-        !formData.gender || !formData.mobile_no || !formData.email || 
-        !formData.address || !formData.barangay || !formData.zip_code || 
-        !formData.password) {
-      Alert.alert('Validation Error', 'Please fill in all required fields');
-      return; 
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match');
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      Alert.alert('Validation Error', 'Password must be at least 8 characters long');
-      return;
-    }
-
-    // Email validation (Gmail only)
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-    if (!emailRegex.test(formData.email)) {
-      Alert.alert('Validation Error', 'Please use a valid Gmail address');
-      return;
-    }
-
     console.log('Submitting registration:', formData.email);
 
-    //  Call register (sends OTP to email)
+    // Call register (sends OTP to email)
     const result = await register(formData);
 
     if (result.success) {
@@ -53,7 +27,7 @@ const Register = ({ navigation }) => {
             text: 'OK',
             onPress: () => navigation.navigate('OTPVerification', {
               email: formData.email,
-              password: formData.password  // Pass password to OTP screen
+              password: formData.password
             })
           }
         ]

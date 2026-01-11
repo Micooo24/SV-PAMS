@@ -34,6 +34,7 @@
     "expo-maps": "~0.12.10",
     "expo-status-bar": "~3.0.9",
     "firebase": "12.2.1",
+    "formik": "^2.4.9",
     "jwt-decode": "4.0.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -49,7 +50,8 @@
     "react-native-vector-icons": "^10.3.0",
     "react-redux": "9.2.0",
     "redux-thunk": "3.1.0",
-    "toastify-react-native": "^7.2.3"
+    "toastify-react-native": "^7.2.3",
+    "yup": "^1.7.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
