@@ -5,11 +5,14 @@ import uvicorn
 from secrets_backend.controllers.firestore_monitor import start_monitor as start_firestore_monitor
 
 # General Routes 
-from routes import auth, document_submissions, vendor_carts, user_interactions
+from routes import auth, document_submissions, vendor_carts, user_interactions, upload, public_vendors
 
 # Admin Routes
-from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions, admin_users
+from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions, admin_users, admin_vendor_applications
 
+# Vendor Routes
+from routes.vendor_application_routes import router as vendor_application_router
+ 
 # Declaration
 app = FastAPI()
 
@@ -69,8 +72,19 @@ api_app.include_router(admin_vendor_carts.router, prefix ="/admin/vendor-carts",
 api_app.include_router(admin_document_submissions.router, prefix="/admin/document-submissions", tags=["Admin Document Submissions"])
 api_app.include_router(admin_users.router, prefix="/admin/users", tags=["Admin Users Management"])
 
+api_app.include_router(admin_vendor_applications.router, prefix="/admin/vendor", tags=["Admin Vendor Applications"])
+
 # vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])
+
+api_app.include_router(vendor_application_router, prefix="/vendor", tags=["Vendor Applications"])
+
+
+# upload api
+api_app.include_router(upload.router, prefix="/upload", tags=["Upload"])
+
+# public api
+api_app.include_router(public_vendors.router, prefix="/vendors", tags=["Public Vendors"])
 
 # superadmin api
 

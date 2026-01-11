@@ -15,6 +15,12 @@ import BusinessInfo from "../screens/BusinessInfo";
 import Faqs from "../screens/Faqs";
 import About from "../screens/About";
 import Terms from "../screens/Terms";
+import AdminDashboard from "../screens/AdminDashboard";
+import AdminVendorApplications from "../screens/AdminVendorApplications";
+import VendorListScreen from "../screens/VendorListScreen";
+import VendorDetailScreen from "../screens/VendorDetailScreen";
+
+import VendorApplyForm from "../screens/VendorApplyForm_NEW";
 
 // Authenticated App with Bottom Tabs
 import AppTabs from "./AppTabs";
@@ -45,10 +51,16 @@ const MainNavigator = () => {
       <Stack.Screen name="Faqs" component={Faqs} />
       <Stack.Screen name="About" component={About} />
       <Stack.Screen name="Terms" component={Terms} />
+      <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
+      <Stack.Screen name="AdminVendorApplications" component={AdminVendorApplications} />
+      <Stack.Screen name="VendorList" component={VendorListScreen} />
+      <Stack.Screen name="VendorDetail" component={VendorDetailScreen} />
+      
       {/* Add more later: DigitalPermit, Payments, etc. */}
 
       <Stack.Screen name="CustomerMap" component={CustomerMapScreen} />
       <Stack.Screen name="VendorLocation" component={VendorLocationScreen} /> 
+      <Stack.Screen name="VendorApplyForm" component={VendorApplyForm} />
     </Stack.Navigator>
   );
 };
