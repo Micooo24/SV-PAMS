@@ -91,16 +91,19 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 30,
   },
   loginText: {
     fontFamily: 'Poppins-Regular',
     fontSize: 14,
     color: '#666',
+    marginTop: -34,
   },
   loginLink: {
     color: '#2563eb',
     fontFamily: 'Poppins-Bold',
     fontSize: 14,
     fontWeight: '600',
+    marginTop: -40,
   },
 });
