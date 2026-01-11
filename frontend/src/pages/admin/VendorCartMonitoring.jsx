@@ -20,6 +20,7 @@ import {
   MenuItem,
   Chip
 } from "@mui/material";
+
 const statusOptions = [
   "Pending",
   "Investigating",
@@ -34,7 +35,6 @@ import axios from "axios";
 import BASE_URL from "../../common/baseurl";
 import Sidebar from "../../components/Sidebar";
 
-
 const VendorCartMonitoring = () => {
   const [scanRecords, setScanRecords] = useState([]);
   const [userMap, setUserMap] = useState({});
@@ -43,9 +43,8 @@ const VendorCartMonitoring = () => {
   const [error, setError] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [modalImage, setModalImage] = useState("");
-  // Geofencing toggle state (default: true)
   const [geofencingEnabled, setGeofencingEnabled] = useState(true);
-  // Fetch geofencing state from backend on mount
+
   useEffect(() => {
     async function fetchGeofencingState() {
       try {
@@ -58,7 +57,6 @@ const VendorCartMonitoring = () => {
     fetchGeofencingState();
   }, []);
 
-  // Toggle geofencing state in backend
   const handleToggleGeofencing = async () => {
     try {
       const newState = !geofencingEnabled;
@@ -75,7 +73,7 @@ const VendorCartMonitoring = () => {
         const response = await axios.get(`${BASE_URL}/api/admin/vendor-carts/get-all`);
         const records = Array.isArray(response.data) ? response.data : [];
         setScanRecords(records);
-        // Fetch user info for each unique user_id
+        
         const userIds = [...new Set(records.map(r => r.user_id))];
         const userMapTemp = {};
         await Promise.all(userIds.map(async (uid) => {
@@ -85,7 +83,7 @@ const VendorCartMonitoring = () => {
           } catch {}
         }));
         setUserMap(userMapTemp);
-        // Fetch address for each unique location
+        
         const addressMapTemp = {};
         await Promise.all(records.map(async (r) => {
           if (r.location && r.location.latitude && r.location.longitude) {
@@ -122,13 +120,20 @@ const VendorCartMonitoring = () => {
   };
 
   const styles = {
-    container: { display: "flex", minHeight: "100vh" },
+    container: { 
+      display: "flex", 
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      backgroundColor: "#e6eaf0"
+    },
     main: {
       flex: 1,
+      width: "100%",
+      height: "100vh",
       padding: "40px",
-      backgroundColor: "#f9f9f9",
-      width: "80vw",
-      minHeight: "100vh",
+      backgroundColor: "#e6eaf0",
+      overflowY: "auto"
     },
     header: {
       display: "flex",
@@ -228,7 +233,7 @@ const VendorCartMonitoring = () => {
                 <TableBody>
                   {scanRecords.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
                         <Typography color="text.secondary">
                           No scan records found
                         </Typography>
@@ -329,7 +334,6 @@ const VendorCartMonitoring = () => {
                   alt="Preview"
                   style={styles.modalImage}
                 />
-                {/* Show status badge on image */}
                 {(() => {
                   const rec = scanRecords.find(r => r.original_image_url === modalImage || r.postprocessed_image_url === modalImage);
                   if (rec && rec.status) {
