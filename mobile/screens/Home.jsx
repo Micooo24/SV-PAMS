@@ -214,7 +214,8 @@ const Home = ({ navigation }) => {
           {isVendor ? (
             <>
               {/* My Digital ID */}
-              <TouchableOpacity style={[styles.tile, styles.greenTile]} onPress={() => navigation.navigate('DigitalPermit')}>
+              {/* <TouchableOpacity style={[styles.tile, styles.greenTile]} onPress={() => navigation.navigate('DigitalPermit')}> */}
+              <TouchableOpacity style={[styles.tile, styles.greenTile]}>
                 <Image source={{ uri: user.photo || 'https://via.placeholder.com/100' }} style={styles.idPreview} />
                 <Text style={styles.tileTitle}>My Digital ID</Text>
                 <Text style={styles.tileSub}>SV-{user.email?.slice(0,8).toUpperCase()}</Text>
