@@ -85,14 +85,14 @@ const LoginComponent = ({
           />
 
           {/* Forgot Password */}
-          <View style={styles.forgotContainer}>
+          {/* <View style={styles.forgotContainer}>
             <Text 
               style={styles.forgotText}
               onPress={onNavigateToForgotPassword}
             >
               Forgot Password?
             </Text>
-          </View>
+          </View> */}
 
           {/* Login Button */}
           <Button
