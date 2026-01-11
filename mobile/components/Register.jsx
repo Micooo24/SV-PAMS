@@ -575,13 +575,14 @@ const renderAddressInfo = () => (
             setFieldTouched('address', true);
           }}
           mode="outlined"
-          style={styles.input}
+          style={[styles.input, { minHeight: 80 }]}
           placeholder="Street, House Number, etc."
           multiline
           numberOfLines={3}
-          contentStyle={styles.inputContent}
-           theme={customInputTheme}
-          textColor="black"
+          contentStyle={[styles.inputContent, { paddingTop: 12 }]}
+          outlineStyle={{ borderWidth: 1 }}
+          theme={customInputTheme}
+          textColor="#000000"
           disabled={loading}
           error={touched.address && errors.address}
         />
@@ -600,18 +601,20 @@ const renderAddressInfo = () => (
               style={styles.input}
               contentStyle={styles.inputContent}
               editable={false}
-              right={<TextInput.Icon icon="menu-down" onPress={() => setBarangayMenuVisible(true)} iconColor="black" />}
+              outlineStyle={{ borderWidth: 1 }}
+              right={<TextInput.Icon icon="menu-down" onPress={() => setBarangayMenuVisible(true)} iconColor="#000000" />}
               onPressIn={() => {
                 setBarangayMenuVisible(true);
                 setFieldTouched('barangay', true);
               }}
               placeholder="Select Barangay"
+              placeholderTextColor="#666666"
               theme={customInputTheme}
               textColor="#000000"
               error={touched.barangay && errors.barangay}
             />
           }
-          contentStyle={{ maxHeight: 400, backgroundColor: '#fff' }}
+          contentStyle={{ maxHeight: 400, backgroundColor: '#ffffff' }}
         >
           <ScrollView style={{ maxHeight: 300 }}>
             {BARANGAYS.map((brgy) => (
@@ -625,6 +628,7 @@ const renderAddressInfo = () => (
                   setFieldTouched('zip_code', true);
                 }}
                 title={`${brgy.name} (${brgy.zipCode})`}
+                titleStyle={{ color: '#000000' }}
               />
             ))}
           </ScrollView>
@@ -641,9 +645,11 @@ const renderAddressInfo = () => (
           keyboardType="numeric"
           contentStyle={styles.inputContent}
           editable={false}
+          outlineStyle={{ borderWidth: 1 }}
           placeholder="Auto-filled from Barangay"
+          placeholderTextColor="#666666"
           theme={customInputTheme}
-          textColor="black"
+          textColor="#000000"
           error={touched.zip_code && errors.zip_code}
         />
         {touched.zip_code && errors.zip_code && (
@@ -653,6 +659,7 @@ const renderAddressInfo = () => (
     )}
   </Formik>
 );
+
 
  const renderAccountSecurity = () => (
   <Formik
