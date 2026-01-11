@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -11,10 +10,12 @@ import {
   Image,
   ActivityIndicator,
   Modal,
+  Linking,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
+import * as MailComposer from 'expo-mail-composer';
 import axios from "axios";
 import BASE_URL from "../common/baseurl.js";
 import BoxOverlay from "../components/BoxOverlay";
@@ -34,6 +35,7 @@ export default function CartDetectionScreen() {
   const [galleryStatuses, setGalleryStatuses] = useState({});
   const [userId, setUserId] = useState(null);
   const [predictions, setPredictions] = useState([]);
+  const [textDetection, setTextDetection] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(true);
   const [userRole, setUserRole] = useState("user"); 
@@ -51,6 +53,31 @@ export default function CartDetectionScreen() {
     };
     fetchUserInfo();
   }, []);
+
+  // Open email client with pre-filled draft using expo-mail-composer
+  const openEmailClient = async (email) => {
+    if (!email) {
+      alert('No email address available');
+      return;
+    }
+    
+    const isAvailable = await MailComposer.isAvailableAsync();
+    if (!isAvailable) {
+      alert('Email service is not available on this device. Please install Gmail or another email app.');
+      return;
+    }
+
+    try {
+      await MailComposer.composeAsync({
+        recipients: [email],
+        subject: 'Cart Registry Inquiry',
+        body: 'Hello,\n\nI would like to inquire about the cart registry.\n\nThank you.',
+      });
+    } catch (error) {
+      console.error('Error composing email:', error);
+      alert('Failed to open email composer');
+    }
+  };
 
   // Open in-app gallery modal
   const pickImage = async () => {
@@ -151,25 +178,31 @@ export default function CartDetectionScreen() {
     formData.append("file", { uri, name: "photo.jpg", type: "image/jpeg" });
 
     try {
-      const accessToken = await AsyncStorage.getItem("access_token"); // Retrieve token from storage
-      const userEmail = await AsyncStorage.getItem("user_email"); // Retrieve email from storage
-      formData.append("email", userEmail); // Add the email field
+      const accessToken = await AsyncStorage.getItem("access_token");
+      const userEmail = await AsyncStorage.getItem("user_email");
+      formData.append("email", userEmail);
 
       const response = await axios.post(backendURL, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${accessToken}`, // Add Authorization header
+          Authorization: `Bearer ${accessToken}`,
         },
         timeout: 0,
       });
 
-      // Validate and handle predictions
       const data = response.data;
       if (data && Array.isArray(data.predictions)) {
         setPredictions(data.predictions);
       } else {
         console.warn("Invalid predictions format:", data);
-        setPredictions([]); // Default to an empty array
+        setPredictions([]);
+      }
+
+      // Set text detection data
+      if (data && data.text_detection) {
+        setTextDetection(data.text_detection);
+      } else {
+        setTextDetection(null);
       }
 
       // Save Cloudinary URL to gallery entry for status sync
@@ -185,6 +218,7 @@ export default function CartDetectionScreen() {
       console.error(error);
       alert("Failed to analyze image. Please try again.");
       setPredictions([]);
+      setTextDetection(null);
     } finally {
       setIsLoading(false);
     }
@@ -193,6 +227,7 @@ export default function CartDetectionScreen() {
   const handleReset = () => {
     setImageUri(null);
     setPredictions([]);
+    setTextDetection(null);
     setShowScanner(true);
   };
 
@@ -354,6 +389,91 @@ export default function CartDetectionScreen() {
         {/* ---------------- Results Section ---------------- */}
         {imageUri && !isLoading && (
           <View style={styles.resultsSection}>
+            {/* Text Detection Card - Show First */}
+            {textDetection && (
+              <View style={styles.textDetectionCard}>
+                <View style={styles.textDetectionHeader}>
+                  <Ionicons name="document-text-outline" size={24} color="#2563eb" />
+                  <Text style={styles.textDetectionTitle}>Cart Information</Text>
+                </View>
+
+                {/* Cart Registry Number */}
+                {textDetection.cart_registry_no ? (
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLabel}>
+                      <Ionicons name="card-outline" size={20} color="#64748b" />
+                      <Text style={styles.infoLabelText}>Registry No.</Text>
+                    </View>
+                    <View style={styles.registryBadge}>
+                      <Text style={styles.registryText}>{textDetection.cart_registry_no}</Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLabel}>
+                      <Ionicons name="card-outline" size={20} color="#cbd5e1" />
+                      <Text style={styles.infoLabelTextMissing}>Registry No.</Text>
+                    </View>
+                    <Text style={styles.notDetectedText}>Not detected</Text>
+                  </View>
+                )}
+
+                {/* Sanitary Email */}
+                {textDetection.sanitary_email ? (
+                  <View style={styles.infoRowVertical}>
+                    <View style={styles.infoLabel}>
+                      <Ionicons name="mail-outline" size={20} color="#64748b" />
+                      <Text style={styles.infoLabelText}>Contact Email</Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.emailButton}
+                      onPress={() => openEmailClient(textDetection.sanitary_email)}
+                    >
+                      <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
+                        {textDetection.sanitary_email}
+                      </Text>
+                      <Ionicons name="send-outline" size={16} color="#2563eb" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoLabel}>
+                      <Ionicons name="mail-outline" size={20} color="#cbd5e1" />
+                      <Text style={styles.infoLabelTextMissing}>Contact Email</Text>
+                    </View>
+                    <Text style={styles.notDetectedText}>Not detected</Text>
+                  </View>
+                )}
+
+                {/* Pasig Cart Badge */}
+                {textDetection.is_pasig_cart && (
+                  <View style={styles.pasigBadgeContainer}>
+                    <View style={styles.pasigBadge}>
+                      <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+                      <Text style={styles.pasigText}>Verified Pasig Cart</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Validation Status */}
+                <View style={styles.validationRow}>
+                  <Ionicons 
+                    name={textDetection.has_required_info ? "checkmark-circle" : "alert-circle"} 
+                    size={20} 
+                    color={textDetection.has_required_info ? "#10b981" : "#f59e0b"} 
+                  />
+                  <Text style={[
+                    styles.validationText,
+                    textDetection.has_required_info ? styles.validText : styles.incompleteText
+                  ]}>
+                    {textDetection.has_required_info 
+                      ? "Complete cart information" 
+                      : "Incomplete information - some details missing"}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Stats */}
             {predictions.length > 0 && (
               <View style={styles.statsRow}>
@@ -545,6 +665,155 @@ const styles = StyleSheet.create({
   /* ---------------- Loading ---------------- */
   loadingContainer: { alignItems: "center", paddingVertical: 100 },
   loadingText: { marginTop: 12, color: "#64748b" },
+
+  /* ---------------- Text Detection Card ---------------- */
+  textDetectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  textDetectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e2e8f0",
+  },
+
+  textDetectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0f172a",
+    marginLeft: 10,
+  },
+
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+    paddingVertical: 8,
+  },
+
+  infoRowVertical: {
+    marginBottom: 14,
+    paddingVertical: 8,
+  },
+
+  infoLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+
+  infoLabelText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+
+  infoLabelTextMissing: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#cbd5e1",
+  },
+
+  registryBadge: {
+    backgroundColor: "#dbeafe",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+
+  registryText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1e40af",
+    letterSpacing: 1,
+  },
+
+  emailButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+
+  emailText: {
+    fontSize: 12,
+    color: "#2563eb",
+    fontWeight: "600",
+    flex: 1,
+  },
+
+  notDetectedText: {
+    fontSize: 13,
+    color: "#94a3b8",
+    fontStyle: "italic",
+  },
+
+  pasigBadgeContainer: {
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 12,
+  },
+
+  pasigBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#d1fae5",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+
+  pasigText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#047857",
+  },
+
+  validationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+  },
+
+  validationText: {
+    fontSize: 13,
+    flex: 1,
+  },
+
+  validText: {
+    color: "#10b981",
+    fontWeight: "600",
+  },
+
+  incompleteText: {
+    color: "#f59e0b",
+    fontWeight: "600",
+  },
 
   /* ---------------- Results ---------------- */
   resultsSection: { gap: 20 },
