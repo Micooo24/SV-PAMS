@@ -186,21 +186,7 @@ export default function AdminDashboard({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Info Section */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Tips</Text>
-          <View style={styles.infoCard}>
-            <MaterialCommunityIcons
-              name="lightbulb"
-              size={24}
-              color="#f59e0b"
-              style={{ marginRight: 12 }}
-            />
-            <Text style={styles.infoText}>
-              Vendors need 90% completeness to activate their vendor role after approval.
-            </Text>
-          </View>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );
