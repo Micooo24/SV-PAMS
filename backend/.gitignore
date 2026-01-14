@@ -16,3 +16,6 @@ secrets_backend/
 
 # Ignore test code
 test_code/
+
+# Personal File (Mico)
+automation/

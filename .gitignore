@@ -16,8 +16,8 @@ mobile.bat
 # For Backend
 backend.ps1
 
-
-desktop.ini
+# Auto Upload Script
+automation.ps1
 
 
 
