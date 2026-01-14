@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Button } from "@mui/material";
+import { Sort } from "@mui/icons-material";
 import toast from "react-hot-toast"; 
 import Sidebar from "../../components/Sidebar";
 import DashboardHeader from "../../components/admin/DashboardHeader";
@@ -23,6 +24,7 @@ export default function AdminDashboard({ onLogout }) {
   const [openUploadModal, setOpenUploadModal] = useState(false);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
   
   // Pagination state
   const [page, setPage] = useState(0);
@@ -97,6 +99,20 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
+  // ✅ NEW: Handle sort by date
+  const handleSortByDate = () => {
+    const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    setSortOrder(newOrder);
+    
+    // This will trigger a re-fetch with sorted data
+    fetchDocuments();
+    setPage(0);
+    
+    toast.success(`Sorted by ${newOrder === 'desc' ? 'newest' : 'oldest'} first`, {
+      duration: 2000
+    });
+  };
+
   // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -131,6 +147,26 @@ export default function AdminDashboard({ onLogout }) {
       <main style={styles.main}>
         <DashboardHeader onLogout={onLogout} onUpload={() => setOpenUploadModal(true)} />
         
+        {/* ✅ NEW: Sort Button */}
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="outlined"
+            startIcon={<Sort />}
+            onClick={handleSortByDate}
+            sx={{ 
+              textTransform: 'none',
+              borderColor: '#118df0',
+              color: '#118df0',
+              '&:hover': {
+                borderColor: '#0d6ebd',
+                backgroundColor: '#f0f8ff'
+              }
+            }}
+          >
+            Sort by Date ({sortOrder === 'desc' ? 'Newest First' : 'Oldest First'})
+          </Button>
+        </Box>
+
         <DocumentTable
           documents={documents}
           loading={loading}
@@ -147,7 +183,7 @@ export default function AdminDashboard({ onLogout }) {
         <DocumentUploadModal
           open={openUploadModal}
           onClose={() => setOpenUploadModal(false)}
-          onUpload={handleUpload} // Use handleUpload instead of uploadDocument
+          onUpload={handleUpload}
         />
 
         <DocumentEditModal
@@ -157,7 +193,7 @@ export default function AdminDashboard({ onLogout }) {
             setOpenEditModal(false);
             setEditingDoc(null);
           }}
-          onUpdate={handleUpdate} //  Use handleUpdate instead of updateDocument
+          onUpdate={handleUpdate}
         />
       </main>
     </Box>

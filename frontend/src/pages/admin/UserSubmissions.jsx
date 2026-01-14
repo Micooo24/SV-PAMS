@@ -19,9 +19,9 @@ import {
   Button,
   TablePagination
 } from "@mui/material";
-import { Visibility, Close } from "@mui/icons-material";
+import { Visibility, Close, Sort } from "@mui/icons-material";
 import axios from "axios";
-import toast from "react-hot-toast"; // ✅ ADD THIS IMPORT
+import toast from "react-hot-toast";
 import Sidebar from "../../components/Sidebar";
 import BASE_URL from "../../common/baseurl";
 
@@ -31,6 +31,7 @@ export default function UserSubmissions({ onLogout }) {
   const [error, setError] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [sortOrder, setSortOrder] = useState('desc');
   
   // Pagination state
   const [page, setPage] = useState(0);
@@ -40,28 +41,46 @@ export default function UserSubmissions({ onLogout }) {
     fetchSubmissions();
   }, []);
 
-  // ✅ UPDATED: Add toast notifications for fetch
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
       const response = await axios.get(`${BASE_URL}/api/admin/document-submissions/get-all`);
-      setSubmissions(response.data.submissions);
+      const sortedSubmissions = response.data.submissions.sort((a, b) => 
+        new Date(b.submitted_at) - new Date(a.submitted_at)
+      );
+      setSubmissions(sortedSubmissions);
       setError(null);
       
-      // ✅ Show success toast when data is loaded
       if (response.data.submissions.length > 0) {
         toast.success(`Loaded ${response.data.submissions.length} submissions`);
       }
     } catch (err) {
       setError("Failed to fetch submissions");
-      toast.error("Failed to load submissions"); // ✅ Show error toast
+      toast.error("Failed to load submissions");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ UPDATED: Add toast notification when viewing images
+  const handleSortByDate = () => {
+    const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    setSortOrder(newOrder);
+    
+    const sorted = [...submissions].sort((a, b) => {
+      const dateA = new Date(a.submitted_at);
+      const dateB = new Date(b.submitted_at);
+      return newOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+    
+    setSubmissions(sorted);
+    setPage(0);
+    
+    toast.success(`Sorted by ${newOrder === 'desc' ? 'newest' : 'oldest'} first`, {
+      duration: 2000
+    });
+  };
+
   const handleViewImages = (submission) => {
     setSelectedSubmission(submission);
     setOpenModal(true);
@@ -75,7 +94,6 @@ export default function UserSubmissions({ onLogout }) {
     setSelectedSubmission(null);
   };
 
-  // Pagination handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
@@ -85,7 +103,6 @@ export default function UserSubmissions({ onLogout }) {
     setPage(0);
   };
 
-  // Get paginated submissions
   const paginatedSubmissions = submissions.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
@@ -114,7 +131,6 @@ export default function UserSubmissions({ onLogout }) {
     });
   };
 
-  // ✅ NEW: Handle image opening in new tab with toast
   const handleOpenImage = (url, type) => {
     if (url) {
       window.open(url, '_blank');
@@ -206,6 +222,26 @@ export default function UserSubmissions({ onLogout }) {
               {error}
             </Alert>
           )}
+
+          {/* Sort Button */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              startIcon={<Sort />}
+              onClick={handleSortByDate}
+              sx={{ 
+                textTransform: 'none',
+                borderColor: '#118df0',
+                color: '#118df0',
+                '&:hover': {
+                  borderColor: '#0d6ebd',
+                  backgroundColor: '#f0f8ff'
+                }
+              }}
+            >
+              Sort by Date ({sortOrder === 'desc' ?  'Oldest First' : 'Newest First'})
+            </Button>
+          </Box>
 
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
@@ -400,7 +436,6 @@ export default function UserSubmissions({ onLogout }) {
                     ) : (
                       <Typography color="text.secondary">No original image available</Typography>
                     )}
-                    {/* ✅ UPDATED: Use handleOpenImage */}
                     <Button
                       variant="outlined"
                       size="small"
@@ -438,7 +473,6 @@ export default function UserSubmissions({ onLogout }) {
                     ) : (
                       <Typography color="text.secondary">No processed image available</Typography>
                     )}
-                    {/* ✅ UPDATED: Use handleOpenImage */}
                     <Button
                       variant="outlined"
                       size="small"

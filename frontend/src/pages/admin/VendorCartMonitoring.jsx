@@ -22,8 +22,9 @@ import {
   TablePagination
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { Sort } from "@mui/icons-material"; // ✅ ADD THIS
 import axios from "axios";
-import toast from "react-hot-toast"; // ✅ ADD THIS IMPORT
+import toast from "react-hot-toast";
 import BASE_URL from "../../common/baseurl";
 import Sidebar from "../../components/Sidebar";
 
@@ -45,6 +46,7 @@ const VendorCartMonitoring = () => {
   const [openModal, setOpenModal] = useState(false);
   const [modalImage, setModalImage] = useState("");
   const [geofencingEnabled, setGeofencingEnabled] = useState(true);
+  const [sortOrder, setSortOrder] = useState('desc'); // ✅ ADD THIS
   
   // Pagination state
   const [page, setPage] = useState(0);
@@ -62,7 +64,6 @@ const VendorCartMonitoring = () => {
     fetchGeofencingState();
   }, []);
 
-  // ✅ UPDATED: Add toast notifications for geofencing toggle
   const handleToggleGeofencing = async () => {
     const newState = !geofencingEnabled;
     const togglePromise = axios.post(`${BASE_URL}/api/admin/vendor-carts/set-geofencing-state`, { enabled: newState });
@@ -87,9 +88,14 @@ const VendorCartMonitoring = () => {
         setLoading(true);
         const response = await axios.get(`${BASE_URL}/api/admin/vendor-carts/get-all`);
         const records = Array.isArray(response.data) ? response.data : [];
-        setScanRecords(records);
         
-        // ✅ Show success toast
+        // ✅ Sort by created_at descending (newest first)
+        const sortedRecords = records.sort((a, b) => 
+          new Date(b.created_at) - new Date(a.created_at)
+        );
+        
+        setScanRecords(sortedRecords);
+        
         if (records.length > 0) {
           toast.success(`Loaded ${records.length} scan records`);
         }
@@ -121,7 +127,7 @@ const VendorCartMonitoring = () => {
         setAddressMap(addressMapTemp);
       } catch (err) {
         setError("Failed to fetch scan records.");
-        toast.error("Failed to load scan records"); // ✅ Show error toast
+        toast.error("Failed to load scan records");
         console.error(err);
       } finally {
         setLoading(false);
@@ -130,7 +136,25 @@ const VendorCartMonitoring = () => {
     fetchScanRecords();
   }, []);
 
-  // ✅ UPDATED: Add toast notification when opening image
+  // ✅ NEW: Handle sort by date
+  const handleSortByDate = () => {
+    const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+    setSortOrder(newOrder);
+    
+    const sorted = [...scanRecords].sort((a, b) => {
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+      return newOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+    
+    setScanRecords(sorted);
+    setPage(0);
+    
+    toast.success(`Sorted by ${newOrder === 'desc' ? 'newest' : 'oldest'} first`, {
+      duration: 2000
+    });
+  };
+
   const handleOpenModal = (imageUrl) => {
     setModalImage(imageUrl);
     setOpenModal(true);
@@ -142,7 +166,6 @@ const VendorCartMonitoring = () => {
     setModalImage("");
   };
 
-  // ✅ NEW: Handle status update with toast
   const handleStatusUpdate = async (recordId, newStatus) => {
     const updatePromise = axios.put(`${BASE_URL}/api/admin/vendor-carts/update-status/${recordId}`, { status: newStatus });
     
@@ -267,6 +290,26 @@ const VendorCartMonitoring = () => {
             </Alert>
           )}
 
+          {/* ✅ NEW: Sort Button */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              startIcon={<Sort />}
+              onClick={handleSortByDate}
+              sx={{ 
+                textTransform: 'none',
+                borderColor: '#118df0',
+                color: '#118df0',
+                '&:hover': {
+                  borderColor: '#0d6ebd',
+                  backgroundColor: '#f0f8ff'
+                }
+              }}
+            >
+              Sort by Date ({sortOrder === 'desc' ?   'Oldest First': 'Newest First'})
+            </Button>
+          </Box>
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
               <CircularProgress />
@@ -331,7 +374,6 @@ const VendorCartMonitoring = () => {
                             })()}
                           </TableCell>
                           <TableCell>
-                            {/* ✅ UPDATED: Use handleStatusUpdate */}
                             <Select
                               value={record.status || 'Pending'}
                               size="small"
