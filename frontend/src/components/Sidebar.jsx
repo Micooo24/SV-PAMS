@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/images/logo1.png"; 
+import logo from "../assets/images/logo1.png";
 import {
   ChevronDown,
   ChevronUp,
@@ -11,7 +11,7 @@ import {
   FileText,
   AlertTriangle,
   Menu,
-  LogOut
+  LogOut,
 } from "lucide-react";
 
 export default function Sidebar({ role }) {
@@ -46,6 +46,7 @@ export default function Sidebar({ role }) {
       "Vendor Records": "/admin/vendor-records",
       "AI Monitoring": "/admin/ai-monitoring",
       Reports: "/admin/reports",
+      "Vendor Reports": "/admin/vendor-reports",
       "Send Notifications": "/admin/notifications",
       "Manage Documents": "/admin/documents",
       "Manage User Submissions": "/admin/usersubmissions",
@@ -94,8 +95,8 @@ export default function Sidebar({ role }) {
       // },
       { title: "Manage Images & AI Monitoring", icon: <FileText size={16} /> },
       // { title: "Vendor Records", icon: <Users size={16} /> },
-      // { title: "AI Monitoring", icon: <Settings size={16} /> },    
-      { title: "Reports", icon: <FileText size={16} /> },   
+      // { title: "AI Monitoring", icon: <Settings size={16} /> },
+      { title: "Vendor Reports", icon: <Users size={16} /> },
       // { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
       { title: "Manage Documents", icon: <FileText size={16} /> },
       { title: "Manage User Submissions", icon: <FileText size={16} /> },
@@ -131,7 +132,7 @@ export default function Sidebar({ role }) {
       transition: "width 0.3s ease",
       display: "flex",
       flexDirection: "column",
-      justifyContent: "space-between", 
+      justifyContent: "space-between",
       overflow: "hidden",
     },
     header: {
@@ -198,32 +199,36 @@ export default function Sidebar({ role }) {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("user"); 
+    localStorage.removeItem("user");
     navigate("/");
   };
 
   return (
     <aside style={styles.sidebar}>
       <div>
-      
         <div style={styles.header}>
           <div style={styles.logoWrap}>
             <img src={logo} alt="System Logo" style={styles.logoImg} />
             {!collapsed && <span>SV-PAMS </span>}
           </div>
-          <div style={styles.toggleBtn} onClick={() => setCollapsed(!collapsed)}>
+          <div
+            style={styles.toggleBtn}
+            onClick={() => setCollapsed(!collapsed)}
+          >
             <Menu size={22} />
           </div>
         </div>
 
-     
         <ul style={{ listStyle: "none", padding: 0 }}>
           {menus.map((menu) => (
             <li key={menu.title}>
               <div
                 style={{
                   ...styles.menuItem,
-                  backgroundColor: window.location.pathname === routeMap[role][menu.title] ? palette.active : "transparent",
+                  backgroundColor:
+                    window.location.pathname === routeMap[role][menu.title]
+                      ? palette.active
+                      : "transparent",
                 }}
                 onClick={() => {
                   if (menu.subItems) {
@@ -232,10 +237,14 @@ export default function Sidebar({ role }) {
                     navigate(routeMap[role][menu.title]);
                   }
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = palette.hover)
+                }
                 onMouseLeave={(e) =>
                   (e.currentTarget.style.backgroundColor =
-                    window.location.pathname === routeMap[role][menu.title] ? palette.active : "transparent")
+                    window.location.pathname === routeMap[role][menu.title]
+                      ? palette.active
+                      : "transparent")
                 }
               >
                 <div style={styles.menuLeft}>
@@ -243,7 +252,13 @@ export default function Sidebar({ role }) {
                   {!collapsed && menu.title}
                 </div>
                 {menu.subItems && !collapsed && (
-                  <span>{expandedMenus[menu.title] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
+                  <span>
+                    {expandedMenus[menu.title] ? (
+                      <ChevronUp size={16} />
+                    ) : (
+                      <ChevronDown size={16} />
+                    )}
+                  </span>
                 )}
               </div>
 
@@ -254,8 +269,12 @@ export default function Sidebar({ role }) {
                       key={subItem}
                       style={styles.subMenu}
                       onClick={() => navigate(routeMap[role][subItem])}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = palette.hover)}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor = palette.hover)
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = "transparent")
+                      }
                     >
                       {subItem}
                     </li>
@@ -267,7 +286,6 @@ export default function Sidebar({ role }) {
         </ul>
       </div>
 
-    
       <div style={styles.logout} onClick={handleLogout}>
         <LogOut size={16} />
         {!collapsed && <span>Logout</span>}
