@@ -12,6 +12,12 @@ import {
   AlertTriangle,
   Menu,
   LogOut,
+  ClipboardCheck,
+  Camera,
+  FileBarChart,
+  FolderOpen,
+  FileCheck,
+  ShoppingCart,
 } from "lucide-react";
 
 export default function Sidebar({ role }) {
@@ -39,17 +45,11 @@ export default function Sidebar({ role }) {
     },
     admin: {
       Dashboard: "/admin",
-      "Approve / Deny Applications": "/admin/approve-applications",
-      "Renew Permits": "/admin/renew-permits",
-      "Suspend / Revoke Vendors": "/admin/suspend-vendors",
-      "Manage Images & AI Monitoring": "/admin/vendor-cart-monitoring",
-      "Vendor Records": "/admin/vendor-records",
-      "AI Monitoring": "/admin/ai-monitoring",
-      Reports: "/admin/reports",
+      "Vendor Applications": "/admin/approve-applications",
+      "Cart Monitoring": "/admin/vendor-cart-monitoring",
       "Vendor Reports": "/admin/vendor-reports",
-      "Send Notifications": "/admin/notifications",
-      "Manage Documents": "/admin/documents",
-      "Manage User Submissions": "/admin/usersubmissions",
+      "Base Documents": "/admin/documents",
+      "User Submissions": "/admin/usersubmissions",
       "User Management": "/admin/users",
     },
     sanitary: {
@@ -84,22 +84,11 @@ export default function Sidebar({ role }) {
     ],
     admin: [
       { title: "Dashboard", icon: <LayoutDashboard size={16} /> },
-      // {
-      //   title: "Manage Vendor Permits",
-      //   icon: <FileText size={16} />,
-      //   subItems: [
-      //     "Approve / Deny Applications",
-      //     "Renew Permits",
-      //     "Suspend / Revoke Vendors",
-      //   ],
-      // },
-      { title: "Manage Images & AI Monitoring", icon: <FileText size={16} /> },
-      // { title: "Vendor Records", icon: <Users size={16} /> },
-      // { title: "AI Monitoring", icon: <Settings size={16} /> },
-      { title: "Vendor Reports", icon: <Users size={16} /> },
-      // { title: "Send Notifications", icon: <AlertTriangle size={16} /> },
-      { title: "Manage Documents", icon: <FileText size={16} /> },
-      { title: "Manage User Submissions", icon: <FileText size={16} /> },
+      { title: "Vendor Applications", icon: <ClipboardCheck size={16} /> },
+      { title: "Cart Monitoring", icon: <ShoppingCart size={16} /> },
+      { title: "Vendor Reports", icon: <FileBarChart size={16} /> },
+      { title: "Base Documents", icon: <FolderOpen size={16} /> },
+      { title: "User Submissions", icon: <FileCheck size={16} /> },
       { title: "User Management", icon: <Users size={16} /> },
     ],
     sanitary: [

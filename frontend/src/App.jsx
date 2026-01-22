@@ -21,6 +21,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import AdminVendorCartMonitoring from "./pages/admin/VendorCartMonitoring";
 import ReportStats from "./pages/admin/ReportStats";
 import VendorReports from "./pages/admin/VendorReports";
+import VendorApplications from "./pages/admin/VendorApplications";
 
 // import Compare from "./test_code/Compare";
 
@@ -35,7 +36,7 @@ function App() {
 
   const handleLogin = (email, password) => {
     const user = mockUsers.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email === email && u.password === password,
     );
     if (!user) return { success: false };
 
@@ -131,6 +132,10 @@ function App() {
         <Route
           path="/admin"
           element={<AdminDashboard onLogout={handleLogout} />}
+        />
+        <Route
+          path="/admin/approve-applications"
+          element={<VendorApplications onLogout={handleLogout} />}
         />
         <Route path="/admin/documents" element={<BaseDocument />} />
         <Route
