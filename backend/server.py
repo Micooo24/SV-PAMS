@@ -8,7 +8,7 @@ from secrets_backend.controllers.firestore_monitor import start_monitor as start
 from routes import auth, document_submissions, vendor_carts, user_interactions, upload, public_vendors
 
 # Admin Routes
-from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions, admin_users, admin_vendor_applications
+from routes.admin import admin_vendor_carts, admin_base_documents, admin_document_submissions, admin_users, admin_vendor_applications, admin_vendor_reports
 
 # Vendor Routes
 from routes.vendor_application_routes import router as vendor_application_router
@@ -33,7 +33,7 @@ origins = [
     "http://10.103.240.41:8000",
     
     # janna_url
-    "",
+    "http://192.168.1.15:8000",
     
     # jane_url
     "http://192.168.31.48:8000",
@@ -73,6 +73,8 @@ api_app.include_router(admin_document_submissions.router, prefix="/admin/documen
 api_app.include_router(admin_users.router, prefix="/admin/users", tags=["Admin Users Management"])
 
 api_app.include_router(admin_vendor_applications.router, prefix="/admin/vendor", tags=["Admin Vendor Applications"])
+
+api_app.include_router(admin_vendor_reports.router, prefix="/admin/vendor", tags=["Admin Vendor Reports"])
 
 # vendor api
 api_app.include_router(vendor_carts.router, prefix="/vendor/carts", tags=["Vendor Carts Detection"])

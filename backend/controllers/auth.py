@@ -382,6 +382,7 @@ async def google_login(
     Handle Google OAuth login - using Pydantic models
     """
     try:
+        logger.info(f"Google login attempt - email: {email}, name: {name}, givenName: {givenName}, familyName: {familyName}")
         email = email.lower().strip()
         
         # Check if user already exists
@@ -482,7 +483,9 @@ async def google_login(
         logger.error(f"HTTPException in google_login: {str(e)}")
         raise e
     except Exception as e:
+        import traceback
         logger.error(f"Error in google_login: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
     
 
