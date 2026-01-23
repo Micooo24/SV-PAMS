@@ -5,6 +5,7 @@ from controllers.document_submissions import (
     get_submission_by_id,
 )
 from utils.utils import get_current_user
+from typing import List
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -16,15 +17,18 @@ router = APIRouter()
 
 @router.post("/upload")
 async def user_submit_document(
-    file: UploadFile = File(...),
+    # CHANGE 1: Accept a LIST of files
+    files: List[UploadFile] = File(...), 
+    
     base_document_id: str = Form(...),
     notes: str = Form(""),
     current_user: dict = Depends(get_current_user)
 ):
     """User submits document for comparison"""
     try:
+        # CHANGE 2: Pass the list to the 'files' argument
         result = await submit_document(
-            file=file,
+            files=files,  # <--- MUST match the argument name in your function
             base_document_id=base_document_id,
             notes=notes,
             current_user=current_user

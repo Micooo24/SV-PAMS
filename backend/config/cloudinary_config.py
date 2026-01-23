@@ -23,6 +23,8 @@ IMAGE_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff"]
 DOCUMENT_FORMATS = ["pdf", "doc", "docx", "txt"]
 
 
+
+
 #Upload file accept image fomats and document formats
 def upload_file(file, folder="uploads"):
     """ 
@@ -61,20 +63,25 @@ def upload_file(file, folder="uploads"):
             )
         
         # Determine resource type
-        # PDFs are often better handled as 'auto' or 'image' if you want page previews, 
-        # but 'raw' is safer for general document storage.
         if file_extension in IMAGE_FORMATS:
             resource_type = "image"
         else:
-            resource_type = "raw" # Use 'auto' if you want Cloudinary to detect PDFs as images
+            resource_type = "raw"
+        
+        # Build upload parameters
+        upload_params = {
+            "folder": folder,
+            "resource_type": resource_type
+        }
+        
+        # For documents (PDFs, etc.), preserve the file extension
+        if resource_type == "raw":
+            upload_params["format"] = file_extension
         
         # Upload to Cloudinary
         response = cloudinary.uploader.upload(
             file.file,
-            folder=folder,
-            resource_type=resource_type,
-            # Note: allowed_formats is often strictly for 'image' types in some SDK versions; 
-            # validating manually above is safer for mixed types.
+            **upload_params
         )
         
         return response.get("secure_url")
@@ -83,6 +90,8 @@ def upload_file(file, folder="uploads"):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+
 
 def upload_image_cart(image_bytes: bytes, folder="uploads"):
     """
