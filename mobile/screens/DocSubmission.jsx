@@ -10,18 +10,20 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Image,
-  RefreshControl
+  RefreshControl,
+  FlatList
 } from 'react-native';
-import { IconButton, Button, Card, Menu, Divider } from 'react-native-paper';
+import { IconButton, Button, Card, Menu, Divider, Chip } from 'react-native-paper';
 import * as DocumentPicker from 'expo-document-picker'; 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { useGlobalFonts } from '../hooks/font';
 import BASE_URL from '../common/baseurl.js';
+import {styles} from '../styles/docSubmission';
 
 const DocSubmission = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]); // Changed to array
   const [uploading, setUploading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
   const [submissions, setSubmissions] = useState([]);
@@ -39,32 +41,30 @@ const DocSubmission = ({ navigation }) => {
     fetchBaseDocuments();
   }, []);
 
-const fetchBaseDocuments = async () => {
-  try {
-    setLoadingBaseDocuments(true);
-    const response = await axios.get(`${BASE_URL}/api/admin/base-documents/active`);
-    
-    if (response.data.active_documents) {
-      // Filter only permits category from the active documents
-      const activePermitDocuments = response.data.active_documents.filter(
-        doc => doc.category === 'permits'
-      );
-      setBaseDocuments(activePermitDocuments);
+  const fetchBaseDocuments = async () => {
+    try {
+      setLoadingBaseDocuments(true);
+      const response = await axios.get(`${BASE_URL}/api/admin/base-documents/active`);
       
-      // Auto-select first document if available
-      if (activePermitDocuments.length > 0) {
-        setSelectedBaseDocument(activePermitDocuments[0]);
+      if (response.data.active_documents) {
+        const activePermitDocuments = response.data.active_documents.filter(
+          doc => doc.category === 'permits'
+        );
+        setBaseDocuments(activePermitDocuments);
+        
+        if (activePermitDocuments.length > 0) {
+          setSelectedBaseDocument(activePermitDocuments[0]);
+        }
       }
+    } catch (error) {
+      console.error('Error fetching base documents:', error);
+      Alert.alert('Error', 'Failed to load permit templates');
+    } finally {
+      setLoadingBaseDocuments(false);
     }
-  } catch (error) {
-    console.error('Error fetching base documents:', error);
-    Alert.alert('Error', 'Failed to load permit templates');
-  } finally {
-    setLoadingBaseDocuments(false);
-  }
-};
+  };
 
-const fetchSubmissions = async () => {
+  const fetchSubmissions = async () => {
     try {
       setLoadingSubmissions(true);
       const token = await AsyncStorage.getItem('access_token');
@@ -99,7 +99,7 @@ const fetchSubmissions = async () => {
 
   if (!fontsLoaded) return null;
 
-  const pickDocument = async () => {
+  const pickDocuments = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: [
@@ -109,7 +109,7 @@ const fetchSubmissions = async () => {
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ],
         copyToCacheDirectory: true,
-        multiple: false,
+        multiple: true, // Changed to true
       });
 
       if (result.canceled) {
@@ -117,31 +117,48 @@ const fetchSubmissions = async () => {
         return;
       }
 
-      const file = result.assets[0];
-      console.log('Document picked:', file);
+      // Handle multiple files
+      const validFiles = [];
+      const invalidFiles = [];
 
-      if (file.size > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Please select a file smaller than 10MB');
-        return;
+      for (const file of result.assets) {
+        if (file.size > 10 * 1024 * 1024) {
+          invalidFiles.push(file.name);
+        } else {
+          validFiles.push({
+            uri: file.uri,
+            name: file.name,
+            type: file.mimeType,
+            size: file.size,
+          });
+        }
       }
 
-      setSelectedFile({
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType,
-        size: file.size,
-      });
-      setSubmissionResult(null);
+      if (invalidFiles.length > 0) {
+        Alert.alert(
+          'Files Too Large', 
+          `The following files exceed 10MB:\n${invalidFiles.join('\n')}`
+        );
+      }
+
+      if (validFiles.length > 0) {
+        setSelectedFiles(prevFiles => [...prevFiles, ...validFiles]);
+        setSubmissionResult(null);
+      }
 
     } catch (error) {
       console.error('DocumentPicker Error:', error);
-      Alert.alert('Error', 'Failed to pick document: ' + error.message);
+      Alert.alert('Error', 'Failed to pick documents: ' + error.message);
     }
   };
 
-  const submitDocument = async () => {
-    if (!selectedFile) {
-      Alert.alert('No File Selected', 'Please select a document first');
+  const removeFile = (index) => {
+    setSelectedFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+  };
+
+  const submitDocuments = async () => {
+    if (selectedFiles.length === 0) {
+      Alert.alert('No Files Selected', 'Please select at least one document');
       return;
     }
 
@@ -161,19 +178,22 @@ const fetchSubmissions = async () => {
       }
 
       const formData = new FormData();
-      formData.append('file', {
-        uri: selectedFile.uri,
-        type: selectedFile.type,
-        name: selectedFile.name,
+      
+      // Append multiple files
+      selectedFiles.forEach((file) => {
+        formData.append('files', {
+          uri: file.uri,
+          type: file.type,
+          name: file.name,
+        });
       });
-      // Use the selected base document's _id instead of hardcoded value
+
       formData.append('base_document_id', selectedBaseDocument._id);
       formData.append('notes', 'Submitted via mobile app');
 
-      console.log('Uploading document...', {
-        name: selectedFile.name,
-        type: selectedFile.type,
-        size: selectedFile.size,
+      console.log('Uploading documents...', {
+        fileCount: selectedFiles.length,
+        files: selectedFiles.map(f => ({ name: f.name, size: f.size })),
         baseDocumentId: selectedBaseDocument._id,
         baseDocumentTitle: selectedBaseDocument.title
       });
@@ -186,7 +206,7 @@ const fetchSubmissions = async () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
-          timeout: 60000,
+          timeout: 120000, // Increased timeout for multiple files
         }
       );
 
@@ -197,10 +217,11 @@ const fetchSubmissions = async () => {
         fetchSubmissions();
         Alert.alert(
           'Success',
-          `Document submitted successfully!\nStatus: ${response.data.submission.status}`
+          `${selectedFiles.length} document(s) submitted successfully!\nStatus: ${response.data.submission.status}`
         );
+        setSelectedFiles([]); // Clear files after successful upload
       } else {
-        Alert.alert('Error', response.data.error || 'Failed to submit document');
+        Alert.alert('Error', response.data.error || 'Failed to submit documents');
       }
 
     } catch (error) {
@@ -224,8 +245,6 @@ const fetchSubmissions = async () => {
     }
   };
 
-  
-  
   const getStatusDisplay = (status) => {
     const statusMap = {
       approved: { color: '#10b981', icon: 'check-circle', text: 'Approved' },
@@ -261,37 +280,54 @@ const fetchSubmissions = async () => {
     return 'file';
   };
 
-  const renderFilePreview = () => {
-    if (!selectedFile) return null;
-
-    const isImage = selectedFile.type?.includes('image');
+  const renderFileItem = ({ item, index }) => {
+    const isImage = item.type?.includes('image');
 
     return (
       <View style={styles.fileCard}>
         {isImage ? (
-          <Image source={{ uri: selectedFile.uri }} style={styles.previewImage} />
+          <Image source={{ uri: item.uri }} style={styles.previewImage} />
         ) : (
           <View style={styles.fileIconContainer}>
             <IconButton 
-              icon={getFileIcon(selectedFile.type)} 
+              icon={getFileIcon(item.type)} 
               iconColor="#2563eb" 
               size={32} 
             />
           </View>
         )}
         <View style={styles.fileInfo}>
-          <Text style={styles.fileLabel}>Selected File:</Text>
-          <Text style={styles.fileName} numberOfLines={2}>{selectedFile.name}</Text>
-          <Text style={styles.fileSize}>{formatFileSize(selectedFile.size)}</Text>
+          <Text style={styles.fileName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.fileSize}>{formatFileSize(item.size)}</Text>
         </View>
         <IconButton 
           icon="close" 
           iconColor="#ef4444" 
           size={20} 
-          onPress={() => {
-            setSelectedFile(null);
-            setSubmissionResult(null);
-          }} 
+          onPress={() => removeFile(index)} 
+        />
+      </View>
+    );
+  };
+
+  const renderFilesPreview = () => {
+    if (selectedFiles.length === 0) return null;
+
+    return (
+      <View style={styles.filesContainer}>
+        <View style={styles.filesHeader}>
+          <Text style={styles.filesHeaderText}>
+            Selected Files ({selectedFiles.length})
+          </Text>
+          <TouchableOpacity onPress={() => setSelectedFiles([])}>
+            <Text style={styles.clearAllText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+        <FlatList
+          data={selectedFiles}
+          renderItem={renderFileItem}
+          keyExtractor={(item, index) => index.toString()}
+          scrollEnabled={false}
         />
       </View>
     );
@@ -312,12 +348,12 @@ const fetchSubmissions = async () => {
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>SV</Text>
           </View>
-          <Text style={styles.title}>Submit Document</Text>
-          <Text style={styles.subtitle}>Upload and track your status of application</Text>
+          <Text style={styles.title}>Submit Documents</Text>
+          <Text style={styles.subtitle}>Upload multiple documents and track your application status</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Upload Document</Text>
+          <Text style={styles.sectionTitle}>Upload Documents</Text>
           
           {/* Base Document Selection */}
           <View style={styles.templateSection}>
@@ -360,33 +396,34 @@ const fetchSubmissions = async () => {
             )}
           </View>
           
-          <TouchableOpacity onPress={pickDocument} style={styles.uploadButton} disabled={uploading}>
+          <TouchableOpacity onPress={pickDocuments} style={styles.uploadButton} disabled={uploading}>
             <IconButton icon="file-upload" iconColor="#2563eb" size={32} />
             <Text style={styles.uploadButtonText}>
-              {selectedFile ? 'Change Document' : 'Select Document'}
+              {selectedFiles.length > 0 ? 'Add More Documents' : 'Select Documents'}
             </Text>
             <Text style={styles.uploadHelpText}>
-              Supports: Images, PDF, Word documents (Max 10MB)
+              Supports: Images, PDF, Word documents (Max 10MB each)
             </Text>
           </TouchableOpacity>
 
-          {renderFilePreview()}
+          {renderFilesPreview()}
 
-          {selectedFile && !submissionResult && selectedBaseDocument && (
+          {selectedFiles.length > 0 && !submissionResult && selectedBaseDocument && (
             <Button 
               mode="contained" 
               style={styles.submitButton} 
-              onPress={submitDocument} 
+              onPress={submitDocuments} 
               disabled={uploading}
             >
-              {uploading ? 'Submitting...' : 'Submit Document'}
+              {uploading ? 'Submitting...' : `Submit ${selectedFiles.length} Document(s)`}
             </Button>
           )}
 
           {uploading && (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#2563eb" />
-              <Text style={styles.loadingText}>Analyzing document with AI...</Text>
+              <Text style={styles.loadingText}>Uploading {selectedFiles.length} document(s)...</Text>
+              <Text style={styles.loadingSubtext}>This may take a moment</Text>
             </View>
           )}
 
@@ -410,26 +447,11 @@ const fetchSubmissions = async () => {
                 </Text>
               </View>
 
-              <View style={styles.detailsContainer}>
-                <Text style={styles.detailsTitle}>Comparison Details</Text>
-                
-                {['text_similarity', 'label_similarity', 'object_similarity'].map((key) => (
-                  <View key={key} style={styles.detailRow}>
-                    <Text style={styles.detailText}>
-                      {key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </Text>
-                    <Text style={styles.detailValue}>
-                      {submissionResult.comparison_details[key]}%
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
               <Button mode="text" style={styles.resetButton} onPress={() => {
-                setSelectedFile(null);
+                setSelectedFiles([]);
                 setSubmissionResult(null);
               }}>
-                Submit Another Document
+                Submit More Documents
               </Button>
             </View>
           )}
@@ -453,12 +475,17 @@ const fetchSubmissions = async () => {
               <Card.Content>
                 <IconButton icon="file-document-outline" iconColor="#94a3b8" size={48} />
                 <Text style={styles.emptyText}>No submissions yet</Text>
-                <Text style={styles.emptySubtext}>Upload a document to get started</Text>
+                <Text style={styles.emptySubtext}>Upload documents to get started</Text>
               </Card.Content>
             </Card>
           ) : (
             submissions.map((sub) => {
               const statusDisplay = getStatusDisplay(sub.status);
+              // Handle both single filename (string) and multiple filenames (array)
+              const displayFilename = Array.isArray(sub.filename) 
+                ? `${sub.filename.length} file(s)` 
+                : sub.filename;
+              
               return (
                 <Card key={sub._id} style={styles.submissionCard}>
                   <Card.Content>
@@ -466,7 +493,7 @@ const fetchSubmissions = async () => {
                       <View style={styles.submissionTitleRow}>
                         <IconButton icon={statusDisplay.icon} iconColor={statusDisplay.color} size={24} />
                         <View style={styles.submissionInfo}>
-                          <Text style={styles.submissionTitle}>{sub.filename}</Text>
+                          <Text style={styles.submissionTitle}>{displayFilename}</Text>
                           <Text style={styles.submissionDate}>{formatDate(sub.submitted_at)}</Text>
                         </View>
                       </View>
@@ -500,125 +527,5 @@ const fetchSubmissions = async () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#fff' },
-  container: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
-  header: { alignItems: 'center', paddingTop: 40, paddingBottom: 20 },
-  logoCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#2563eb', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  logoText: { fontSize: 32, fontFamily: 'Poppins-Bold', color: '#fff' },
-  title: { fontSize: 36, fontFamily: 'Poppins-Bold', color: '#1e293b', marginBottom: 8 },
-  subtitle: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b', textAlign: 'center' },
-  section: { paddingHorizontal: 24, paddingTop: 32 },
-  sectionTitle: { fontSize: 22, fontFamily: 'Poppins-Bold', color: '#1e293b', marginBottom: 16 },
-  
-  // New styles for template selection
-  templateSection: { marginBottom: 20 },
-  templateLabel: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#1e293b', marginBottom: 8 },
-  templateSelector: {
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
-  templateSelectorContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  templateSelectorText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#1e293b',
-    flex: 1,
-  },
-  loadingTemplate: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-  },
-  loadingTemplateText: {
-    fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: '#64748b',
-    marginLeft: 8,
-  },
-  
-  statusHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  uploadButton: { 
-    borderWidth: 2, 
-    borderColor: '#2563eb', 
-    borderRadius: 12, 
-    borderStyle: 'dashed', 
-    paddingVertical: 32, 
-    alignItems: 'center', 
-    backgroundColor: '#f8fafc' 
-  },
-  uploadButtonText: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#2563eb', marginTop: 8 },
-  uploadHelpText: { 
-    fontSize: 12, 
-    fontFamily: 'Poppins-Regular', 
-    color: '#94a3b8', 
-    marginTop: 4,
-    textAlign: 'center',
-    paddingHorizontal: 16
-  },
-  fileCard: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#f1f5f9', 
-    borderRadius: 12, 
-    padding: 12, 
-    marginTop: 16 
-  },
-  previewImage: { width: 60, height: 60, borderRadius: 8, marginRight: 12 },
-  fileIconContainer: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 8, 
-    backgroundColor: '#e2e8f0', 
-    justifyContent: 'center', 
-    alignItems: 'center',
-    marginRight: 12 
-  },
-  fileInfo: { flex: 1 },
-  fileLabel: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#64748b' },
-  fileName: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#1e293b', marginTop: 2 },
-  fileSize: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#94a3b8', marginTop: 2 },
-  submitButton: { backgroundColor: '#2563eb', borderRadius: 12, marginTop: 16 },
-  loadingContainer: { alignItems: 'center', paddingVertical: 32 },
-  loadingText: { marginTop: 16, fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b' },
-  resultCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginTop: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-  resultHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  statusText: { fontSize: 20, fontFamily: 'Poppins-Bold', marginLeft: 8 },
-  scoreContainer: { alignItems: 'center', paddingVertical: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#e2e8f0' },
-  scoreLabel: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b', marginBottom: 8 },
-  scoreValue: { fontSize: 48, fontFamily: 'Poppins-Bold' },
-  detailsContainer: { paddingTop: 20 },
-  detailsTitle: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#1e293b', marginBottom: 12 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 },
-  detailText: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b' },
-  detailValue: { fontSize: 16, fontFamily: 'Poppins-Bold', color: '#1e293b' },
-  resetButton: { marginTop: 16 },
-  emptyCard: { backgroundColor: '#f8fafc', borderRadius: 12, alignItems: 'center', paddingVertical: 32 },
-  emptyText: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#64748b', marginTop: 8 },
-  emptySubtext: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#94a3b8', marginTop: 4 },
-  submissionCard: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 12, elevation: 2 },
-  submissionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-  submissionTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  submissionInfo: { flex: 1, marginLeft: 8 },
-  submissionTitle: { fontSize: 16, fontFamily: 'Poppins-SemiBold', color: '#1e293b' },
-  submissionDate: { fontSize: 12, fontFamily: 'Poppins-Regular', color: '#94a3b8', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeText: { fontSize: 12, fontFamily: 'Poppins-SemiBold' },
-  submissionDetails: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 12 },
-  submissionDetailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  submissionDetailLabel: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b' },
-  submissionDetailValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#1e293b' },
-});
 
 export default DocSubmission;
