@@ -1,5 +1,5 @@
 from config.db import db
-from config.cloudinary_config import upload_image
+from config.cloudinary_config import upload_file
 from models.base_documents import DocumentCategory
 from datetime import datetime
 from bson import ObjectId
@@ -19,7 +19,7 @@ async def upload_base_document(file, title: str, category: str, description: str
             }
         
         # Upload to Cloudinary
-        file_url = upload_image(file, folder="base_documents")
+        file_url = upload_file(file, folder="base_documents")
         
         # Create document
         base_doc_dict = {

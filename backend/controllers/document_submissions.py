@@ -1,8 +1,11 @@
 from config.db import db
-from config.cloudinary_config import upload_image
+from config.cloudinary_config import upload_file
 from datetime import datetime
 from bson import ObjectId
 import logging
+from fastapi import UploadFile
+from typing import List
+import numpy as np # Required for calculating average
 
 from utils.document_comparison import compare_documents_with_vision
 from models.document_submissions import DocumentSubmission, SubmissionStatus
@@ -10,8 +13,9 @@ from models.document_submissions import DocumentSubmission, SubmissionStatus
 logger = logging.getLogger(__name__)
 
 
-async def submit_document(file, base_document_id: str, notes: str, current_user: dict):
-    """Submit user document for comparison with bounding box analysis"""
+#   Upload file accept image fomats and document formats
+async def submit_document(files: List[UploadFile], base_document_id: str, notes: str, current_user: dict):
+    """Submit multiple user documents for comparison with bounding box analysis"""
     try:
         user_id = current_user["_id"]
         base_doc_oid = ObjectId(base_document_id)
@@ -27,94 +31,118 @@ async def submit_document(file, base_document_id: str, notes: str, current_user:
         if not base_doc:
             return {"success": False, "error": "Base document not found"}
         
-        # Upload user file to Cloudinary (ORIGINAL)
-        logger.info(f"Uploading user document to Cloudinary...")
-        user_file_url_original = upload_image(file, folder="user_submissions")
-        logger.info(f"User document uploaded: {user_file_url_original}")
+        # --- INITIALIZE LISTS TO STORE RESULTS ---
+        filenames = []
+        file_types = []
+        file_urls_original = []
+        file_urls_processed = []
         
-        # USE GOOGLE VISION API FOR COMPARISON WITH BOUNDING BOXES
-        logger.info(f"Starting document comparison with Google Vision API...")
-        comparison_result = await compare_documents_with_vision(
-            base_url=base_doc["file_url"],
-            user_url=user_file_url_original
-        )
-        
-        # Handle comparison failure
-        if not comparison_result["success"]:
-            logger.error(f"Comparison failed: {comparison_result.get('error')}")
-            similarity = 0.0
-            comparison_details = {
-                "text_similarity": 0.0,
-                "layout_similarity": 0.0,
-                "object_similarity": 0.0,
-                "label_similarity": 0.0
-            }
-            spatial_analysis = {}
-            bounding_boxes = {}
-            user_file_url_processed = None
-        else:
-            similarity = comparison_result["similarity_percentage"]
-            comparison_details = comparison_result["details"]
-            spatial_analysis = comparison_result.get("spatial_analysis", {})
-            bounding_boxes = comparison_result.get("bounding_boxes", {})
-            user_file_url_processed = comparison_result.get("processed_images", {}).get("user_processed_url")
-            logger.info(f"Comparison successful: {similarity}%")
-        
-        # Determine status based on similarity
-        if similarity >= 90:
+        all_similarities = []
+        all_comparison_details = []
+        all_spatial_analysis = []
+        all_bounding_boxes = []
+
+        # --- LOOP THROUGH EACH FILE ---
+        logger.info(f"Processing {len(files)} files for user {user['email']}...")
+
+        for file in files:
+            # 1. Capture Metadata
+            filenames.append(file.filename)
+            file_types.append(file.content_type)
+
+            # 2. Upload SINGLE file to Cloudinary
+            # We call upload_file() for the current item in the loop
+            logger.info(f"Uploading file: {file.filename}")
+            try:
+                uploaded_url = upload_file(file, folder="user_submissions")
+                file_urls_original.append(uploaded_url)
+            except Exception as upload_error:
+                logger.error(f"Upload failed for {file.filename}: {upload_error}")
+                return {"success": False, "error": f"Upload failed for {file.filename}"}
+
+            # 3. Compare SINGLE file using Vision API
+            logger.info(f"Comparing {file.filename} with Vision API...")
+            comparison_result = await compare_documents_with_vision(
+                base_url=base_doc["file_url"],
+                user_url=uploaded_url
+            )
+
+            # 4. Append Results to Lists
+            if comparison_result["success"]:
+                all_similarities.append(comparison_result["similarity_percentage"])
+                all_comparison_details.append(comparison_result["details"])
+                all_spatial_analysis.append(comparison_result.get("spatial_analysis", {}))
+                all_bounding_boxes.append(comparison_result.get("bounding_boxes", {}))
+                
+                # Get the processed image URL (if exists)
+                processed_url = comparison_result.get("processed_images", {}).get("user_processed_url")
+                file_urls_processed.append(processed_url)
+            else:
+                # Handle failure for this specific file (0 score)
+                logger.warning(f"Comparison failed for {file.filename}: {comparison_result.get('error')}")
+                all_similarities.append(0.0)
+                all_comparison_details.append({})
+                all_spatial_analysis.append({})
+                all_bounding_boxes.append({})
+                file_urls_processed.append(None)
+
+        # --- CALCULATE FINAL STATUS ---
+        # We use the average of all pages/files to determine if the submission is approved
+        avg_similarity = float(np.mean(all_similarities)) if all_similarities else 0.0
+
+        if avg_similarity >= 90:
             status = SubmissionStatus.approved
-        elif similarity >= 70:
+        elif avg_similarity >= 70:
             status = SubmissionStatus.needs_review
         else:
             status = SubmissionStatus.rejected
         
-        # Create submission using Pydantic model
+        # --- CREATE SUBMISSION OBJECT (Now using Lists) ---
         submission = DocumentSubmission(
             user_id=user_oid,
             base_document_id=base_doc_oid,
             base_document_title=base_doc["title"],
             base_document_category=base_doc.get("category", "general"),
-            filename=file.filename,
-            file_type=file.content_type,
-            file_url_original=user_file_url_original,
-            file_url_processed=user_file_url_processed,
+            
+            # These are now correctly passed as Lists
+            filename=filenames,
+            file_type=file_types,
+            file_url_original=file_urls_original,
+            file_url_processed=file_urls_processed,
+            
             notes=notes,
-            similarity_percentage=similarity,
+            similarity_percentage=avg_similarity, # Average score
             status=status,
-            comparison_details=comparison_details,
-            spatial_analysis=spatial_analysis,
-            bounding_boxes=bounding_boxes,
+            
+            # These fields now contain Lists of Dictionaries
+            comparison_details={
+                "average_similarity": avg_similarity,
+                "file_breakdown": all_comparison_details
+            },
+            spatial_analysis=all_spatial_analysis,
+            bounding_boxes=all_bounding_boxes,
+            
             submitted_at=datetime.now(),
             reviewed_at=None,
             reviewed_by=None,
             admin_notes=None
         )
         
-        # Convert to dict for MongoDB insertion
-        submission_dict = submission.dict(by_alias=True)
-        
         # Insert into MongoDB
+        submission_dict = submission.dict(by_alias=True)
         result = db["document_submissions"].insert_one(submission_dict)
         
-        logger.info(f"Document submitted by user {user['email']}: {status.value} ({similarity}%)")
+        logger.info(f"Document submitted: {status.value} ({avg_similarity}%)")
         
         return {
             "success": True,
             "submission": {
                 "_id": str(result.inserted_id),
                 "user_email": user["email"],
-                "user_name": f"{user['firstname']} {user['lastname']}",
-                "base_document_title": base_doc["title"],
-                "base_document_category": base_doc.get("category", "general"),
-                "filename": file.filename,
-                "file_url_original": user_file_url_original,
-                "file_url_processed": user_file_url_processed,
+                "filename": filenames,
+                "file_count": len(files),
                 "status": status.value,
-                "similarity_percentage": similarity,
-                "comparison_details": comparison_details,
-                "spatial_analysis": spatial_analysis,
-                "bounding_boxes": bounding_boxes,
-                "submitted_at": submission.submitted_at.isoformat()
+                "similarity_percentage": avg_similarity
             }
         }
     

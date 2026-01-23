@@ -15,7 +15,7 @@ import config.cloudinary_config
 import requests
 
 # Image Requirements
-from config.cloudinary_config import upload_image, MAX_FILE_SIZE
+from config.cloudinary_config import upload_file, MAX_FILE_SIZE
 
 # bcrypt
 import bcrypt

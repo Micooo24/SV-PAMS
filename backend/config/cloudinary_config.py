@@ -22,18 +22,20 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 IMAGE_FORMATS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff"]
 DOCUMENT_FORMATS = ["pdf", "doc", "docx", "txt"]
 
-def upload_image(image_file, folder="uploads"):
+
+#Upload file accept image fomats and document formats
+def upload_file(file, folder="uploads"):
     """ 
-    Uploads an image/document to Cloudinary with size validation.
+    Uploads an image or document to Cloudinary with size validation.
     Args:
-        image_file: UploadFile object from FastAPI
+        file: UploadFile object from FastAPI
         folder: Cloudinary folder name
     Returns:
         Secure URL of uploaded file
     """
     try:
         # Read file content
-        file_content = image_file.file.read()
+        file_content = file.file.read()
         file_size = len(file_content)
         
         # Validate file size
@@ -45,10 +47,10 @@ def upload_image(image_file, folder="uploads"):
             )
         
         # Reset file pointer to beginning
-        image_file.file.seek(0)
+        file.file.seek(0)
         
         # Get file extension
-        file_extension = image_file.filename.split('.')[-1].lower()
+        file_extension = file.filename.split('.')[-1].lower()
         
         # Validate file format
         all_formats = IMAGE_FORMATS + DOCUMENT_FORMATS
@@ -59,14 +61,20 @@ def upload_image(image_file, folder="uploads"):
             )
         
         # Determine resource type
-        resource_type = "image" if file_extension in IMAGE_FORMATS else "raw"
+        # PDFs are often better handled as 'auto' or 'image' if you want page previews, 
+        # but 'raw' is safer for general document storage.
+        if file_extension in IMAGE_FORMATS:
+            resource_type = "image"
+        else:
+            resource_type = "raw" # Use 'auto' if you want Cloudinary to detect PDFs as images
         
         # Upload to Cloudinary
         response = cloudinary.uploader.upload(
-            image_file.file,
+            file.file,
             folder=folder,
             resource_type=resource_type,
-            allowed_formats=all_formats
+            # Note: allowed_formats is often strictly for 'image' types in some SDK versions; 
+            # validating manually above is safer for mixed types.
         )
         
         return response.get("secure_url")
@@ -75,7 +83,6 @@ def upload_image(image_file, folder="uploads"):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
-    
 
 def upload_image_cart(image_bytes: bytes, folder="uploads"):
     """
