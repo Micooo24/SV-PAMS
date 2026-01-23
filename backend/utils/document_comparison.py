@@ -257,6 +257,8 @@ async def compare_documents_with_vision(base_url: str, user_url: str) -> dict:
         }
 
 
+
+# These functions would be modify 
 def calculate_text_similarity(text1: str, text2: str) -> float:
     if not text1 or not text2:
         return 0.0

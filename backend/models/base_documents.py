@@ -6,11 +6,14 @@ from enum import Enum
 class DocumentCategory(str, Enum):
     permits = "permits"
     clearances = "clearances"
-    certificates = "certificates"
-    requirements = "requirements"
+    general = "general"
+    
+    # Modify these categories later on
     ids = "ids"
     licenses = "licenses"
-    general = "general"
+    certificates = "certificates"
+    requirements = "requirements"
+    
 
 class BaseDocument(BaseModel):
     title: str
