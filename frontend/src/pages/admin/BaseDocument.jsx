@@ -3,10 +3,10 @@ import { Box, Button } from "@mui/material";
 import { Sort } from "@mui/icons-material";
 import toast from "react-hot-toast"; 
 import Sidebar from "../../components/Sidebar";
-import DashboardHeader from "../../components/admin/DashboardHeader";
-import DocumentTable from "../../components/admin/DocumentTable";
-import DocumentUploadModal from "../../components/admin/DocumentUploadModal";
-import DocumentEditModal from "../../components/admin/DocumentEditModal";
+import DashboardHeader from "../../components/admin_base_document/DashboardHeader";
+import DocumentTable from "../../components/admin_base_document/DocumentTable";
+import DocumentUploadModal from "../../components/admin_base_document/DocumentUploadModal";
+import DocumentEditModal from "../../components/admin_base_document/DocumentEditModal";
 import useDocuments from "../../hooks/useDocuments";
 
 export default function AdminDashboard({ onLogout }) {
@@ -80,14 +80,14 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
-  // ✅ NEW: Handle update with toast
+  // Handle update with toast
   const handleUpdate = async (documentId, formData) => {
     const updatePromise = updateDocument(documentId, formData);
     
     toast.promise(updatePromise, {
       loading: 'Updating document...',
-      success: 'Document updated successfully! ✏️',
-      error: 'Failed to update document ❌'
+      success: 'Document updated successfully!',
+      error: 'Failed to update document'
     });
 
     try {
@@ -99,7 +99,7 @@ export default function AdminDashboard({ onLogout }) {
     }
   };
 
-  // ✅ NEW: Handle sort by date
+  // Handle sort by date
   const handleSortByDate = () => {
     const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
     setSortOrder(newOrder);
@@ -147,7 +147,7 @@ export default function AdminDashboard({ onLogout }) {
       <main style={styles.main}>
         <DashboardHeader onLogout={onLogout} onUpload={() => setOpenUploadModal(true)} />
         
-        {/* ✅ NEW: Sort Button */}
+        {/* Sort Button */}
         <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="outlined"
