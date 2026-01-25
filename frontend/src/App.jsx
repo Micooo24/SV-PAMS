@@ -67,61 +67,58 @@ function App() {
   return (
     <Router>
       {/*  ADD TOASTER COMPONENT AT TOP LEVEL */}
-      <Toaster
-          position="top-right"
+          <Toaster
+          position="top-right"  
           reverseOrder={false}
-          gutter={8}
+          gutter={12} // Increased spacing for a cleaner look
           containerStyle={{
-            top: 20,
+            top: 40,
             right: 20,
           }}
           toastOptions={{
             duration: 4000,
+            // Default Base Style
             style: {
-              background: "#363636",
-              color: "#000000",
+              background: "#1f2937", // Slate-800: Much more professional than #363636
+              color: "#f9fafb",      // Off-white: Easier on the eyes than pure black or white
               fontSize: "14px",
               fontWeight: 500,
-              padding: "16px",
-              borderRadius: "100px", // Changed from 8px to 12px for more rounded edges
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+              padding: "12px 24px",
+              borderRadius: "12px",
+              maxWidth: "400px",
+              border: "1px solid rgba(255, 255, 255, 0.1)", // Subtle border for depth
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
             },
             success: {
               duration: 3000,
               iconTheme: {
                 primary: "#10b981",
-                secondary: "#fff",
+                secondary: "#ffffff",
               },
               style: {
-                background: "#10b981",
-                color: "#000000",
-                borderRadius: "12px", // Added for consistency
+                // Keep the dark background but accent with a colored border
+                borderLeft: "4px solid #10b981", 
               },
             },
             error: {
-              duration: 4000,
+              duration: 5000,
               iconTheme: {
                 primary: "#ef4444",
-                secondary: "#fff",
+                secondary: "#ffffff",
               },
               style: {
-                background: "#ef4444",
-                color: "#000000",
-                borderRadius: "12px", // Added for consistency
+                borderLeft: "4px solid #ef4444",
               },
             },
             loading: {
-              iconTheme: {
-                primary: "#3b82f6",
-                secondary: "#fff",
-              },
               style: {
-                borderRadius: "12px", // Added for consistency
+                background: "#1f2937",
+                color: "#f9fafb",
               },
             },
           }}
         />
-
+        
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
