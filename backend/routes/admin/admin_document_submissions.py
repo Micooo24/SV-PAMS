@@ -1,7 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from controllers.admin.admin_document_submissions import (
     get_submission_by_id,
-    get_all_submissions
+    get_all_submissions,
+    delete_submission 
 )
 from utils.utils import get_current_user
 import logging
@@ -50,4 +51,22 @@ async def admin_get_all_submissions():
         raise e
     except Exception as e:
         logger.error(f"Admin fetch error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# Admin Route to delete a document submission
+@router.delete("/delete/{submission_id}")
+async def admin_delete_submission(submission_id: str):
+    """Admin: Delete a document submission"""
+    try:
+        result = delete_submission(submission_id)
+        
+        if not result["success"]:
+            raise HTTPException(status_code=404, detail=result["error"])
+        
+        return {"message": result["message"]}
+    
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Delete error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

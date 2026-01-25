@@ -75,3 +75,40 @@ def get_all_submissions():
     except Exception as e:
         logger.error(f"Error fetching all submissions: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+# Delete submission (admin)
+def delete_submission(submission_id: str):
+    """Admin: Delete a document submission"""
+    try:
+        submission = db["document_submissions"].find_one({
+            "_id": ObjectId(submission_id)
+        })
+        
+        if not submission:
+            return {
+                "success": False,
+                "error": "Submission not found"
+            }
+        
+        # Delete the submission
+        result = db["document_submissions"].delete_one({
+            "_id": ObjectId(submission_id)
+        })
+        
+        if result.deleted_count == 0:
+            return {
+                "success": False,
+                "error": "Failed to delete submission"
+            }
+        
+        logger.info(f"Deleted submission {submission_id}")
+        
+        return {
+            "success": True,
+            "message": "Submission deleted successfully"
+        }
+    
+    except Exception as e:
+        logger.error(f"Error deleting submission: {str(e)}")
+        return {"success": False, "error": str(e)}
