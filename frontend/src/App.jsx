@@ -68,54 +68,59 @@ function App() {
     <Router>
       {/*  ADD TOASTER COMPONENT AT TOP LEVEL */}
       <Toaster
-        position="top-right"
-        reverseOrder={false}
-        gutter={8}
-        containerStyle={{
-          top: 20,
-          right: 20,
-        }}
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: "#363636",
-            color: "#fff",
-            fontSize: "14px",
-            fontWeight: 500,
-            padding: "16px",
-            borderRadius: "8px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
-          },
-          success: {
-            duration: 3000,
-            iconTheme: {
-              primary: "#10b981",
-              secondary: "#fff",
-            },
-            style: {
-              background: "#10b981",
-              color: "#fff",
-            },
-          },
-          error: {
+          position="top-right"
+          reverseOrder={false}
+          gutter={8}
+          containerStyle={{
+            top: 20,
+            right: 20,
+          }}
+          toastOptions={{
             duration: 4000,
-            iconTheme: {
-              primary: "#ef4444",
-              secondary: "#fff",
-            },
             style: {
-              background: "#ef4444",
-              color: "#fff",
+              background: "#363636",
+              color: "#000000",
+              fontSize: "14px",
+              fontWeight: 500,
+              padding: "16px",
+              borderRadius: "100px", // Changed from 8px to 12px for more rounded edges
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
             },
-          },
-          loading: {
-            iconTheme: {
-              primary: "#3b82f6",
-              secondary: "#fff",
+            success: {
+              duration: 3000,
+              iconTheme: {
+                primary: "#10b981",
+                secondary: "#fff",
+              },
+              style: {
+                background: "#10b981",
+                color: "#000000",
+                borderRadius: "12px", // Added for consistency
+              },
             },
-          },
-        }}
-      />
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: "#ef4444",
+                secondary: "#fff",
+              },
+              style: {
+                background: "#ef4444",
+                color: "#000000",
+                borderRadius: "12px", // Added for consistency
+              },
+            },
+            loading: {
+              iconTheme: {
+                primary: "#3b82f6",
+                secondary: "#fff",
+              },
+              style: {
+                borderRadius: "12px", // Added for consistency
+              },
+            },
+          }}
+        />
 
       <Routes>
         {/* Public Routes */}

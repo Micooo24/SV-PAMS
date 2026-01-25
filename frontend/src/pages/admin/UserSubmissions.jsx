@@ -9,13 +9,14 @@ import {
 } from "@mui/material";
 import { Sort } from "@mui/icons-material";
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 import Sidebar from "../../components/Sidebar";
 import useUserSubmissions from "../../hooks/useUserSubmissions";
 import SubmissionsTable from "../../components/user_submissions/SubmissionsTable";
 import DocumentModal from "../../components/user_submissions/DocumentModal";
 
 export default function UserSubmissions({ onLogout }) {
-  const { submissions, loading, error, setSubmissions } = useUserSubmissions();
+  const { submissions, loading, error, setSubmissions, deleteSubmission } = useUserSubmissions();
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -38,6 +39,46 @@ export default function UserSubmissions({ onLogout }) {
       duration: 2000
     });
   };
+
+  const handleDelete = async (submissionId) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      const deleteResult = await deleteSubmission(submissionId);
+      if (deleteResult.success) {
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Submission has been deleted.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+        // Adjust page if needed after deletion
+        const newTotalPages = Math.ceil((submissions.length - 1) / rowsPerPage);
+        if (page >= newTotalPages && page > 0) {
+          setPage(page - 1);
+        }
+      } else {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Failed to delete submission.',
+          icon: 'error',
+          confirmButtonColor: '#118df0'
+        });
+      }
+    }
+  };
+
 
   const handleViewImages = (submission) => {
     setSelectedSubmission(submission);
@@ -186,6 +227,7 @@ export default function UserSubmissions({ onLogout }) {
                 submissions={paginatedSubmissions}
                 onViewImages={handleViewImages}
                 getStatusColor={getStatusColor}
+                onDelete={handleDelete}
               />
 
               <TablePagination

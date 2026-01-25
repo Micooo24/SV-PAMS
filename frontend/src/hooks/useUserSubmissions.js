@@ -26,15 +26,29 @@ export default function useUserSubmissions() {
         }
     };
 
+    const deleteSubmission = async (submissionId) => {
+        try {
+            await usersubService.delete(submissionId);
+            // Remove the deleted submission from state
+            setSubmissions(prev => prev.filter(sub => sub._id !== submissionId));
+            return { success: true };
+        }
+        catch (err) {
+            console.error("Failed to delete submission:", err);
+            return { success: false, error: err.message };
+        }
+    };
+
     useEffect(() => {
         fetchSubmissions();
     }, []);
     
     return {
         submissions,
-        setSubmissions, // Export setter for sorting
+        setSubmissions,
         loading,    
         error,
-        fetchSubmissions
+        fetchSubmissions,
+        deleteSubmission
     };
 }

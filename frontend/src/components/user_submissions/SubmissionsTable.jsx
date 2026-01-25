@@ -11,12 +11,13 @@ import {
   IconButton,
   Tooltip
 } from "@mui/material";
-import { Visibility } from "@mui/icons-material";
+import { Visibility, Delete } from "@mui/icons-material";
 import { formatDate } from "../../utils/formatters";
 
 export default function SubmissionsTable({ 
   submissions, 
-  onViewImages, 
+  onViewImages,
+  onDelete,
   getStatusColor 
 }) {
   return (
@@ -97,6 +98,14 @@ export default function SubmissionsTable({
                       onClick={() => onViewImages(sub)}
                     >
                       <Visibility />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Delete Submission">
+                    <IconButton
+                      color="error"
+                      onClick={() => onDelete(sub._id)}
+                    >
+                      <Delete />
                     </IconButton>
                   </Tooltip>
                 </TableCell>
