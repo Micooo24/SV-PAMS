@@ -23,14 +23,13 @@ import {styles} from '../styles/docSubmission';
 
 const DocSubmission = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
-  const [selectedFiles, setSelectedFiles] = useState([]); // Changed to array
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   
-  // New state for base documents
   const [baseDocuments, setBaseDocuments] = useState([]);
   const [selectedBaseDocument, setSelectedBaseDocument] = useState(null);
   const [loadingBaseDocuments, setLoadingBaseDocuments] = useState(false);
@@ -109,7 +108,7 @@ const DocSubmission = ({ navigation }) => {
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         ],
         copyToCacheDirectory: true,
-        multiple: true, // Changed to true
+        multiple: true,
       });
 
       if (result.canceled) {
@@ -117,7 +116,6 @@ const DocSubmission = ({ navigation }) => {
         return;
       }
 
-      // Handle multiple files
       const validFiles = [];
       const invalidFiles = [];
 
@@ -179,7 +177,6 @@ const DocSubmission = ({ navigation }) => {
 
       const formData = new FormData();
       
-      // Append multiple files
       selectedFiles.forEach((file) => {
         formData.append('files', {
           uri: file.uri,
@@ -206,7 +203,7 @@ const DocSubmission = ({ navigation }) => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
-          timeout: 120000, // Increased timeout for multiple files
+          timeout: 120000,
         }
       );
 
@@ -215,11 +212,16 @@ const DocSubmission = ({ navigation }) => {
       if (response.data.submission) {
         setSubmissionResult(response.data.submission);
         fetchSubmissions();
+        
+        // ✅ FIX: Updated success message to show AI prediction
+        const confidenceScore = (response.data.submission.ai_confidence_score * 100).toFixed(1);
+        const predictionLabel = response.data.submission.ai_prediction_label === 1 ? 'Valid' : 'Invalid';
+        
         Alert.alert(
           'Success',
-          `${selectedFiles.length} document(s) submitted successfully!\nStatus: ${response.data.submission.status}`
+          `${selectedFiles.length} document(s) submitted successfully!\nStatus: ${response.data.submission.status}\nAI Prediction: ${predictionLabel} (${confidenceScore}%)`
         );
-        setSelectedFiles([]); // Clear files after successful upload
+        setSelectedFiles([]);
       } else {
         Alert.alert('Error', response.data.error || 'Failed to submit documents');
       }
@@ -248,7 +250,7 @@ const DocSubmission = ({ navigation }) => {
   const getStatusDisplay = (status) => {
     const statusMap = {
       approved: { color: '#10b981', icon: 'check-circle', text: 'Approved' },
-      needs_review: { color: '#f59e0b', icon: 'alert-circle', text: 'Needs Review' },
+      needs_review: { color: '#f59e0b', icon: 'alert-circle', text: 'Pending Review' },
       rejected: { color: '#ef4444', icon: 'close-circle', text: 'Rejected' },
     };
     return statusMap[status] || { color: '#6b7280', icon: 'help-circle', text: 'Unknown' };
@@ -355,7 +357,6 @@ const DocSubmission = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Upload Documents</Text>
           
-          {/* Base Document Selection */}
           <View style={styles.templateSection}>
             <Text style={styles.templateLabel}>Document Template:</Text>
             {loadingBaseDocuments ? (
@@ -427,6 +428,7 @@ const DocSubmission = ({ navigation }) => {
             </View>
           )}
 
+          {/* ✅ FIX: Updated result display to use AI confidence score */}
           {submissionResult && !uploading && (
             <View style={styles.resultCard}>
               <View style={styles.resultHeader}>
@@ -441,9 +443,14 @@ const DocSubmission = ({ navigation }) => {
               </View>
 
               <View style={styles.scoreContainer}>
-                <Text style={styles.scoreLabel}>Overall Similarity</Text>
-                <Text style={[styles.scoreValue, { color: getStatusDisplay(submissionResult.status).color }]}>
-                  {submissionResult.similarity_percentage}%
+                <Text style={styles.scoreLabel}>AI Confidence Score</Text>
+                <Text style={[styles.scoreValue, { 
+                  color: submissionResult.ai_prediction_label === 1 ? '#10b981' : '#ef4444' 
+                }]}>
+                  {((submissionResult.ai_confidence_score || 0) * 100).toFixed(1)}%
+                </Text>
+                <Text style={styles.predictionLabel}>
+                  Prediction: {submissionResult.ai_prediction_label === 1 ? 'Valid Document' : 'Invalid Document'}
                 </Text>
               </View>
 
@@ -481,10 +488,13 @@ const DocSubmission = ({ navigation }) => {
           ) : (
             submissions.map((sub) => {
               const statusDisplay = getStatusDisplay(sub.status);
-              // Handle both single filename (string) and multiple filenames (array)
               const displayFilename = Array.isArray(sub.filename) 
                 ? `${sub.filename.length} file(s)` 
                 : sub.filename;
+              
+              // ✅ FIX: Use AI confidence score instead of similarity_percentage
+              const confidenceScore = ((sub.ai_confidence_score || 0) * 100).toFixed(1);
+              const predictionLabel = sub.ai_prediction_label === 1 ? 'Valid' : 'Invalid';
               
               return (
                 <Card key={sub._id} style={styles.submissionCard}>
@@ -506,15 +516,39 @@ const DocSubmission = ({ navigation }) => {
 
                     <View style={styles.submissionDetails}>
                       <View style={styles.submissionDetailRow}>
-                        <Text style={styles.submissionDetailLabel}>Similarity:</Text>
-                        <Text style={[styles.submissionDetailValue, { color: statusDisplay.color }]}>
-                          {sub.similarity_percentage}%
+                        <Text style={styles.submissionDetailLabel}>AI Score:</Text>
+                        <Text style={[styles.submissionDetailValue, { 
+                          color: sub.ai_prediction_label === 1 ? '#10b981' : '#ef4444' 
+                        }]}>
+                          {confidenceScore}% ({predictionLabel})
                         </Text>
                       </View>
                       <View style={styles.submissionDetailRow}>
                         <Text style={styles.submissionDetailLabel}>Document:</Text>
                         <Text style={styles.submissionDetailValue}>{sub.base_document_title}</Text>
                       </View>
+                      
+                      {/* ✅ NEW: Show reviewed info if available */}
+                      {sub.reviewed_at && (
+                        <>
+                          <View style={styles.submissionDetailRow}>
+                            <Text style={styles.submissionDetailLabel}>Reviewed:</Text>
+                            <Text style={styles.submissionDetailValue}>{formatDate(sub.reviewed_at)}</Text>
+                          </View>
+                          {sub.reviewed_by && (
+                            <View style={styles.submissionDetailRow}>
+                              <Text style={styles.submissionDetailLabel}>Reviewed By:</Text>
+                              <Text style={styles.submissionDetailValue}>{sub.reviewed_by}</Text>
+                            </View>
+                          )}
+                          {sub.admin_notes && (
+                            <View style={styles.adminNotesContainer}>
+                              <Text style={styles.adminNotesLabel}>Admin Notes:</Text>
+                              <Text style={styles.adminNotesText}>{sub.admin_notes}</Text>
+                            </View>
+                          )}
+                        </>
+                      )}
                     </View>
                   </Card.Content>
                 </Card>

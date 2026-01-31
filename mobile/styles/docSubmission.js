@@ -133,4 +133,33 @@ export const styles = StyleSheet.create({ safeArea: { flex: 1, backgroundColor: 
   submissionDetailRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
   submissionDetailLabel: { fontSize: 14, fontFamily: 'Poppins-Regular', color: '#64748b' },
   submissionDetailValue: { fontSize: 14, fontFamily: 'Poppins-SemiBold', color: '#1e293b' },
+
+predictionLabel: {
+  fontSize: 12,
+  color: '#64748b',
+  marginTop: 4,
+  textAlign: 'center',
+},
+
+adminNotesContainer: {
+  marginTop: 12,
+  padding: 12,
+  backgroundColor: '#f1f5f9',
+  borderRadius: 8,
+  borderLeftWidth: 3,
+  borderLeftColor: '#2563eb',
+},
+
+adminNotesLabel: {
+  fontSize: 12,
+  fontWeight: '600',
+  color: '#475569',
+  marginBottom: 4,
+},
+
+adminNotesText: {
+  fontSize: 13,
+  color: '#1e293b',
+  lineHeight: 18,
+},
 });
