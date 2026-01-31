@@ -29,7 +29,6 @@ export default function SubmissionsTable({
             <TableCell sx={{ fontWeight: 600 }}>Document</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Filename</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Similarity</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Submitted</TableCell>
             <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
@@ -64,25 +63,6 @@ export default function SubmissionsTable({
                 <TableCell>
                   <Typography variant="body2" sx={{ maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}>
                     {Array.isArray(sub.filename) ? `${sub.filename.length} files` : sub.filename}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontWeight: 600,
-                      color:
-                        sub.similarity_percentage >= 90
-                          ? "#10b981"
-                          : sub.similarity_percentage >= 70
-                          ? "#f59e0b"
-                          : "#ef4444"
-                    }}
-                  >
-                    {sub.similarity_percentage}%
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Text: {sub.comparison_details?.text_similarity || 0}%
                   </Typography>
                 </TableCell>
                 <TableCell>

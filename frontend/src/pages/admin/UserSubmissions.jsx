@@ -13,7 +13,7 @@ import Swal from "sweetalert2";
 import Sidebar from "../../components/Sidebar";
 import useUserSubmissions from "../../hooks/useUserSubmissions";
 import SubmissionsTable from "../../components/user_submissions/SubmissionsTable";
-import DocumentModal from "../../components/user_submissions/DocumentModal";
+import SubmissionDetailsModal from "../../components/user_submissions/SubmissionDetailsModal";
 
 export default function UserSubmissions({ onLogout }) {
   const { submissions, loading, error, setSubmissions, deleteSubmission } = useUserSubmissions();
@@ -79,11 +79,10 @@ export default function UserSubmissions({ onLogout }) {
     }
   };
 
-
   const handleViewImages = (submission) => {
     setSelectedSubmission(submission);
     setOpenModal(true);
-    toast.success(`Viewing comparison for ${Array.isArray(submission.filename) ? submission.filename.join(', ') : submission.filename}`, {
+    toast.success(`Viewing details for ${Array.isArray(submission.filename) ? submission.filename.join(', ') : submission.filename}`, {
       duration: 2000
     });
   };
@@ -91,6 +90,96 @@ export default function UserSubmissions({ onLogout }) {
   const handleCloseModal = () => {
     setOpenModal(false);
     setSelectedSubmission(null);
+  };
+
+  const handleApprove = async (submissionId) => {
+    const result = await Swal.fire({
+      title: 'Approve Submission?',
+      text: "This will mark the submission as approved.",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, approve it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // TODO: Replace with actual API call
+        // await usersubService.approve(submissionId);
+        
+        // Update local state
+        const updatedSubmissions = submissions.map(sub => 
+          sub._id === submissionId 
+            ? { ...sub, status: 'approved' }
+            : sub
+        );
+        setSubmissions(updatedSubmissions);
+        
+        Swal.fire({
+          title: 'Approved!',
+          text: 'Submission has been approved successfully.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+        handleCloseModal();
+      } catch (error) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Failed to approve submission.',
+          icon: 'error',
+          confirmButtonColor: '#118df0'
+        });
+      }
+    }
+  };
+
+  const handleReject = async (submissionId) => {
+    const result = await Swal.fire({
+      title: 'Reject Submission?',
+      text: "This will mark the submission as rejected.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Yes, reject it!',
+      cancelButtonText: 'Cancel'
+    });
+
+    if (result.isConfirmed) {
+      try {
+        // TODO: Replace with actual API call
+        // await usersubService.reject(submissionId);
+        
+        // Update local state
+        const updatedSubmissions = submissions.map(sub => 
+          sub._id === submissionId 
+            ? { ...sub, status: 'rejected' }
+            : sub
+        );
+        setSubmissions(updatedSubmissions);
+        
+        Swal.fire({
+          title: 'Rejected!',
+          text: 'Submission has been rejected.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        
+        handleCloseModal();
+      } catch (error) {
+        Swal.fire({
+          title: 'Error!',
+          text: 'Failed to reject submission.',
+          icon: 'error',
+          confirmButtonColor: '#118df0'
+        });
+      }
+    }
   };
 
   const handleChangePage = (event, newPage) => {
@@ -117,17 +206,6 @@ export default function UserSubmissions({ onLogout }) {
         return "warning";
       default:
         return "default";
-    }
-  };
-
-  const handleOpenImage = (url, type) => {
-    if (url) {
-      window.open(url, '_blank');
-      toast.success(`Opening ${type} in new tab`, {
-        duration: 2000
-      });
-    } else {
-      toast.error(`No ${type} available`);
     }
   };
 
@@ -252,12 +330,13 @@ export default function UserSubmissions({ onLogout }) {
         </div>
       </main>
 
-      <DocumentModal
+      <SubmissionDetailsModal
         open={openModal}
         onClose={handleCloseModal}
         submission={selectedSubmission}
         getStatusColor={getStatusColor}
-        onOpenImage={handleOpenImage}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
     </Box>
   );
