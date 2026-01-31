@@ -17,5 +17,9 @@ secrets_backend/
 # Ignore test code
 test_code/
 
+# Hide utils 
+utils/document_comparison.py
+utils/image_processor.py
+
 # Personal File (Mico)
 automation/

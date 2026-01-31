@@ -1,5 +1,5 @@
 from config.db import db
-from config.cloudinary_config import upload_file
+from config.cloudinary_config import upload_file, generate_signed_url
 from datetime import datetime
 from bson import ObjectId
 import logging
@@ -9,242 +9,155 @@ import numpy as np # Required for calculating average
 
 from utils.document_comparison import compare_documents_with_vision
 from models.document_submissions import DocumentSubmission, SubmissionStatus
+from utils.gemini_util import verify_document_with_gemini
+from utils.cloud_vision_util import generate_visual_evidence
 
 logger = logging.getLogger(__name__)
 
 
-#  Upload file accept image fomats and document formats
-# async def submit_document(files: List[UploadFile], base_document_id: str, notes: str, current_user: dict):
-#     """Submit multiple user documents for comparison with bounding box analysis"""
-#     try:
-#         user_id = current_user["_id"]
-#         base_doc_oid = ObjectId(base_document_id)
-#         user_oid = ObjectId(user_id)
-        
-#         # Verify user exists
-#         user = db["users"].find_one({"_id": user_oid})
-#         if not user:
-#             return {"success": False, "error": "User not found"}
-        
-#         # Get base document
-#         base_doc = db["base_documents"].find_one({"_id": base_doc_oid})
-#         if not base_doc:
-#             return {"success": False, "error": "Base document not found"}
-        
-#         # --- INITIALIZE LISTS TO STORE RESULTS ---
-#         filenames = []
-#         file_types = []
-#         file_urls_original = []
-#         file_urls_processed = []
-        
-#         all_similarities = []
-#         all_comparison_details = []
-#         all_spatial_analysis = []
-#         all_bounding_boxes = []
-
-#         # --- LOOP THROUGH EACH FILE ---
-#         logger.info(f"Processing {len(files)} files for user {user['email']}...")
-
-#         for file in files:
-#             # 1. Capture Metadata
-#             filenames.append(file.filename)
-#             file_types.append(file.content_type)
-
-#             # 2. Upload SINGLE file to Cloudinary
-#             # We call upload_file() for the current item in the loop
-#             logger.info(f"Uploading file: {file.filename}")
-#             try:
-#                 uploaded_url = upload_file(file, folder="user_submissions")
-#                 file_urls_original.append(uploaded_url)
-#             except Exception as upload_error:
-#                 logger.error(f"Upload failed for {file.filename}: {upload_error}")
-#                 return {"success": False, "error": f"Upload failed for {file.filename}"}
-
-#             # 3. Compare SINGLE file using Vision API
-#             logger.info(f"Comparing {file.filename} with Vision API...")
-#             comparison_result = await compare_documents_with_vision(
-#                 base_url=base_doc["file_url"],
-#                 user_url=uploaded_url
-#             )
-
-#             # 4. Append Results to Lists
-#             if comparison_result["success"]:
-#                 all_similarities.append(comparison_result["similarity_percentage"])
-#                 all_comparison_details.append(comparison_result["details"])
-#                 all_spatial_analysis.append(comparison_result.get("spatial_analysis", {}))
-#                 all_bounding_boxes.append(comparison_result.get("bounding_boxes", {}))
-                
-#                 # Get the processed image URL (if exists)
-#                 processed_url = comparison_result.get("processed_images", {}).get("user_processed_url")
-#                 file_urls_processed.append(processed_url)
-#             else:
-#                 # Handle failure for this specific file (0 score)
-#                 logger.warning(f"Comparison failed for {file.filename}: {comparison_result.get('error')}")
-#                 all_similarities.append(0.0)
-#                 all_comparison_details.append({})
-#                 all_spatial_analysis.append({})
-#                 all_bounding_boxes.append({})
-#                 file_urls_processed.append(None)
-
-#         # --- CALCULATE FINAL STATUS ---
-#         # We use the average of all pages/files to determine if the submission is approved
-#         avg_similarity = float(np.mean(all_similarities)) if all_similarities else 0.0
-
-#         if avg_similarity >= 90:
-#             status = SubmissionStatus.approved
-#         elif avg_similarity >= 70:
-#             status = SubmissionStatus.needs_review
-#         else:
-#             status = SubmissionStatus.rejected
-        
-#         # --- CREATE SUBMISSION OBJECT (Now using Lists) ---
-#         submission = DocumentSubmission(
-#             user_id=user_oid,
-#             base_document_id=base_doc_oid,
-#             base_document_title=base_doc["title"],
-#             base_document_category=base_doc.get("category", "general"),
-            
-#             # These are now correctly passed as Lists
-#             filename=filenames,
-#             file_type=file_types,
-#             file_url_original=file_urls_original,
-#             file_url_processed=file_urls_processed,
-            
-#             notes=notes,
-#             similarity_percentage=avg_similarity, # Average score
-#             status=status,
-            
-#             # These fields now contain Lists of Dictionaries
-#             comparison_details={
-#                 "average_similarity": avg_similarity,
-#                 "file_breakdown": all_comparison_details
-#             },
-#             spatial_analysis=all_spatial_analysis,
-#             bounding_boxes=all_bounding_boxes,
-            
-#             submitted_at=datetime.now(),
-#             reviewed_at=None,
-#             reviewed_by=None,
-#             admin_notes=None
-#         )
-        
-#         # Insert into MongoDB
-#         submission_dict = submission.dict(by_alias=True)
-#         result = db["document_submissions"].insert_one(submission_dict)
-        
-#         logger.info(f"Document submitted: {status.value} ({avg_similarity}%)")
-        
-#         return {
-#             "success": True,
-#             "submission": {
-#                 "_id": str(result.inserted_id),
-#                 "user_email": user["email"],
-#                 "filename": filenames,
-#                 "file_count": len(files),
-#                 "status": status.value,
-#                 "similarity_percentage": avg_similarity
-#             }
-#         }
-    
-#     except Exception as e:
-#         logger.error(f"Error submitting document: {str(e)}")
-#         return {"success": False, "error": str(e)}
-
-
-# 🧪 TEMPORARY TEST FUNCTION - Add this after the original submit_document
 async def submit_document(files: List[UploadFile], base_document_id: str, notes: str, current_user: dict):
-    """TEMPORARY: Test file upload with mock Vision API results"""
+    """
+    Submits documents with FULL AI processing (Gemini + Cloud Vision).
+    Populates fields for Scikit-Learn (Confidence/Label) and UI (Bounding Boxes).
+    """
     try:
         user_id = current_user["_id"]
         base_doc_oid = ObjectId(base_document_id)
         user_oid = ObjectId(user_id)
         
-        # Verify user exists
+        # 1. Validation
         user = db["users"].find_one({"_id": user_oid})
         if not user:
             return {"success": False, "error": "User not found"}
         
-        # Get base document
         base_doc = db["base_documents"].find_one({"_id": base_doc_oid})
         if not base_doc:
             return {"success": False, "error": "Base document not found"}
         
-        # --- INITIALIZE LISTS TO STORE RESULTS ---
+        # --- INITIALIZE AGGREGATION LISTS ---
         filenames = []
         file_types = []
-        file_urls_original = []
+        file_urls_original = []   # Private URLs (DB)
+        file_urls_processed = []  # Green Box Images (DB)
+        bounding_boxes_list = []  # Raw Coordinates (DB)
+        gemini_details_list = []  # Per-file AI analysis
+        
+        ai_scores = []
+        ai_labels = []
+        reasons = []
+
+        logger.info(f"🚀 Processing {len(files)} files for user {user['email']}...")
 
         # --- LOOP THROUGH EACH FILE ---
-        logger.info(f"🧪 TEST MODE: Processing {len(files)} files for user {user['email']}...")
-
         for index, file in enumerate(files):
-            # 1. Capture Metadata
             filenames.append(file.filename)
             file_types.append(file.content_type)
             
-            logger.info(f"📄 File {index + 1}/{len(files)}: {file.filename} ({file.content_type})")
-
-            # 2. Upload SINGLE file to Cloudinary
-            logger.info(f"☁️ Uploading file: {file.filename}")
+            # A. Upload Original (Private)
             try:
                 uploaded_url = upload_file(file, folder="user_submissions")
                 file_urls_original.append(uploaded_url)
-                logger.info(f"✅ Upload successful: {uploaded_url}")
-            except Exception as upload_error:
-                logger.error(f"❌ Upload failed for {file.filename}: {upload_error}")
-                return {"success": False, "error": f"Upload failed for {file.filename}"}
+            except Exception as e:
+                return {"success": False, "error": f"Upload failed for {file.filename}: {str(e)}"}
 
-        # --- CREATE SUBMISSION OBJECT (Minimal test version) ---
+            # B. PHASE A: Gemini Analysis (Logic & Scoring)
+            # We pass the URL + Template Title to the AI
+            gemini_result = verify_document_with_gemini(uploaded_url, base_doc["title"])
+            
+            # Store details for this specific file
+            gemini_details_list.append({
+                "filename": file.filename,
+                "label": gemini_result["ai_prediction_label"],
+                "score": gemini_result["ai_confidence_score"],
+                "reason": gemini_result["reason"]
+            })
+            
+            # Collect for aggregation
+            ai_labels.append(gemini_result["ai_prediction_label"])
+            ai_scores.append(gemini_result["ai_confidence_score"])
+            reasons.append(gemini_result["reason"])
+
+            # C. PHASE C: Visual Evidence (Cloud Vision)
+            # Generates the image with green bounding boxes
+            vision_result = await generate_visual_evidence(uploaded_url)
+            
+            if vision_result["success"]:
+                file_urls_processed.append(vision_result["file_url_processed"])
+                bounding_boxes_list.append(vision_result["bounding_boxes"])
+            else:
+                # Fallback if vision fails (don't break the whole submission)
+                file_urls_processed.append(None)
+                bounding_boxes_list.append({})
+
+        # --- AGGREGATE RESULTS (Root Level) ---
+        # 1. Label: If ANY file is rejected (0), the whole batch is 0.
+        root_prediction_label = 1 if all(l == 1 for l in ai_labels) else 0
+        
+        # 2. Score: Average confidence score of all files
+        root_confidence_score = sum(ai_scores) / len(ai_scores) if ai_scores else 0.0
+        
+        # 3. Reason: Combine reasons into one string
+        root_reason = "; ".join(reasons)
+
+        # --- CREATE SUBMISSION OBJECT ---
         submission = DocumentSubmission(
             user_id=user_oid,
             base_document_id=base_doc_oid,
             base_document_title=base_doc["title"],
             base_document_category=base_doc.get("category", "general"),
             
+            # File Data
             filename=filenames,
             file_type=file_types,
             file_url_original=file_urls_original,
-            file_url_processed=[],  # Empty list
+            file_url_processed=file_urls_processed,
             
-            notes=notes or "",  # Empty string if None
-            similarity_percentage=0.0,  # Default 0.0
-            status=SubmissionStatus.needs_review,  # Default status
+            # Phase A: Gemini Data (Logic)
+            gemini_details=gemini_details_list,
+            gemini_reason=root_reason,
+            ai_prediction_label=root_prediction_label,
+            ai_confidence_score=root_confidence_score,
             
-            comparison_details={},  # Empty dict
-            spatial_analysis={},  # Empty dict
-            bounding_boxes={},  # Empty dict
+            # Phase C: Vision Data (Visuals)
+            bounding_boxes=bounding_boxes_list,
             
+            # Phase B: Ground Truth (Waiting for Admin)
+            status=SubmissionStatus.needs_review,
+            
+            # Metadata
             submitted_at=datetime.now(),
-            reviewed_at=None,
-            reviewed_by=None,
-            admin_notes=""  # Empty string
+            admin_notes=notes or ""
         )
         
         # Insert into MongoDB
         submission_dict = submission.dict(by_alias=True)
         result = db["document_submissions"].insert_one(submission_dict)
         
-        logger.info(f"✅ TEST SUBMISSION COMPLETE (minimal mode)")
+        logger.info(f"✅ SUBMISSION COMPLETE: ID {result.inserted_id}")
         
+        # --- PREPARE RESPONSE (Frontend) ---
+        # Generate Signed URLs so the user can view the originals immediately
+        signed_original_urls = [generate_signed_url(url) for url in file_urls_original]
+
         return {
             "success": True,
-            "test_mode": True,
             "submission": {
                 "_id": str(result.inserted_id),
                 "user_email": user["email"],
                 "filenames": filenames,
-                "file_types": file_types,
                 "file_count": len(files),
-                "file_urls": file_urls_original,
+                # Frontend Display Data
+                "file_url_original": signed_original_urls,
+                "file_url_processed": file_urls_processed,
                 "status": SubmissionStatus.needs_review.value,
-                "similarity_percentage": 0.0
+                "ai_prediction_label": root_prediction_label,
+                "ai_confidence_score": root_confidence_score
             }
         }
     
     except Exception as e:
-        logger.error(f"❌ TEST ERROR: {str(e)}")
+        logger.error(f"❌ SUBMISSION ERROR: {str(e)}")
         return {"success": False, "error": str(e)}
-
 
 
 

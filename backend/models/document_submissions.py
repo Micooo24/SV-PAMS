@@ -48,7 +48,7 @@
 #             datetime: lambda v: v.isoformat()
 #         }
 
-#update as of 1/24/2026 many things to clarify
+# #update as of 1/27/2026 many things to clarify
 
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
@@ -58,8 +58,8 @@ from bson import ObjectId
 
 class SubmissionStatus(str, Enum):
     pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
+    approved = "approved"     # Admin confirmed VALID (True Positive)
+    rejected = "rejected"     # Admin confirmed INVALID (True Negative)
     needs_review = "needs_review"
 
 class DocumentSubmission(BaseModel):
@@ -71,11 +71,10 @@ class DocumentSubmission(BaseModel):
     file_url_original: List[str]
     
     # Stores the URL of the image with Green Boxes drawn on it
-    file_url_processed: Optional[List[str]] = None 
+    file_url_processed: List[Optional[str]] = []
 
     # --- 2. STATUS (The "Ground Truth" for Scikit) ---
-    # When Admin changes this to 'approved' or 'rejected', 
-    # this becomes your 'y_true'.
+    # When Admin changes this, it becomes your 'y_true'.
     status: SubmissionStatus = SubmissionStatus.pending
 
     # --- 3. BASE DOCUMENT INFO ---
@@ -84,26 +83,34 @@ class DocumentSubmission(BaseModel):
     base_document_category: Optional[str] = "general" 
 
     # --- 4. GEMINI VERIFICATION (The "Why") ---
-    # Stores the reasoning for EACH file.
-    # Example: [{"file": "page1.jpg", "status": "VERIFIED", "reason": "Valid Header found"}, ...]
+    # Detailed breakdown per file (optional)
     gemini_details: List[Dict[str, Any]] = Field(default_factory=list)
+    
+    #  NEW: Main explanation from Gemini for the overall decision
+    gemini_reason: Optional[str] = ""
 
-    # --- 5. SCIKIT-LEARN METRICS (The "y_pred") ---
-    # 1 = AI said Verified. 0 = AI said Rejected.
-    # This allows you to generate the Confusion Matrix instantly.
+    # --- 5. SCIKIT-LEARN METRICS (The "y_pred" & "y_score") ---
+    
+    # THE LABEL (0 or 1): The AI's final "Pass/Fail" decision.
+    # Used for Confusion Matrix (Precision/Recall).
     ai_prediction_label: int = 0 
     
-    # Optional: Average confidence score from Gemini (if provided)
+    # THE SCORE (0.0 - 1.0): The AI's certainty level.
+    # CRITICAL for ROC-AUC Curves. 
+    # (e.g., 0.95 = Definite Yes, 0.55 = Unsure, 0.10 = Definite No)
+    ai_confidence_score: float = 0.0
+
+    # Legacy field (optional to keep if you use it for UI display)
     similarity_percentage: float = 0.0
 
-    # --- 6. VISUALIZATION ONLY ---
+    # --- 6. VISUALIZATION ONLY (Cloud Vision) ---
     # We keep this ONLY to draw boxes on the UI. No math calculations.
-    # Must be a List because you have multiple files.
     bounding_boxes: List[Dict[str, Any]] = Field(default_factory=list) 
 
     # --- 7. METADATA ---
-    notes: Optional[str] = ""
     submitted_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    # Optional admin review fields
     reviewed_at: Optional[datetime] = None
     reviewed_by: Optional[ObjectId] = None
     admin_notes: Optional[str] = None
