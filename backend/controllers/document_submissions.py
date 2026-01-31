@@ -123,7 +123,7 @@ async def submit_document(files: List[UploadFile], base_document_id: str, notes:
             bounding_boxes=bounding_boxes_list,
             
             # Phase B: Ground Truth (Waiting for Admin)
-            status=SubmissionStatus.needs_review,
+            status=SubmissionStatus.pending,
             
             # Metadata
             submitted_at=datetime.now(),
@@ -159,7 +159,6 @@ async def submit_document(files: List[UploadFile], base_document_id: str, notes:
     except Exception as e:
         logger.error(f"❌ SUBMISSION ERROR: {str(e)}")
         return {"success": False, "error": str(e)}
-
 
 
 

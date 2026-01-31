@@ -1,6 +1,7 @@
 from config.db import db
 from bson import ObjectId
 import logging
+from datetime import datetime, timezone
 
 
 logger = logging.getLogger(__name__)
@@ -30,8 +31,11 @@ def get_submission_by_id(submission_id: str, current_user: dict):
         submission["submitted_at"] = submission["submitted_at"].isoformat()
         if submission.get("reviewed_at"):
             submission["reviewed_at"] = submission["reviewed_at"].isoformat()
+        
+        #  Get admin email for reviewed_by
         if submission.get("reviewed_by"):
-            submission["reviewed_by"] = str(submission["reviewed_by"])
+            admin = db["users"].find_one({"_id": ObjectId(submission["reviewed_by"])})
+            submission["reviewed_by"] = admin.get("email", str(submission["reviewed_by"])) if admin else str(submission["reviewed_by"])
         
         logger.info(f"Retrieved submission {submission_id}")
         
@@ -62,8 +66,11 @@ def get_all_submissions():
             sub["submitted_at"] = sub["submitted_at"].isoformat()
             if sub.get("reviewed_at"):
                 sub["reviewed_at"] = sub["reviewed_at"].isoformat()
+            
+            #  Get admin email for reviewed_by
             if sub.get("reviewed_by"):
-                sub["reviewed_by"] = str(sub["reviewed_by"])
+                admin = db["users"].find_one({"_id": ObjectId(sub["reviewed_by"])})
+                sub["reviewed_by"] = admin.get("email", str(sub["reviewed_by"])) if admin else str(sub["reviewed_by"])
         
         logger.info(f"Retrieved {len(submissions)} total submissions")
         
@@ -75,7 +82,6 @@ def get_all_submissions():
     except Exception as e:
         logger.error(f"Error fetching all submissions: {str(e)}")
         return {"success": False, "error": str(e)}
-
 
 # Delete submission (admin)
 def delete_submission(submission_id: str):
@@ -111,4 +117,84 @@ def delete_submission(submission_id: str):
     
     except Exception as e:
         logger.error(f"Error deleting submission: {str(e)}")
+        return {"success": False, "error": str(e)}
+
+# Status Approve and Reject (admin)
+def update_submission_status(submission_id: str, new_status: str, admin_notes: str, admin_user: dict):
+    """Admin: Update the status of a document submission with required admin notes"""
+    try:
+        # Validate status
+        valid_statuses = ["approved", "rejected", "needs_review"]
+        if new_status not in valid_statuses:
+            return {
+                "success": False,
+                "error": f"Invalid status. Valid statuses are: {valid_statuses}"
+            }
+        
+        # Validate admin_notes is provided
+        if not admin_notes or admin_notes.strip() == "":
+            return {
+                "success": False,
+                "error": "Admin notes are required when updating submission status"
+            }
+        
+        # Check if submission exists
+        submission = db["document_submissions"].find_one({
+            "_id": ObjectId(submission_id)
+        })
+        
+        if not submission:
+            return {
+                "success": False,
+                "error": "Submission not found"
+            }
+        
+        # Get admin info from database
+        admin_id = ObjectId(admin_user["_id"])
+        admin_doc = db["users"].find_one({"_id": admin_id})
+        
+        if not admin_doc:
+            return {
+                "success": False,
+                "error": "Admin user not found"
+            }
+        
+        #  Store email in reviewed_by instead of ObjectId
+        admin_email = admin_doc.get("email", "unknown@admin.com")
+        
+        # Prepare update data
+        update_data = {
+            "status": new_status,
+            "reviewed_at": datetime.now(timezone.utc),
+            "reviewed_by": admin_email,  # Changed from ObjectId to email
+            "admin_notes": admin_notes.strip()
+        }
+        
+        # Update the submission
+        result = db["document_submissions"].update_one(
+            {"_id": ObjectId(submission_id)},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            return {
+                "success": False,
+                "error": "Failed to update submission status"
+            }
+        
+        logger.info(f"Submission {submission_id} updated to '{new_status}' by {admin_email}")
+        
+        return {
+            "success": True,
+            "message": f"Submission status updated to {new_status}",
+            "updated_data": {
+                "status": new_status,
+                "reviewed_at": update_data["reviewed_at"].isoformat(),
+                "reviewed_by": admin_email,  
+                "admin_notes": admin_notes.strip()
+            }
+        }
+    
+    except Exception as e:
+        logger.error(f"Error updating submission status: {str(e)}")
         return {"success": False, "error": str(e)}
