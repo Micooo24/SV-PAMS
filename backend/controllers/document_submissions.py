@@ -105,6 +105,7 @@ async def submit_document(files: List[UploadFile], base_document_id: str, notes:
             base_document_id=base_doc_oid,
             base_document_title=base_doc["title"],
             base_document_category=base_doc.get("category", "general"),
+            base_document_file_url=base_doc.get("file_url"),
             
             # File Data
             filename=filenames,
@@ -158,6 +159,9 @@ async def submit_document(files: List[UploadFile], base_document_id: str, notes:
     except Exception as e:
         logger.error(f"❌ SUBMISSION ERROR: {str(e)}")
         return {"success": False, "error": str(e)}
+
+
+
 
 
 

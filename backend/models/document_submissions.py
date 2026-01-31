@@ -57,10 +57,11 @@ from enum import Enum
 from bson import ObjectId
 
 class SubmissionStatus(str, Enum):
-    pending = "pending"
+    pending = "pending"       # Initial state. Waiting for Admin.
     approved = "approved"     # Admin confirmed VALID (True Positive)
     rejected = "rejected"     # Admin confirmed INVALID (True Negative)
-    needs_review = "needs_review"
+    
+    
 
 class DocumentSubmission(BaseModel):
     user_id: ObjectId
@@ -81,6 +82,7 @@ class DocumentSubmission(BaseModel):
     base_document_id: ObjectId
     base_document_title: str
     base_document_category: Optional[str] = "general" 
+    base_document_file_url: Optional[str] = None
 
     # --- 4. GEMINI VERIFICATION (The "Why") ---
     # Detailed breakdown per file (optional)
