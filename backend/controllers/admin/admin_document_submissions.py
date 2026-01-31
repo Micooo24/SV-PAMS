@@ -32,10 +32,19 @@ def get_submission_by_id(submission_id: str, current_user: dict):
         if submission.get("reviewed_at"):
             submission["reviewed_at"] = submission["reviewed_at"].isoformat()
         
-        #  Get admin email for reviewed_by
+        # ✅ FIX: Handle both ObjectId and email formats
         if submission.get("reviewed_by"):
-            admin = db["users"].find_one({"_id": ObjectId(submission["reviewed_by"])})
-            submission["reviewed_by"] = admin.get("email", str(submission["reviewed_by"])) if admin else str(submission["reviewed_by"])
+            reviewed_by = submission["reviewed_by"]
+            # Check if it's already an email (string with @)
+            if isinstance(reviewed_by, str) and "@" in reviewed_by:
+                submission["reviewed_by"] = reviewed_by
+            # Otherwise, try to convert ObjectId to email
+            else:
+                try:
+                    admin = db["users"].find_one({"_id": ObjectId(reviewed_by)})
+                    submission["reviewed_by"] = admin.get("email", str(reviewed_by)) if admin else str(reviewed_by)
+                except Exception:
+                    submission["reviewed_by"] = str(reviewed_by)
         
         logger.info(f"Retrieved submission {submission_id}")
         
@@ -67,10 +76,19 @@ def get_all_submissions():
             if sub.get("reviewed_at"):
                 sub["reviewed_at"] = sub["reviewed_at"].isoformat()
             
-            #  Get admin email for reviewed_by
+            # ✅ FIX: Handle both ObjectId and email formats
             if sub.get("reviewed_by"):
-                admin = db["users"].find_one({"_id": ObjectId(sub["reviewed_by"])})
-                sub["reviewed_by"] = admin.get("email", str(sub["reviewed_by"])) if admin else str(sub["reviewed_by"])
+                reviewed_by = sub["reviewed_by"]
+                # Check if it's already an email (string with @)
+                if isinstance(reviewed_by, str) and "@" in reviewed_by:
+                    sub["reviewed_by"] = reviewed_by
+                # Otherwise, try to convert ObjectId to email
+                else:
+                    try:
+                        admin = db["users"].find_one({"_id": ObjectId(reviewed_by)})
+                        sub["reviewed_by"] = admin.get("email", str(reviewed_by)) if admin else str(reviewed_by)
+                    except Exception:
+                        sub["reviewed_by"] = str(reviewed_by)
         
         logger.info(f"Retrieved {len(submissions)} total submissions")
         
@@ -159,7 +177,7 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
                 "error": "Admin user not found"
             }
         
-        #  Store email in reviewed_by instead of ObjectId
+        # Store email in reviewed_by instead of ObjectId
         admin_email = admin_doc.get("email", "unknown@admin.com")
         
         # Prepare update data
