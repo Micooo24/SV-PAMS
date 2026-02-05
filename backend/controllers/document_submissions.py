@@ -163,7 +163,6 @@ async def submit_document(files: List[UploadFile], base_document_id: str, notes:
 
 
 
-
 def get_user_submissions(current_user: dict):
     """Get all submissions by authenticated user"""
     try:

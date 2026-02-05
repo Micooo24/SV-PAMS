@@ -2,6 +2,7 @@ from config.db import db
 from bson import ObjectId
 import logging
 from datetime import datetime, timezone
+from utils.send_push_notif import send_push_notification_to_user
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def get_submission_by_id(submission_id: str, current_user: dict):
         if submission.get("reviewed_at"):
             submission["reviewed_at"] = submission["reviewed_at"].isoformat()
         
-        # ✅ FIX: Handle both ObjectId and email formats
+        # Handle both ObjectId and email formats
         if submission.get("reviewed_by"):
             reviewed_by = submission["reviewed_by"]
             # Check if it's already an email (string with @)
@@ -76,7 +77,7 @@ def get_all_submissions():
             if sub.get("reviewed_at"):
                 sub["reviewed_at"] = sub["reviewed_at"].isoformat()
             
-            # ✅ FIX: Handle both ObjectId and email formats
+            # Handle both ObjectId and email formats
             if sub.get("reviewed_by"):
                 reviewed_by = sub["reviewed_by"]
                 # Check if it's already an email (string with @)
@@ -188,7 +189,7 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
             "admin_notes": admin_notes.strip()
         }
         
-        # Update the submission
+         # Update the submission
         result = db["document_submissions"].update_one(
             {"_id": ObjectId(submission_id)},
             {"$set": update_data}
@@ -201,6 +202,25 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
             }
         
         logger.info(f"Submission {submission_id} updated to '{new_status}' by {admin_email}")
+        
+        # Send push notification to user
+        user_id = str(submission["user_id"])
+        notification_title = f"Document {new_status.title()}"
+        notification_body = f"Your document submission has been {new_status}."
+        
+        try:
+            send_push_notification_to_user(
+                user_id=user_id,
+                title=notification_title,
+                message=notification_body,
+                data={
+                    "submission_id": submission_id,
+                    "status": new_status,
+                    "type": "document_status_update"
+                }
+            )
+        except Exception as notif_error:
+            logger.error(f"Failed to send notification: {str(notif_error)}")
         
         return {
             "success": True,
