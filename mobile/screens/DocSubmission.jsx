@@ -21,6 +21,13 @@ import { useGlobalFonts } from '../hooks/font';
 import BASE_URL from '../common/baseurl.js';
 import {styles} from '../styles/docSubmission';
 
+// Utility Functions
+import { formatDate, formatFileSize } from '../utils/formatters';
+
+// Helper Functions
+import { getStatusDisplay } from '../utils/submissionHelpers';
+import { getFileIcon } from '../utils/fileHelpers';
+
 const DocSubmission = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -213,7 +220,7 @@ const DocSubmission = ({ navigation }) => {
         setSubmissionResult(response.data.submission);
         fetchSubmissions();
         
-        // ✅ FIX: Updated success message to show AI prediction
+        // Updated success message to show AI prediction
         const confidenceScore = (response.data.submission.ai_confidence_score * 100).toFixed(1);
         const predictionLabel = response.data.submission.ai_prediction_label === 1 ? 'Valid' : 'Invalid';
         
@@ -247,41 +254,7 @@ const DocSubmission = ({ navigation }) => {
     }
   };
 
-  const getStatusDisplay = (status) => {
-    const statusMap = {
-      approved: { color: '#10b981', icon: 'check-circle', text: 'Approved' },
-      needs_review: { color: '#f59e0b', icon: 'alert-circle', text: 'Pending Review' },
-      rejected: { color: '#ef4444', icon: 'close-circle', text: 'Rejected' },
-      pending: { color: '#828282', icon: 'clock', text: 'Processing' },
-    };
-    return statusMap[status] || { color: '#6b7280', icon: 'help-circle', text: 'Unknown' };
-  };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileIcon = (type) => {
-    if (type?.includes('image')) return 'file-image';
-    if (type?.includes('pdf')) return 'file-pdf-box';
-    if (type?.includes('word') || type?.includes('document')) return 'file-document';
-    return 'file';
-  };
 
   const renderFileItem = ({ item, index }) => {
     const isImage = item.type?.includes('image');
