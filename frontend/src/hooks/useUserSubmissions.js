@@ -39,6 +39,25 @@ export default function useUserSubmissions() {
         }
     };
 
+    const updateSubmissionStatus = async (submissionId, status, adminNotes) => {
+        try {
+            const result = await usersubService.updateStatus(submissionId, status, adminNotes);
+            
+            // Update the submission in state
+            setSubmissions(prev => prev.map(sub => 
+                sub._id === submissionId 
+                    ? { ...sub, status, admin_notes: adminNotes, reviewed_at: new Date().toISOString() }
+                    : sub
+            ));
+            
+            return { success: true, data: result };
+        }
+        catch (err) {
+            console.error("Failed to update submission status:", err);
+            return { success: false, error: err.message };
+        }
+    };
+
     useEffect(() => {
         fetchSubmissions();
     }, []);
@@ -49,6 +68,7 @@ export default function useUserSubmissions() {
         loading,    
         error,
         fetchSubmissions,
-        deleteSubmission
+        deleteSubmission,
+        updateSubmissionStatus  //  Export the new function
     };
 }

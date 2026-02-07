@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Modal,
   Box,
@@ -8,9 +9,10 @@ import {
   Paper,
   Button,
   Divider,
-  Alert
+  Alert,
+  TextField
 } from "@mui/material";
-import { Close, CheckCircle, Cancel, PictureAsPdf, Image as ImageIcon } from "@mui/icons-material";
+import { Close, CheckCircle, Cancel, PictureAsPdf } from "@mui/icons-material";
 import ImageViewer from "./ImageViewer";
 import GeminiDetailsCard from "./GeminiDetailsCard";
 import AIScoreCard from "./AIScoreCard";
@@ -23,6 +25,10 @@ export default function SubmissionDetailsModal({
   onApprove,
   onReject
 }) {
+  const [adminNotes, setAdminNotes] = useState('');
+  const [showNotesInput, setShowNotesInput] = useState(false);
+  const [actionType, setActionType] = useState(''); // 'approve' or 'reject'
+
   if (!submission) return null;
 
   const originalFiles = Array.isArray(submission.file_url_original) 
@@ -37,9 +43,42 @@ export default function SubmissionDetailsModal({
     ? submission.gemini_details 
     : [];
 
-  // Helper function to check if file is PDF
   const isPDF = (url) => {
     return url && (url.toLowerCase().endsWith('.pdf') || url.includes('.pdf'));
+  };
+
+  const handleApproveClick = () => {
+    setActionType('approve');
+    setShowNotesInput(true);
+  };
+
+  const handleRejectClick = () => {
+    setActionType('reject');
+    setShowNotesInput(true);
+  };
+
+  const handleConfirmAction = () => {
+    if (!adminNotes.trim()) {
+      alert('Please provide admin notes');
+      return;
+    }
+
+    if (actionType === 'approve') {
+      onApprove(submission._id, adminNotes);
+    } else {
+      onReject(submission._id, adminNotes);
+    }
+
+    // Reset
+    setAdminNotes('');
+    setShowNotesInput(false);
+    setActionType('');
+  };
+
+  const handleCancelAction = () => {
+    setAdminNotes('');
+    setShowNotesInput(false);
+    setActionType('');
   };
 
   const modalBoxStyle = {
@@ -145,7 +184,6 @@ export default function SubmissionDetailsModal({
 
         {/* Images Grid */}
         <Grid container spacing={3}>
-          {/* Base Document */}
           <Grid item xs={12} md={4}>
             <ImageViewer
               title="Base Document (Template)"
@@ -154,7 +192,6 @@ export default function SubmissionDetailsModal({
             />
           </Grid>
 
-          {/* Original Files */}
           <Grid item xs={12} md={4}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#118df0" }}>
@@ -166,7 +203,6 @@ export default function SubmissionDetailsModal({
             </Paper>
           </Grid>
 
-          {/* Processed Files */}
           <Grid item xs={12} md={4}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: "#10b981" }}>
@@ -186,14 +222,14 @@ export default function SubmissionDetailsModal({
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Action Buttons */}
-        {submission.status === "needs_review" && (
+        {/* Action Buttons - Show for pending OR needs_review */}
+        {(submission.status === "pending" || submission.status === "needs_review") && !showNotesInput && (
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 3 }}>
             <Button
               variant="contained"
               size="large"
               startIcon={<CheckCircle />}
-              onClick={() => onApprove(submission._id)}
+              onClick={handleApproveClick}
               sx={{
                 backgroundColor: '#10b981',
                 color: '#ffffff',
@@ -209,7 +245,7 @@ export default function SubmissionDetailsModal({
               variant="contained"
               size="large"
               startIcon={<Cancel />}
-              onClick={() => onReject(submission._id)}
+              onClick={handleRejectClick}
               sx={{
                 backgroundColor: '#ef4444',
                 color: '#ffffff',
@@ -224,9 +260,60 @@ export default function SubmissionDetailsModal({
           </Box>
         )}
 
-        {submission.status !== "needs_review" && (
+        {/* Admin Notes Input */}
+        {showNotesInput && (
+          <Box sx={{ mt: 3, p: 3, backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              {actionType === 'approve' ? 'Approval Notes' : 'Rejection Reason'}
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              placeholder={actionType === 'approve' 
+                ? 'Enter approval notes (e.g., Document verified and approved)'
+                : 'Enter rejection reason (e.g., Document does not meet requirements)'
+              }
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              sx={{ 
+                mb: 2,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#ffffff'
+                }
+              }}
+            />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button
+                variant="contained"
+                onClick={handleConfirmAction}
+                sx={{
+                  backgroundColor: actionType === 'approve' ? '#10b981' : '#ef4444',
+                  '&:hover': { 
+                    backgroundColor: actionType === 'approve' ? '#059669' : '#dc2626' 
+                  }
+                }}
+              >
+                Confirm {actionType === 'approve' ? 'Approval' : 'Rejection'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={handleCancelAction}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Box>
+        )}
+
+        {submission.status !== "pending" && submission.status !== "needs_review" && (
           <Alert severity="info" sx={{ mt: 3 }}>
             This submission has already been {submission.status}.
+            {submission.admin_notes && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Admin Notes:</strong> {submission.admin_notes}
+              </Typography>
+            )}
           </Alert>
         )}
       </Box>

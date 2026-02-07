@@ -16,7 +16,7 @@ import SubmissionsTable from "../../components/user_submissions/SubmissionsTable
 import SubmissionDetailsModal from "../../components/user_submissions/SubmissionDetailsModal";
 
 export default function UserSubmissions({ onLogout }) {
-  const { submissions, loading, error, setSubmissions, deleteSubmission } = useUserSubmissions();
+  const { submissions, loading, error, setSubmissions, deleteSubmission, updateSubmissionStatus } = useUserSubmissions();
 
   const [openModal, setOpenModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -92,93 +92,63 @@ export default function UserSubmissions({ onLogout }) {
     setSelectedSubmission(null);
   };
 
-  const handleApprove = async (submissionId) => {
-    const result = await Swal.fire({
-      title: 'Approve Submission?',
-      text: "This will mark the submission as approved.",
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#10b981',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, approve it!',
-      cancelButtonText: 'Cancel'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        // TODO: Replace with actual API call
-        // await usersubService.approve(submissionId);
-        
-        // Update local state
-        const updatedSubmissions = submissions.map(sub => 
-          sub._id === submissionId 
-            ? { ...sub, status: 'approved' }
-            : sub
-        );
-        setSubmissions(updatedSubmissions);
-        
+  const handleApprove = async (submissionId, adminNotes) => {
+    try {
+      const result = await updateSubmissionStatus(
+        submissionId,
+        'approved',
+        adminNotes
+      );
+      
+      if (result.success) {
         Swal.fire({
-          title: 'Approved!',
-          text: 'Submission has been approved successfully.',
+          title: 'Approved! ✅',
+          text: 'Submission approved and user notified via push notification.',
           icon: 'success',
           timer: 2000,
           showConfirmButton: false
         });
-        
         handleCloseModal();
-      } catch (error) {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Failed to approve submission.',
-          icon: 'error',
-          confirmButtonColor: '#118df0'
-        });
+      } else {
+        throw new Error(result.error || 'Failed to approve');
       }
+    } catch (error) {
+      Swal.fire({
+        title: 'Error!',
+        text: error.message || 'Failed to approve submission.',
+        icon: 'error',
+        confirmButtonColor: '#118df0'
+      });
     }
   };
 
-  const handleReject = async (submissionId) => {
-    const result = await Swal.fire({
-      title: 'Reject Submission?',
-      text: "This will mark the submission as rejected.",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#ef4444',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'Yes, reject it!',
-      cancelButtonText: 'Cancel'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        // TODO: Replace with actual API call
-        // await usersubService.reject(submissionId);
-        
-        // Update local state
-        const updatedSubmissions = submissions.map(sub => 
-          sub._id === submissionId 
-            ? { ...sub, status: 'rejected' }
-            : sub
-        );
-        setSubmissions(updatedSubmissions);
-        
+  const handleReject = async (submissionId, adminNotes) => {
+    try {
+      const result = await updateSubmissionStatus(
+        submissionId,
+        'rejected',
+        adminNotes
+      );
+      
+      if (result.success) {
         Swal.fire({
-          title: 'Rejected!',
-          text: 'Submission has been rejected.',
+          title: 'Rejected! ❌',
+          text: 'Submission rejected and user notified via push notification.',
           icon: 'success',
           timer: 2000,
           showConfirmButton: false
         });
-        
         handleCloseModal();
-      } catch (error) {
-        Swal.fire({
-          title: 'Error!',
-          text: 'Failed to reject submission.',
-          icon: 'error',
-          confirmButtonColor: '#118df0'
-        });
+      } else {
+        throw new Error(result.error || 'Failed to reject');
       }
+    } catch (error) {
+      Swal.fire({
+        title: 'Error!',
+        text: error.message || 'Failed to reject submission.',
+        icon: 'error',
+        confirmButtonColor: '#118df0'
+      });
     }
   };
 
