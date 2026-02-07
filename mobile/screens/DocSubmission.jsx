@@ -25,8 +25,8 @@ import {styles} from '../styles/docSubmission';
 import { formatDate, formatFileSize } from '../utils/formatters';
 
 // Helper Functions
-import { getStatusDisplay } from '../utils/submissionHelpers';
-import { getFileIcon } from '../utils/fileHelpers';
+import { getStatusDisplay } from '../helpers/submissionHelpers';
+import { getFileIcon } from '../helpers/fileHelpers';
 
 const DocSubmission = ({ navigation }) => {
   const fontsLoaded = useGlobalFonts();

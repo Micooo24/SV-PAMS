@@ -2,8 +2,7 @@ from config.db import db
 from bson import ObjectId
 import logging
 from datetime import datetime, timezone
-from utils.send_push_notif import send_push_notification_to_user
-
+from utils.notification import send_notification
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +167,7 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
                 "error": "Submission not found"
             }
         
-        # Get admin info from database
+        # Get admin info
         admin_id = ObjectId(admin_user["_id"])
         admin_doc = db["users"].find_one({"_id": admin_id})
         
@@ -178,18 +177,17 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
                 "error": "Admin user not found"
             }
         
-        # Store email in reviewed_by instead of ObjectId
         admin_email = admin_doc.get("email", "unknown@admin.com")
         
         # Prepare update data
         update_data = {
             "status": new_status,
             "reviewed_at": datetime.now(timezone.utc),
-            "reviewed_by": admin_email,  # Changed from ObjectId to email
+            "reviewed_by": admin_email,
             "admin_notes": admin_notes.strip()
         }
         
-         # Update the submission
+        # Update the submission
         result = db["document_submissions"].update_one(
             {"_id": ObjectId(submission_id)},
             {"$set": update_data}
@@ -204,23 +202,32 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
         logger.info(f"Submission {submission_id} updated to '{new_status}' by {admin_email}")
         
         # Send push notification to user
-        user_id = str(submission["user_id"])
-        notification_title = f"Document {new_status.title()}"
-        notification_body = f"Your document submission has been {new_status}."
+        user = db["users"].find_one({"_id": submission["user_id"]})
         
-        try:
-            send_push_notification_to_user(
-                user_id=user_id,
-                title=notification_title,
-                message=notification_body,
-                data={
-                    "submission_id": submission_id,
-                    "status": new_status,
-                    "type": "document_status_update"
-                }
+        if user and user.get("fcm_token"):
+            # Get document title
+            doc_title = submission.get("base_document_title", "Document")
+            
+            # Customize message based on status
+            if new_status == "approved":
+                title = "Document Approved ✅"
+                body = f"Your '{doc_title}' has been approved!"
+            elif new_status == "rejected":
+                title = "Document Rejected ❌"
+                body = f"Your '{doc_title}' was rejected. {admin_notes}"
+            else:
+                title = "Document Needs Review 🔍"
+                body = f"Your '{doc_title}' needs review. {admin_notes}"
+            
+            # Send notification
+            send_notification(
+                fcm_token=user["fcm_token"],
+                title=title,
+                body=body
             )
-        except Exception as notif_error:
-            logger.error(f"Failed to send notification: {str(notif_error)}")
+            logger.info(f"Notification sent to user {user.get('email')}")
+        else:
+            logger.warning(f"No FCM token found for user {submission['user_id']}")
         
         return {
             "success": True,
@@ -228,7 +235,7 @@ def update_submission_status(submission_id: str, new_status: str, admin_notes: s
             "updated_data": {
                 "status": new_status,
                 "reviewed_at": update_data["reviewed_at"].isoformat(),
-                "reviewed_by": admin_email,  
+                "reviewed_by": admin_email,
                 "admin_notes": admin_notes.strip()
             }
         }
